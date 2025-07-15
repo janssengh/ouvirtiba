@@ -1,1 +1,25 @@
-venv/ 
+(
+echo venv/
+echo .idea/
+echo .vscode/
+echo __pycache__/
+echo *.py[cod]
+echo *$py.class
+echo *.log
+echo *.tmp
+echo *.swp
+echo .DS_Store
+echo Thumbs.db
+echo ehthumbs.db
+echo desktop.ini
+echo *.pyc
+echo *.pyo
+echo *.pyd
+echo build/
+echo dist/
+echo *.egg-info/
+echo .eggs/
+echo *.sqlite3
+echo *.db
+) > .gitignore
+.idea/ 
