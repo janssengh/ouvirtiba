@@ -1,0 +1,12 @@
+@echo off
+cd C:\Roeland\Roeland\Projetos\Site\ouvirtiba
+rmdir /s /q .git
+git init
+git add .
+git config --global user.name "Roeland"
+git config --global user.email "roeland.e.janssen@gmail.com"
+git commit -m "Primeiro commit do projeto Ouvirtiba"
+git branch -M main
+git remote add origin https://github.com/janssengh/ouvirtiba.git
+git push -u origin main
+pause

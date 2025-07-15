@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<!-- Formulário de Contato -->
+<div class="container my-5">
+  <div class="row g-4">
+
+    <!-- Formulário de Contato (esquerda) -->
+    <div class="col-md-6">
+      <h2 class="mb-4 text-center text-md-start">Fale Conosco</h2>
+      <form>
+        <div class="mb-3">
+          <label for="nome" class="form-label">Nome completo</label>
+          <input type="text" class="form-control" id="nome" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">E-mail</label>
+          <input type="email" class="form-control" id="email" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="mensagem" class="form-label">Mensagem</label>
+          <textarea class="form-control" id="mensagem" rows="5" required></textarea>
+        </div>
+
+        <button type="submit" class="btn custom-btn">Enviar</button>
+      </form>
+    </div>
+
+    <!-- Mapa Google (direita) -->
+    <div class="col-md-6">
+      <h4  class="mb-3 text-center text-md-start">Localização Clínica – Makasi Araquari / SC</h4>
+      <div class="ratio ratio-4x3">
+        <iframe 
+          src="https://www.google.com/maps?q=R.+Bom+Jesus,+228+-+Centro,+Araquari+-+SC,+89245-000&output=embed" 
+          width="100%" 
+          height="100%" 
+          style="border:0;" 
+          allowfullscreen="" 
+          loading="lazy" 
+          referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock content %}

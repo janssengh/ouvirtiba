@@ -1,0 +1,68 @@
+1-Crie um arquivo requirements.txt:
+  pip freeze > requirements.txt
+
+2-Crie um arquivo Procfile com:
+  web: gunicorn app:app
+
+3-Suba seu projeto para o GitHub
+  No terminal:
+
+  git init
+  git add .
+  git commit -m "Primeiro commit"
+  git branch -M main
+  git remote add origin https://github.com/janssengh/ouvirtiba.git
+  git remote set-url origin https://github.com/janssengh/ouvirtiba.git
+  git push -u origin main
+
+1. Abra o terminal (cmd):
+Pressione Win + R, digite cmd e dê Enter.
+
+2. Vá até a pasta do seu projeto:
+cd C:\Roeland\Roeland\Projetos\Site\ouvirtiba
+
+3. (Opcional) Apague o repositório anterior se estiver com problemas:
+rmdir /s /q .git
+
+4. Inicie um novo repositório Git:
+git init
+
+5. Adicione todos os arquivos:
+git add .
+
+6. Configure seu nome e e-mail (se ainda não fez):
+git config --global user.name "Roeland"
+git config --global user.email "roeland.e.janssen@gmail.com"
+
+7. Crie o commit inicial:
+git commit -m "Primeiro commit do projeto Ouvirtiba"
+
+8. Renomeie a branch principal para main:
+git branch -M main
+
+9. Adicione o repositório remoto:
+git remote add origin https://github.com/janssengh/ouvirtiba.git
+
+10. Envie para o GitHub:
+git push -u origin main
+
+
+📁 1. Criar o arquivo .gitignore e adicionar venv/
+✅ Método fácil com terminal:
+Abra o terminal (cmd):
+
+Pressione Win + R, digite cmd, pressione Enter.
+
+Vá até a pasta do seu projeto:
+
+cmd
+Copiar
+Editar
+cd C:\Roeland\Roeland\Projetos\Site\ouvirtiba
+Crie o arquivo .gitignore e adicione a linha venv/:
+
+cmd
+Copiar
+Editar
+echo venv/ > .gitignore
+💡 Isso cria o arquivo .gitignore contendo apenas a linha venv/.
