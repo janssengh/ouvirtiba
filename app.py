@@ -1,6 +1,13 @@
 from flask import Flask, render_template, request, redirect, flash
 import smtplib
+import os
 from email.mime.text import MIMEText
+from dotenv import load_dotenv
+load_dotenv()
+
+email = os.getenv('EMAIL')
+senha = os.getenv('SENHA')
+
 
 app = Flask(__name__)
 app.secret_key = 'roeland'  # Necessária para flash()
@@ -21,19 +28,19 @@ def produtos():
 def contato():
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
-        email = request.form.get('email', '').strip()
+        email_form = request.form.get('email', '').strip()
         telefone = request.form.get('telefone', '').strip()
         mensagem = request.form.get('mensagem', '').strip()
 
         try:
-            corpo_email = f"Nome: {nome}\nE-mail: {email}\nTelefone: {telefone}\n\nMensagem:\n{mensagem}"
+            corpo_email = f"Nome: {nome}\nE-mail: {email_form}\nTelefone: {telefone}\n\nMensagem:\n{mensagem}"
             msg = MIMEText(corpo_email)
             msg['Subject'] = 'Formulário de Contato - Site'
-            msg['From'] = email
+            msg['From'] = email_form
             msg['To'] = 'roeland.e.janssen@gmail.com'
 
             with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-                smtp.login('roeland.e.janssen@gmail.com', 'gscg rvmq lhot zgns')
+                smtp.login(email, senha)
                 smtp.send_message(msg)
 
             flash('Mensagem enviada com sucesso, em breve entraremos em contato !', 'sucesso')
@@ -44,6 +51,7 @@ def contato():
         return render_template('contato.html')
 
     return render_template('contato.html')
+
 
 @app.route('/blog')
 def blog():
