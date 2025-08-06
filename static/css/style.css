@@ -135,7 +135,11 @@
   transform: scale(0.98);
 }
 
-
+/* Tamanho do card dos produtos */
+.card-img-top {
+  height: 250px;
+  object-fit: cover;
+}
 
 .custom-footer img {
   max-height: 40px;
