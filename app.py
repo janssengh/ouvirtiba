@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, flash, send_from_directory
 import smtplib
 import os
 from email.mime.text import MIMEText
@@ -11,6 +11,14 @@ senha = os.getenv('SENHA')
 
 app = Flask(__name__)
 app.secret_key = 'roeland'  # Necessária para flash()
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory('static', 'robots.txt')
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
 
 @app.route('/')
 def home():
@@ -56,6 +64,18 @@ def contato():
 @app.route('/blog')
 def blog():
     return render_template('blog.html')
+
+@app.route('/blog/dicas-adaptacao-aparelho')
+def dicas_adaptacao():
+    return render_template('dicas-adaptacao-aparelho.html')
+
+@app.route('/blog/uso-aparelhos-auditivos')
+def uso_aparelhos_auditivos():
+    return render_template('uso-aparelhos-auditivos.html')
+
+@app.route('/blog/como-identificar-perda-auditiva')
+def como_identificar_perda_auditiva():
+    return render_template('como-identificar-perda-auditiva.html')
 
 @app.route('/politica')
 def politica():
