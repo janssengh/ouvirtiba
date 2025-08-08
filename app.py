@@ -12,7 +12,10 @@ senha = os.getenv('SENHA')
 app = Flask(__name__)
 app.secret_key = 'roeland'  # Necessária para flash()
 
-from flask import send_from_directory
+
+@app.route('/hello-world')
+def redirect_hello():
+    return redirect("/", code=301)
 
 @app.route('/googlec4c2cad7f9951bca.html')
 def google_verify():
