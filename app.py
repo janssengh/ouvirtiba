@@ -14,9 +14,9 @@ app.secret_key = 'roeland'  # Necessária para flash()
 
 from flask import send_from_directory
 
-@app.route('/googleXXXXXXXXXXXX.html')
+@app.route('/googlec4c2cad7f9951bca.html')
 def google_verify():
-    return send_from_directory('static', 'googleXXXXXXXXXXXX.html')
+    return send_from_directory('static', 'googlec4c2cad7f9951bca.html')
 
 @app.route('/robots.txt')
 def robots():
