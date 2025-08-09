@@ -29,7 +29,7 @@ def robots():
 def sitemap():
     with open('static/sitemap.xml', 'r', encoding='utf-8') as f:
         xml_content = f.read()
-    return xml_content, 200, {'Content-Type': 'application/xml'}ggit
+    return xml_content, 200, {'Content-Type': 'application/xml'} 
 
 @app.route('/')
 def home():
