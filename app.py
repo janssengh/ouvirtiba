@@ -27,7 +27,9 @@ def robots():
 
 @app.route('/sitemap.xml')
 def sitemap():
-    return send_from_directory('static', 'sitemap.xml')
+    with open('static/sitemap.xml', 'r', encoding='utf-8') as f:
+        xml_content = f.read()
+    return xml_content, 200, {'Content-Type': 'application/xml'}ggit
 
 @app.route('/')
 def home():
