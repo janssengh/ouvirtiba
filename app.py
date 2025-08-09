@@ -22,8 +22,10 @@ def google_verify():
     return "google-site-verification: googlec4c2cad7f9951bca.html", 200, {'Content-Type': 'text/plain'}
 
 @app.route('/robots.txt')
-def robots():
-    return send_from_directory('static', 'robots.txt')
+def robots_txt():
+    with open('static/robots.txt', 'r', encoding='utf-8') as f:
+        content = f.read()
+    return content, 200, {'Content-Type': 'text/plain'}
 
 @app.route('/sitemap.xml')
 def sitemap():
