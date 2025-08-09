@@ -19,7 +19,7 @@ def redirect_hello():
 
 @app.route('/googlec4c2cad7f9951bca.html')
 def google_verify():
-    return send_from_directory('static', 'googlec4c2cad7f9951bca.html')
+    return "google-site-verification: googlec4c2cad7f9951bca.html", 200, {'Content-Type': 'text/plain'}
 
 @app.route('/robots.txt')
 def robots():
@@ -31,15 +31,15 @@ def sitemap():
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('index.html', description="Ouvirtiba Aparelhos Auditivos – Alta tecnologia Rexton e atendimento em Araquari.")
 
 @app.route('/sobre')
 def sobre():
-    return render_template('sobre.html')
+    return render_template('sobre.html', description="Conheça a Ouvirtiba e nossa parceria com a Clínica Makasi para oferecer aparelhos auditivos Rexton.")
 
 @app.route('/produtos')
 def produtos():
-    return render_template('produtos.html')
+    return render_template('produtos.html', description="Confira nossos aparelhos auditivos Rexton, fala mais nítida e redução automático de ruídos e conectividade com celular")
 
 @app.route('/contato', methods=['GET', 'POST'])
 def contato():
@@ -65,30 +65,30 @@ def contato():
             print(e)
             flash('Erro ao enviar mensagem. Tente novamente.', 'erro')
 
-        return render_template('contato.html')
+        return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
 
-    return render_template('contato.html')
+    return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
 
 
 @app.route('/blog')
 def blog():
-    return render_template('blog.html')
+    return render_template('blog.html', description="Dicas no Blog Ouvirtiba, para adaptação e uso de aparelhos auditivos, e como identificar a perda auditiva")
 
 @app.route('/blog/dicas-adaptacao-aparelho')
 def dicas_adaptacao():
-    return render_template('dicas-adaptacao-aparelho.html')
+    return render_template('dicas-adaptacao-aparelho.html', description="Dicas para adaptação de aparelhos auditivos")
 
 @app.route('/blog/uso-aparelhos-auditivos')
 def uso_aparelhos_auditivos():
-    return render_template('uso-aparelhos-auditivos.html')
+    return render_template('uso-aparelhos-auditivos.html', description="Benefícios para usar aparelhos auditivos")
 
 @app.route('/blog/como-identificar-perda-auditiva')
 def como_identificar_perda_auditiva():
-    return render_template('como-identificar-perda-auditiva.html')
+    return render_template('como-identificar-perda-auditiva.html', description="Como identificar a perda auditiva")
 
 @app.route('/politica')
 def politica():
-    return render_template('politica.html')
+    return render_template('politica.html', description="A Ouvirtiba Aparelhos Auditivos respeita a sua privacidade e está comprometida em proteger seus dados pessoais.")
 
 if __name__ == '__main__':
     import os

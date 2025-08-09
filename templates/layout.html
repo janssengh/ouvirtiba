@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>{% block title %}Ouvirtiba{% endblock %}</title>
-  <meta name="description" content="{% block description %}Revenda de aparelhos auditivos em Araquari com tecnologia Rexton.{% endblock %}">
+  <meta name="description" content="{{ description if description else 'Ouvirtiba Aparelhos Auditivos em Araquari com tecnologia Rexton.' }}">
 
   <link rel="canonical" href="{{ request.url }}">  
   <link rel="icon" type="image/png" sizes="32x32" href="/static/img/hearing_32x32.png">
