@@ -1,18 +1,41 @@
-from flask import Flask, render_template, request, redirect, flash, send_from_directory
-import smtplib
 import os
+import smtplib
 from email.mime.text import MIMEText
+from flask import Flask, render_template, request, redirect, flash
 from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente do .env (apenas local)
 load_dotenv()
 
+# Variáveis de e-mail
 email = os.getenv('EMAIL')
 senha = os.getenv('SENHA')
 
-
 app = Flask(__name__)
-app.secret_key = 'roeland'  # Necessária para flash()
 
+# ------------------
+# CONFIGURAÇÕES
+# ------------------
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'roeland')
 
+# Banco de dados: PlanetScale (Render) ou MySQL local
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL',
+    'mysql+pymysql://root:roeland@localhost:3306/ouvitech'
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Importar extensões
+from admin import admin_bp, db, bcrypt, migrate
+app.register_blueprint(admin_bp)
+
+db.init_app(app)
+bcrypt.init_app(app)
+migrate.init_app(app, db)
+
+# ------------------
+# ROTAS
+# ------------------
 @app.route('/hello-world')
 def redirect_hello():
     return redirect("/", code=301)
@@ -24,14 +47,12 @@ def google_verify():
 @app.route('/robots.txt')
 def robots_txt():
     with open('static/robots.txt', 'r', encoding='utf-8') as f:
-        content = f.read()
-    return content, 200, {'Content-Type': 'text/plain'}
+        return f.read(), 200, {'Content-Type': 'text/plain'}
 
 @app.route('/sitemap.xml')
 def sitemap():
     with open('static/sitemap.xml', 'r', encoding='utf-8') as f:
-        xml_content = f.read()
-    return xml_content, 200, {'Content-Type': 'application/xml'} 
+        return f.read(), 200, {'Content-Type': 'application/xml'}
 
 @app.route('/')
 def home():
@@ -43,7 +64,7 @@ def sobre():
 
 @app.route('/produtos')
 def produtos():
-    return render_template('produtos.html', description="Confira nossos aparelhos auditivos Rexton, fala mais nítida e redução automático de ruídos e conectividade com celular")
+    return render_template('produtos.html', description="Confira nossos aparelhos auditivos Rexton, fala mais nítida, redução automática de ruídos e conectividade com celular")
 
 @app.route('/contato', methods=['GET', 'POST'])
 def contato():
@@ -69,14 +90,11 @@ def contato():
             print(e)
             flash('Erro ao enviar mensagem. Tente novamente.', 'erro')
 
-        return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
-
     return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
-
 
 @app.route('/blog')
 def blog():
-    return render_template('blog.html', description="Dicas no Blog Ouvirtiba, para adaptação e uso de aparelhos auditivos, e como identificar a perda auditiva")
+    return render_template('blog.html', description="Dicas no Blog Ouvirtiba para adaptação e uso de aparelhos auditivos, e como identificar a perda auditiva")
 
 @app.route('/blog/dicas-adaptacao-aparelho')
 def dicas_adaptacao():
@@ -84,7 +102,7 @@ def dicas_adaptacao():
 
 @app.route('/blog/uso-aparelhos-auditivos')
 def uso_aparelhos_auditivos():
-    return render_template('uso-aparelhos-auditivos.html', description="Benefícios para usar aparelhos auditivos")
+    return render_template('uso-aparelhos-auditivos.html', description="Benefícios de usar aparelhos auditivos")
 
 @app.route('/blog/como-identificar-perda-auditiva')
 def como_identificar_perda_auditiva():
@@ -94,7 +112,11 @@ def como_identificar_perda_auditiva():
 def politica():
     return render_template('politica.html', description="A Ouvirtiba Aparelhos Auditivos respeita a sua privacidade e está comprometida em proteger seus dados pessoais.")
 
+# ------------------
+# MAIN
+# ------------------
 if __name__ == '__main__':
-    import os
+    with app.app_context():
+        db.create_all()
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port)
