@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/" %}
+
+{% block title %}Ouvirtiba Aparelhos Auditivos | Tecnologia Rexton em Araquari{% endblock %}
+{% block description %}Aparelhos auditivos de alta tecnologia com conectividade celular, conforto e atendimento especializado na Clínica Makasi em Araquari - SC.{% endblock %}
+
+{% block content %}
+
+<h1 class="text-center my-4">
+  Aparelhos Auditivos em Araquari - Tecnologia Rexton
+</h1>
+
+<!-- Carrossel -->
+<div id="carouselOuvirtiba" class="carousel slide" data-bs-ride="carousel">
+  <div class="carousel-inner">
+
+    <!-- Slide 1 -->
+    <div class="carousel-item active" data-bs-interval="10000">
+      <div class="row g-0 align-items-stretch">
+        <!-- Imagem grande -->
+        <div class="col-md-8">
+          <img src="/static/img/slide1_1200x800.jpg" class="d-block w-100 carousel-img" alt="Não perca uma palavra em família! (Aparelhos Auditivos Rexton)">
+        </div>
+
+        <!-- Dois blocos menores à direita -->
+        <div class="col-md-4 d-flex flex-column justify-content-between p-3">
+          <div class="text-center">
+            <h6 class="mb-1 text-success">Dificuldade em compreender as palavras?</h6>
+            <p class="small text-muted mb-0">Tecnologia de ponta, o melhor aparelho auditivo no mercado!</p>
+          </div>
+          <div class="mb-3 text-center">
+            <img src="/static/img/2025-06-10FD-01.png" class="img-fluid mb-2 rounded shadow-sm" alt="Tops de linha (Aparelhos Auditivos Rexton)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="carousel-item" data-bs-interval="10000">
+      <div class="row g-0 align-items-stretch">
+        <div class="col-md-8">
+          <img src="/static/img/slide2_1200x800.jpg" class="d-block w-100 carousel-img" alt="Participe em família, ouça sem perder uma palavra (Aparelhos Auditivos Rexton)">
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-between p-3">
+          <div class="text-center">
+            <h6 class="mb-1 text-success">Busca soluções para ouvir mais sem perder uma palavra?</h6>
+            <p class="small text-muted mb-0">Programação e adaptação por fonoaudióloga especializada!</p>
+          </div>
+          <div class="mb-3 text-center">
+            <img src="/static/img/2025-06-11FD-01.png" class="img-fluid mb-2 rounded shadow-sm" alt="Ouça cada detalhe, participe de tudo (Aparelhos Auditivos Rexton)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="carousel-item" data-bs-interval="10000">
+      <div class="row g-0 align-items-stretch">
+        <div class="col-md-8">
+          <img src="/static/img/slide3_1200x800.jpg" class="d-block w-100 carousel-img" alt="Tecnologia alemã, fala mais nítida e redução automática de ruídos (Aparelhos Auditivos Rexton)">
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-between p-3">
+          <div class="text-center">
+            <h6 class="mb-1 text-success">Está buscando aparelhos auditivos, com preços menores e mais qualidade ?</h6>
+            <p class="small text-muted mb-0">Na Clínica Makasi você encontra preço e qualidade!</p>
+          </div>
+          <div class="mb-3 text-center">
+            <img src="/static/img/2025-05-20CS(2).png" class="img-fluid mb-2 rounded shadow-sm" alt="Principais vantagens: chamadas nítidas, consexão bluetoooth, tecnologia ASHA (Aparelhos Auditivos Rexton)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <button class="carousel-control-prev" type="button" data-bs-target="#carouselOuvirtiba" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon"></span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#carouselOuvirtiba" data-bs-slide="next">
+    <span class="carousel-control-next-icon"></span>
+  </button>
+</div>
+
+{% endblock content %}

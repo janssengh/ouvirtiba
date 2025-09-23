@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/blog" %}
+
+{% block content %}
+<!-- Menu (já com blog incluso) -->
+<!-- ... [mesma estrutura de navegação com item Blog] ... -->
+<!-- Conteúdo do Blog -->
+<div class="container my-5">
+ <h1 class="mb-4 text-center">
+  Blog Ouvirtiba
+ </h1>
+ <!-- Post 1 -->
+ <div class="mb-5">
+  <h2>
+   1. Como identificar a perda auditiva no dia a dia
+  </h2>
+  <p>
+   A perda auditiva pode ser gradual e silenciosa. Se voc&ecirc; percebe que aumenta o volume da TV com frequ&ecirc;ncia, pede para repetirem o que foi dito ou sente dificuldade em acompanhar conversas em ambientes ruidosos, esses podem ser sinais iniciais. Reconhecer esses sintomas cedo &eacute; essencial para buscar ajuda especializada.
+  </p>
+  <p>
+   Quer saber mais?
+   <a href="/contato">
+    Fale com um especialista
+   </a>
+   ou
+   <a href="/blog/como-identificar-perda-auditiva">
+    entenda os primeiros sinais de perda auditiva
+   </a>
+   .
+  </p>
+ </div>
+ <!-- Post 2 -->
+ <div class="mb-5">
+  <h2>
+   2. Por que &eacute; importante usar aparelhos auditivos
+  </h2>
+  <p>
+   Usar aparelhos auditivos n&atilde;o &eacute; apenas uma quest&atilde;o de ouvir melhor. Eles melhoram a qualidade de vida, mant&ecirc;m voc&ecirc; ativo socialmente e ajudam a prevenir o isolamento, a depress&atilde;o e at&eacute; mesmo o decl&iacute;nio cognitivo. A tecnologia atual oferece conforto, discri&ccedil;&atilde;o e excelente qualidade sonora.
+  </p>
+  <p>
+   Quer saber mais?
+   <a href="/contato">
+    Fale com um especialista
+   </a>
+   ou
+   <a href="/blog/uso-aparelhos-auditivos">
+    leia mais sobre os benef&iacute;cios dos aparelhos
+   </a>
+   .
+  </p>
+ </div>
+ <!-- Post 3 -->
+ <div class="mb-5">
+  <h2>
+   3. Dicas para se adaptar melhor ao uso de aparelhos auditivos
+  </h2>
+  <p>
+   A adapta&ccedil;&atilde;o pode levar alguns dias. Comece usando os aparelhos em casa, em ambientes calmos. V&aacute; aumentando o tempo de uso e testando em diferentes situa&ccedil;&otilde;es. Conte com o acompanhamento de uma fonoaudi&oacute;loga para ajustar o aparelho conforme suas necessidades. A pr&aacute;tica leva &agrave; naturalidade.
+  </p>
+  <p>
+   Quer saber mais?
+   <a href="/contato">
+    Agende uma avalia&ccedil;&atilde;o
+   </a>
+   ou
+   <a href="/blog/dicas-adaptacao-aparelho">
+    veja nossas dicas de adapta&ccedil;&atilde;o
+   </a>
+   .
+  </p>
+ </div>
+</div>
+{% endblock content %}
+
+{% block title %}Blog Ouvirtiba | Sa&uacute;de Auditiva, Aparelhos e Dicas{% endblock %}
+{% block description %}Confira artigos sobre perda auditiva, uso de aparelhos auditivos e dicas pr&aacute;ticas para sua sa&uacute;de auditiva no Blog Ouvirtiba.{% endblock %}
+
+{% block scripts %}
+<script type="application/ld+json">
+ {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "name": "Blog Ouvirtiba",
+  "description": "Dicas e informações sobre saúde auditiva, perda auditiva e aparelhos auditivos.",
+  "url": "https://www.ouvirtiba.com.br/blog",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Ouvirtiba Aparelhos Auditivos",
+    "url": "https://www.ouvirtiba.com.br"
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,4 @@
+*** Alterações dia 01/08/2025 - 17:53 ***
+Alterei o número do telefone whatsapp no arquivo "layout.html"
+Alterei o arquivo app.py para incluir o dotenv para segurança envio e-mail 
+Crie o arquivo .env com e-mail e senha

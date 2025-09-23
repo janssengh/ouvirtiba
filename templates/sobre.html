@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/sobre" %}
+
+{% block title %}Sobre a Ouvirtiba | Aparelhos Auditivos{% endblock %}
+{% block description %}Conheça a história da Ouvirtiba, especialista em soluções auditivas com tecnologia Rexton e atendimento humanizado na Clínica Makasi em Araquari, SC.{% endblock %}
+
+{% block content %}
+
+<!-- Bloco de conteúdo com três colunas lado a lado -->
+<div class="container my-5">
+  <div class="row g-4 align-items-center">
+
+    <!-- Texto -->
+    <div class="col-lg-4 d-flex align-items-center">
+      <div>
+        <h2 class="mb-3">Sobre a Ouvirtiba</h2>
+        <p>A Ouvirtiba Aparelhos Auditivos é especializada em soluções auditivas modernas e acessíveis. Atuamos com tecnologia de ponta, oferecendo aparelhos auditivos da renomada marca Rexton, reconhecidos pela qualidade, conectividade via Bluetooth e conforto no uso diário.</p>
+        <p>Nosso atendimento é feito em parceria com a Clínica Makasi, em Araquari, SC. Aqui, você encontra atendimento com fonoaudióloga especializada e o compromisso em devolver a qualidade de vida através da audição.</p>
+      </div>
+    </div>
+
+    <!-- Vídeo -->
+    <div class="col-lg-4 d-flex align-items-center">
+      <div class="w-100">
+        <h4 class="mb-3 text-slide text-center">Aparelhos discretos, leves e praticamente imperceptíveis</h4>
+        <div class="ratio ratio-16x9">
+          <iframe 
+            src="https://www.youtube.com/embed/RuiJv6la6P8" 
+            title="Aparelhos Auditivos Discretos (Aparelhos Auditivos Rexton)"
+            frameborder="0" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- Imagem promocional -->
+    <div class="col-md-4 text-center">
+      <img src="{{ url_for('static', filename='img/2025-08-03FD-01.png') }}" 
+           alt="Ouça melhor hoje, pagando menos (Aparelhos Auditivos Rexton)" 
+           class="img-fluid rounded shadow-sm" 
+           style="max-width: 100%; max-height: 300px; object-fit: contain;">
+    </div>
+  </div>
+</div>
+
+{% endblock content %}

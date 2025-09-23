@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>{% block title %}Ouvirtiba{% endblock %}</title>
+  <meta name="description" content="{{ description if description else 'Ouvirtiba Aparelhos Auditivos em Araquari com tecnologia Rexton.' }}">
+
+  <!-- Canonical dinâmico -->
+  <link rel="canonical" href="{{ canonical if canonical else 'https://www.ouvirtiba.com.br/' }}">  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/img/hearing_32x32.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- estilo fontawesome para o ícone do whatsapp -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<!-- WhatsApp Flutuante -->
+<a href="https://wa.me/5547996576560"
+    class="whatsapp-float"
+    target="_blank"
+    title="Fale conosco no WhatsApp">
+<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+        alt="WhatsApp Ouvirtiba Aaparelhos Auditivos" width="60" height="60">
+</a>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark custom-navbar">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+                <img src="/static/img/logo_ouvirtiba_totalmente_branco.png" alt="Logo Ouvirtiba Aparelhos Auditivos" height="50">
+                <img src="/static/img/logo_makasi.png" alt="Logo Makasi Aparelhos Auditivos" height="60">
+            </a>
+
+            <!-- Slogan -->
+            <div class="d-none d-lg-block text-center flex-grow-1">
+              <span class="slogan">Redescubra o Poder do Som!</span>
+          </div>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal"
+                    aria-controls="menuPrincipal" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="menuPrincipal">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                  <a class="nav-link active" href="{{url_for('home')}}">Home</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{url_for('sobre')}}">Sobre</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{url_for('produtos')}}">Produtos</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{url_for('contato')}}">Contato</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{{url_for('blog')}}">Blog</a></li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{url_for('politica')}}">Política de Privacidade</a>
+                </li>
+            </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="custom-banner text-center py-2">
+        <strong>Atendimento na Clínica Makasi:</strong>
+        R. Bom Jesus, 228 - Centro - Araquari - SC, 89245-000
+    </div>
+
+    {% block content %}
+
+    {% endblock content %}
+
+    <!-- Script JS -->
+    <script src="/static/js/script.js"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Rodapé -->
+    <footer class="text-white py-3 mt-0 custom-footer">
+    <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start">
+
+        <!-- Logo da Rexton à esquerda -->
+        <div class="mb-3 mb-md-0">
+        <img src="/static/img/logo_rexton.png" alt="Logo Rexton" height="40">
+        </div>
+
+        <!-- Texto de copyright centralizado -->
+        <div class="mb-3 mb-md-0">
+        <p class="mb-0">&copy; 2025 Ouvirtiba Aparelhos Auditivos. Todos os direitos reservados.</p>
+        <p class="mb-0">Atendimento em parceria com a Clínica Makasi.</p>
+        </div>
+
+        <!-- Redes sociais à direita -->
+        <div>
+        <a href="https://www.instagram.com/ouvirtiba.joinville/" target="_blank" class="text-white me-3" title="Instagram">
+            <i class="bi bi-instagram" style="font-size: 1.5rem;"></i>
+        </a>
+        <a href="https://www.facebook.com/ouvirtiba.joinville" target="_blank" class="text-white" title="Facebook">
+            <i class="bi bi-facebook" style="font-size: 1.5rem;"></i>
+        </a>
+        </div>
+
+    </div>
+    </footer>
+</body>
+
+</html>

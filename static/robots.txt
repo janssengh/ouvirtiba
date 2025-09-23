@@ -1,0 +1,6 @@
+# Permitir acesso a todo o site
+User-agent: *
+Disallow:
+
+# Sitemap para indexação estruturada
+Sitemap: https://ouvirtiba.com.br/sitemap.xml

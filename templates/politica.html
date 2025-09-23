@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/politica" %}
+
+{% block title %}Política de Privacidade | Ouvirtiba Aparelhos Auditivos{% endblock %}
+{% block description %}Saiba como a Ouvirtiba coleta, armazena e protege seus dados pessoais em conformidade com a LGPD. Transparência e segurança para você.{% endblock %}
+
+{% block content %}
+
+<!-- Conteúdo -->
+<div class="container my-5">
+  <h1 class="mb-4 text-center">Política de Privacidade</h1>
+  <p><strong>A Ouvirtiba Aparelhos Auditivos respeita a sua privacidade e está comprometida em proteger seus dados pessoais.</strong></p>
+
+  <h2>1. Coleta de Dados</h2>
+  <p>Coletamos informações pessoais, como nome, telefone, e-mail, cidade e outras informações que você fornece voluntariamente em nossos formulários de contato e campanhas de marketing.</p>
+
+  <h2>2. Finalidade da Coleta</h2>
+  <p>Utilizamos seus dados exclusivamente para as campanhas relacionadas a aparelhos auditivos, para entrar em contato, oferecer nossos produtos e serviços, responder suas dúvidas e enviar comunicações pertinentes.</p>
+
+  <h2>3. Armazenamento e Segurança</h2>
+  <p>Seus dados são armazenados de forma segura pelo prazo de 12 (doze) meses e não serão compartilhados com terceiros sem sua autorização, exceto quando exigido por lei.</p>
+
+  <h2>4. Direitos do Usuário</h2>
+  <p>Você tem o direito de acessar, corrigir, atualizar ou solicitar a exclusão dos seus dados a qualquer momento. Para isso, basta entrar em contato conosco pelo formulário. <a href="/contato">Clique aqui</a>.</p>
+
+  <h2>5. Consentimento</h2>
+  <p>Ao fornecer seus dados, você concorda com esta política e autoriza o uso das informações conforme descrito.</p>
+
+  <h2>6. Alterações na Política</h2>
+  <p>Podemos atualizar esta política periodicamente. Recomendamos que você a consulte regularmente para se manter informado.</p>
+</div>
+
+{% endblock content %}
+
+{% block scripts %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Política de Privacidade",
+  "description": "Saiba como a Ouvirtiba coleta, armazena e protege seus dados pessoais em conformidade com a LGPD.",
+  "url": "https://www.ouvirtiba.com.br/politica",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Ouvirtiba Aparelhos Auditivos",
+    "url": "https://www.ouvirtiba.com.br"
+  }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/produtos" %}
+
+{% block title %}Aparelhos Auditivos | Ouvirtiba{% endblock %}
+{% block description %}Conheça os modelos CIC, RIC e BTE da Rexton com conectividade, conforto e potência auditiva. Atendimento na Clínica Makasi em Araquari - SC.{% endblock %}
+
+{% block content %}
+
+
+<!-- Produtos -->
+<div class="container mt-5">
+  <h1 class="mb-4 text-center">Nossos Aparelhos Auditivos</h1>
+  <div class="row text-center">
+
+    <div class="col-md-4 mb-4">
+      <div class="card">
+        <img src="/static/img/produto1.jpg" class="card-img-top" alt="Aparelhos Auditivos CIC Rexton">
+        <div class="card-body">
+          <h5 class="card-title">Modelo CIC Invisível</h5>
+          <p class="card-text">Discrição total, conforto e tecnologia avançada para quem busca um aparelho praticamente imperceptível.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+      <div class="card">
+        <img src="/static/img/produto2.png" class="card-img-top" alt="Aparelhos Auditivos RIC Rexton">
+        <div class="card-body">
+          <h5 class="card-title">Modelo RIC com Bluetooth</h5>
+          <p class="card-text">Conectividade com celulares Android e iPhone via protocolo ASHA. Ideal para quem busca qualidade sonora e praticidade.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+      <div class="card">
+        <img src="/static/img/produto3.png" class="card-img-top" alt="Aparelhos Auditivos BTE Rexton">
+        <div class="card-body">
+          <h5 class="card-title">Modelo BTE, Potência, Conforto e Conectividade</h5>
+          <p class="card-text">Solução potente, discreta e confortável para a perda auditiva de grau severo.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock content %}
+
