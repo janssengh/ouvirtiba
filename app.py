@@ -1,4 +1,8 @@
 from flask import Flask, render_template, request, redirect, flash, send_from_directory
+
+# Inclusão banco de dados POSTGRESQL
+from flask_sqlalchemy import SQLAlchemy 
+
 import smtplib
 import os
 from email.mime.text import MIMEText
@@ -14,8 +18,16 @@ app.secret_key = 'roeland'  # Necessária para flash()
 
 ########################## Inclusão com banco de dados ##########################
 # 🔹 Configurar banco PostgreSQL (Supabase ou local)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Exemplo: postgresql://user:pass@host/dbname
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('roeland', 'minha_chave_padrao')
+
+# === Inicializando SQLAlchemy ===
+db = SQLAlchemy(app)  # já inicializa com o app, sem precisar do db.init_app
+
+# incluso anterior
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Exemplo: postgresql://user:pass@host/dbname
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 🔹 Importar e inicializar banco e módulo admin
 from admin.models import db
