@@ -20,14 +20,7 @@ app.secret_key = 'roeland'  # Necessária para flash()
 # 🔹 Configurar banco PostgreSQL (Supabase ou local)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('roeland', 'minha_chave_padrao')
-
-# === Inicializando SQLAlchemy ===
-db = SQLAlchemy(app)  # já inicializa com o app, sem precisar do db.init_app
-
-# incluso anterior
-#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Exemplo: postgresql://user:pass@host/dbname
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minha_chave_padrao')
 
 # 🔹 Importar e inicializar banco e módulo admin
 from admin.models import db
