@@ -12,6 +12,19 @@ senha = os.getenv('SENHA')
 app = Flask(__name__)
 app.secret_key = 'roeland'  # Necessária para flash()
 
+########################## Inclusão com banco de dados ##########################
+# 🔹 Configurar banco PostgreSQL (Supabase ou local)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Exemplo: postgresql://user:pass@host/dbname
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 🔹 Importar e inicializar banco e módulo admin
+from admin.models import db
+db.init_app(app)
+
+from admin import init_app as init_admin
+init_admin(app)
+######################## Término Inclusão com banco de dados #####################
+
 
 @app.route('/hello-world')
 def redirect_hello():

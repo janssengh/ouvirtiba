@@ -2,3 +2,6 @@
 Alterei o número do telefone whatsapp no arquivo "layout.html"
 Alterei o arquivo app.py para incluir o dotenv para segurança envio e-mail 
 Crie o arquivo .env com e-mail e senha
+
+Criei Flask-SQLAlchemy em 04/10/2025
+pip install Flask Flask-SQLAlchemy psycopg2-binary python-dotenv
