@@ -24,9 +24,10 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minha_chave_padrao')
 
 # 🔹 Importar e inicializar banco e módulo admin
 from admin.models import db
+from admin import init_app as init_admin
+
 db.init_app(app)
 
-from admin import init_app as init_admin
 init_admin(app)
 ######################## Término Inclusão com banco de dados #####################
 
