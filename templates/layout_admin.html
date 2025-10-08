@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{titulo}}</title>
+
+    <link rel="stylesheet" href="{{url_for('static', filename='bootstrap/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/styles-admin.css')}}">
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/style-submenu.css')}}">
+  </head>
+
+<body>
+
+
+  {% block content %}
+
+  {% endblock content %}
+
+  <script src="{{url_for('static', filename='bootstrap/js/bootstrap.bundle.js')}}"></script>
+  <script src="{{url_for('static', filename='js/scripts-admin.js')}}"></script>
+  <script src="{{url_for('static', filename='js/validacao-loja.js')}}"></script>
+  <script src="{{url_for('static', filename='js/alerta.js')}}"></script>
+  <script src="{{url_for('static', filename='js/script-submenu.js')}}"></script>
+</body>
+</html>

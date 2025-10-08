@@ -1,0 +1,28 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+<section class="mt-5">
+    <div class="container">
+        <div class="row justify-content-center align-items-center">
+            <div class="col-md-10 mx-auto col-lg-5">
+                {% from "_erroformulario.html" import render_field %}
+                {% include '_mensagem.html' %}
+                <form method="post" class="p-4 p-md-5 border rounded-3 bg-light">
+                    <img src="{{url_for('static', filename='img/logo(126x60)transp.png')}}" alt="">
+                    <div class="text-center p-2 data-text">
+                        <h4>Login</h4>
+                    </div>
+                    {{form.csrf_token}}
+                    <div class="form-floating mb-3">
+                        {{ render_field(form.email, class="form-control") }}
+                    </div>
+                    <div class="form-floating mb-3">
+                        {{ render_field(form.password, class="form-control") }}
+                    </div>
+                    <a><input type="submit" value="Login" class="btn btn-sm btn-success float-sm-start mt-2"></a>
+                    <a href="{{url_for('auth.registrar')}}" class="btn btn-sm btn-warning float-end mt-2">Registrar Usuário</a>                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %}

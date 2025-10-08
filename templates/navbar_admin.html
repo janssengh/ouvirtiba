@@ -1,0 +1,87 @@
+<!-- CABEÇALHO DA PÁGINA ADMINISTRATIVA -->
+
+<nav class="navbar col-12 navbar-expand-lg bg-body-secondary accordion" style="z-index: 999;">
+
+    <!-- col-11: ocupa total de 11 colunas ; m-auto: margin automático centraliza/alinha -->
+    <div class="container-fluid col-11 m-auto">
+      <a class="navbar-brand" href="#">
+        <img src="{{url_for('static', filename=session['Store']['Url logo'])}}" alt="Ouvirtiba Aparelhos Auditivos">
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{{ url_for('admin.product_list') }}">Home</a>
+          </li>
+
+          <li class="nav-item dropdown">
+            <a href="" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Cadastros</a>
+            <ul class="dropdown-menu">
+                <li><a href="" class="dropdown-item">Registrar &raquo;</a>
+                  <ul class="dropdown-menu submenu">
+                    <li><a href="" class="dropdown-item">Produto &raquo;</a>
+                      <ul class="dropdown-menu submenu multi-menu">
+                          <li><a href="" class="dropdown-item">Marca</a></li>
+                          <li><a href="" class="dropdown-item">Categoria</a></li>
+                          <li><a href="" class="dropdown-item">Cor</a></li>
+                          <li><a href="" class="dropdown-item">Tamanho</a></li>
+                          <li><a href="" class="dropdown-item">Embalagem</a></li>
+                          <li><a href="" class="dropdown-item">Produto</a></li>
+                      </ul>
+                    </li>
+                    <li><a href="" class="dropdown-item">Cliente &raquo;</a>
+                      <ul class="dropdown-menu submenu multi-menu">
+                          <li><a href="" class="dropdown-item">Física/Jurídica</a></li>
+                          <li><a href="" class="dropdown-item">Diversos</a></li>
+                      </ul>
+                    </li>
+                    <li><a href="" class="dropdown-item">Pedido &raquo;</a>
+                      <ul class="dropdown-menu submenu multi-menu">
+                          <li><a href="" class="dropdown-item">Acessórios que acompamham</a></li>
+                          <li><a href="" class="dropdown-item">Pedido</a></li>
+                      </ul>
+                    </li>
+                    <li><a href="" class="dropdown-item">Blog</a></li>
+                    <li><a href="" class="dropdown-item">Usuário</a></li>
+                  </ul>
+                </li>
+                <li><a href="" class="dropdown-item">Consultar &raquo;</a>
+                  <ul class="dropdown-menu submenu">
+                    <li><a href="" class="dropdown-item">Clientes</a></li>
+                    <li><a href="" class="dropdown-item">Pedido &raquo;</a>
+                      <ul class="dropdown-menu submenu multi-menu">
+                        <li><a href="" class="dropdown-item">Acessórios que acompamham</a></li>
+                        <li><a href="" class="dropdown-item">Pedidos</a></li>
+                      </ul>
+                    </li>
+                    <li><a href="" class="dropdown-item">Blogs</a></li>
+                  </ul>
+                </li>
+            </ul>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="">Marcas</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="">Categorias</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="">Cores</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="">Tamanhos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="">Embalagens</a>
+          </li>
+        </ul>
+        <div class="p-2 m-auto text-center text-dark">
+          <h6 style="color: rgb(230,87,66)">{{(session['Store']['Name'])}}</h6>
+        </div>
+      </div>
+    </div>
+  </nav>

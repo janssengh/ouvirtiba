@@ -1,30 +1,80 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Lista de Produtos</title>
-</head>
-<body>
-    <h1>Lista de Produtos</h1>
-    <table border="1" cellpadding="8">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>Preço (R$)</th>
-                <th>Estoque</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in products %}
-            <tr>
-                <td>{{ p.id }}</td>
-                <td>{{ p.name }}</td>
-                <td>{{ "%.2f"|format(p.price) }}</td>
-                <td>{{ p.stock }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-3">
+  <h3 class="mt-2 text-start data-text">{{titulo}}</h3>
+  <table class="table table table-sm table-striped">
+    <thead>
+      <th>Tipo</th>
+      <th>Categoria</th>
+      <th>Produto</th>
+      <th>Etq</th>
+      <th>Preço</th>
+      <th>Desc.</th>
+      <th>Cor</th>
+      <th>Marca</th>
+      <th>Foto</th>
+      <th>Editar</th>
+      <th>Deletar</th>
+    </thead>
+    <tbody>
+      {% for produto in produtos %}
+      <tr>
+        {% if produto.type_id == 1 %}
+        <td>Aparelhos Auditivos</td>
+        {% else %}
+        <td>Acessórios</td>
+        {% endif %}
+        <td>{{produto.categoria.name}}</td>
+        <td>{{produto.name}}</td>
+        <td>{{produto.stock}}</td>
+        <td>{{produto.price}}</td>
+        <td>{{produto.discount}} %</td>
+        <td>{{produto.colors}}</td>
+        <td>{{produto.marca.name}}</td>
+        <td><img src="{{url_for('static',filename='img/admin/' + produto.image_1)}}" width="50" height="40"></td>
+        <td><a href="" class="btn btn-success btn-sm">Editar</a></td>
+        <td>
+          <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+            data-bs-target="#exampleModal-{{produto.id}}">
+            Excluir
+          </button>
+        </td>
+      </tr>
+
+      <!-- Modal -->
+      <div class="modal fade" id="exampleModal-{{produto.id}}" tabindex="-1" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="exampleModalLabel">{{produto.name}}</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <span class="text-danger">Deseja realmente excluir esta categoria {{produto.name}}?</span>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-warning btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <!--<button type="button" class="btn btn-primary">Save changes</button>-->
+              <form action="" method="POST">
+                <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% endfor %}
+    </tbody>
+
+  </table>
+
+</div>
+
+{% include '_mensagem.html' %}
+
+{% endblock content %}

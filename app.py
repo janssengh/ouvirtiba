@@ -23,12 +23,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minha_chave_padrao')
 
 # 🔹 Importar e inicializar banco e módulo admin
-from admin.models import db
+from extension import db, bcrypt         # ✅ adicionado
 from admin import init_app as init_admin
 
 db.init_app(app)
+bcrypt.init_app(app)  # ✅ adiciona essa linha
 
 init_admin(app)
+
+
 ######################## Término Inclusão com banco de dados #####################
 
 

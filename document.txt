@@ -5,3 +5,92 @@ Crie o arquivo .env com e-mail e senha
 
 Criei Flask-SQLAlchemy em 04/10/2025
 pip install Flask Flask-SQLAlchemy psycopg2-binary python-dotenv
+
+app.py anterior:
+# === Inicializando SQLAlchemy ===
+# db = SQLAlchemy(app)  # já inicializa com o app, sem precisar do db.init_app
+
+# incluso anterior
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Exemplo: postgresql://user:pass@host/dbname
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# definição da tabela product
+class Product(db.Model):
+    __tablename__ = 'product'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, nullable=False)
+
+class Product(db.Model):
+    __tablename__ = 'product'
+    id = db.Column(db.Integer, primary_key=True)
+    type_id = db.Column(db.Integer, nullable=True)
+    name = db.Column(db.String(80), nullable=False)
+    price = db.Column(db.Numeric(10,2), nullable=False)
+    discount = db.Column(db.Integer, default=0)
+    stock = db.Column(db.Integer, nullable=False)
+    colors = db.Column(db.Text, nullable=False)
+    discription = db.Column(db.Text, nullable=False)
+    pub_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    brand_id = db.Column(db.Integer, db.ForeignKey('brand.id'), nullable=False)
+    marca = db.relationship('Brand', backref=db.backref('marcas', lazy=True))
+
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    categoria = db.relationship('Category', backref=db.backref('categorias', lazy=True))
+
+    image_1 = db.Column(db.String(150), nullable=False, default='image.jpg')
+    image_2 = db.Column(db.String(150), nullable=False, default='image.jpg')
+    image_3 = db.Column(db.String(150), nullable=False, default='image.jpg')
+
+    color_id = db.Column(db.Integer, db.ForeignKey('color.id'), nullable=False)
+    cor = db.relationship('Color', backref=db.backref('cores', lazy=True))
+
+    size_id = db.Column(db.Integer, db.ForeignKey('size.id'), nullable=False)
+    nmsize = db.relationship('Size', backref=db.backref('sizes', lazy=True))
+    tamanho = db.relationship('Size', backref=db.backref('tamanhos', lazy=True))
+    packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
+    embalagem = db.relationship('Packaging', backref=db.backref('embalagens', lazy=True))
+
+    store_id = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
+    loja = db.relationship('Store', backref=db.backref('lojas.produto', lazy=True))
+    type_id = db.Column(db.Integer, nullable=False)    
+
+product_list.html:
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Lista de Produtos</title>
+</head>
+<body>
+    <h1>Lista de Produtos</h1>
+    <table border="1" cellpadding="8">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Preço (R$)</th>
+                <th>Estoque</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in products %}
+            <tr>
+                <td>{{ p.id }}</td>
+                <td>{{ p.name }}</td>
+                <td>{{ "%.2f"|format(p.price) }}</td>
+                <td>{{ p.stock }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
+
+routes:
+@admin_bp.route('/')
+def product_list():
+    products = Product.query.all()
+    return render_template('admin/product_list.html', products=products)

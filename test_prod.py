@@ -13,7 +13,8 @@ with app.app_context():
     if 'product' in tabelas:
         print("\n🔹 Produtos cadastrados:")
         result = db.session.execute(text("SELECT * FROM product"))
-        for row in result:
+        for row in result.mappings():
             print(dict(row))
+
     else:
         print("\nA tabela 'product' não existe no banco.")
