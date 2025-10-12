@@ -776,6 +776,7 @@ def size_del(size_id):
         db.session.rollback()
         # Se houver erro (ex: chave estrangeira), informa
         flash(f'Erro ao excluir o tamanho: {e}', 'danger')
+    return redirect(url_for('admin.size_list'))
 
 
 # No routes.py, após o bloco de TAMANHOS
