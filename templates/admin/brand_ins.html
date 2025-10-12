@@ -1,0 +1,17 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+<div class="container mt-4">
+  <h2>Nova Marca</h2>
+  <form method="POST">
+    <div class="mb-3">
+      <label for="descricao" class="form-label">Descrição da Marca</label>
+      <input type="text" class="form-control" name="descricao" id="descricao" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+  </form>
+</div>
+{% endblock %}

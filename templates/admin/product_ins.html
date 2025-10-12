@@ -1,0 +1,113 @@
+{% extends 'layout_admin.html' %}
+
+{% include 'navbar_admin.html' %}
+
+{% block content %}
+
+
+<section class="mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="row justify-content-center align-items-center">
+                <div class="col-9">
+                    <!--<div class="col-md-10 mx-auto col-lg-5">-->
+                    {% from '_erroformulario.html' import render_field %}
+                        <form method="post" enctype="multipart/form-data" class="p-4 p-md-5 border rounded-3 bg-light">
+                        <div class="text-center p-2 data-text">
+                            <h4>Cadastrar Produtos</h4>
+                        </div>
+                        {{form.csrf_token}}
+
+                        <div class="mb-3">
+                            <label for="tipoproduto">Adicionar um tipo de produto</label>
+
+                            <select name="tipoproduto_display" id="tipoproduto_display" class="form-select" disabled>
+                                <option value="">-- Selecione um Tipo de Produto --</option>
+                                
+                                <option value="1" {% if form.tipoproduto.data == 1 %}selected{% endif %}>Aparelhos Auditivos</option>
+                                <option value="2" {% if form.tipoproduto.data == 2 %}selected{% endif %}>Acessórios</option>
+                            </select>
+                            
+                            <input type="hidden" name="{{ form.tipoproduto.name }}" value="{{ form.tipoproduto.data }}">
+                        </div>
+                        
+                        {{ render_field(form.name, class="form-control", placeholder="Nome do Produto") }}
+                        {{ render_field(form.price, class="form-control", placeholder="Preço do Produto") }}
+                        {{ render_field(form.discount, class="form-control", placeholder="Desconto do Produto") }}
+
+                        {{ render_field(form.stock, class="form-control", placeholder="Estoque do Produto") }}
+
+
+                        <label for="marca">Adicionar uma Marca</label>
+                        <select name="marca" id="marca" class="form-select" required>
+                            <!--<option value="brand.id">Selecione uma Marca</option>-->
+                            <option value="">-- Selecione uma Marca -- </option>
+                            {% for brand in marcas %}
+                            <option value="{{brand.id}}">{{brand.name}}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="categoria">Adicionar uma Categoria</label>
+                        <select name="categoria" id="categoria" class="form-select" required>
+                            <!--<option value="categoria.id">Selecione uma Categoria</option>-->
+                            <option value="">-- Selecione uma Categoria --</option>
+                            {% for category in categorias %}
+                            <option value="{{category.id}}">{{category.name}}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="cor">Adicionar uma Cor</label>
+                        <select name="cor" id="cor" class="form-select" required>
+                            <!--<option value="color.id">Selecione uma cor</option>-->
+                            <option value="">-- Selecione uma cor --</option>
+                            {% for color in cores %}
+                            <option value="{{color.id}},{{color.name}}">{{color.name}}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="tamanho">Adicionar um Tamanho</label>
+                        <select name="tamanho" id="tamanho" class="form-select" required>
+                            <!--<option value="size.id">Selecione um Tamanho</option>-->
+                            <option value="">-- Selecione um Tamanho --</option>
+                            {% for size in tamanhos %}
+                            <option value="{{size.id}}">{{size.name}}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="embalagem">Adicionar uma Embalagem</label>
+                        <select name="embalagem" id="embalagem" class="form-select" required>
+                            <!--<option value="embalagem.id">Selecione um Embalagem</option>-->
+                            <option value="">-- Selecione um Embalagem --</option>
+                            {% for embalagem in embalagens %}
+                            <option value="{{embalagem.id}}">{{embalagem.dimension}}</option>
+                            {% endfor %}
+                        </select>
+
+                        {{ render_field(form.discription, class="form-control", placeholder="Descrição do Produto",
+                        rows="10") }}
+
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-md-4">{{ render_field(form.image_1, class="form-control")}}</div>
+                                <div class="col-md-4">{{ render_field(form.image_2, class="form-control")}}</div>
+                                <div class="col-md-4">{{ render_field(form.image_3, class="form-control")}}</div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success mt-2">Cadastrar</button>
+                        <a id="btnCancelar" class="btn btn-outline-danger mt-2">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // A variável é acessível por qualquer script carregado depois, como o script.js
+    const TYPE_ID_URL = "{{ type_id|default('null') }}"; 
+</script>
+
+{% endblock content %}
+

@@ -4,7 +4,7 @@
 
     <!-- col-11: ocupa total de 11 colunas ; m-auto: margin automático centraliza/alinha -->
     <div class="container-fluid col-11 m-auto">
-      <a class="navbar-brand" href="#">
+      <a class="navbar-brand" href="{{ url_for('admin.product_list') }}">
         <img src="{{url_for('static', filename=session['Store']['Url logo'])}}" alt="Ouvirtiba Aparelhos Auditivos">
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
@@ -15,6 +15,14 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="{{ url_for('admin.product_list') }}">Home</a>
+          </li>
+
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Tipo</a>
+            <ul class="dropdown-menu">
+              <li><a href="{{ url_for('admin.product_list', type_id=1) }}" class="dropdown-item">AA - Aparelhos Auditivos</a></li>
+              <li><a href="{{ url_for('admin.product_list', type_id=2) }}" class="dropdown-item">Ac - Acessórios</a></li>
+            </ul>
           </li>
 
           <li class="nav-item dropdown">
@@ -62,21 +70,26 @@
                 </li>
             </ul>
           </li>
-
+          
           <li class="nav-item">
-            <a class="nav-link" href="">Marcas</a>
+            <a class="nav-link" href="{{ url_for('admin.brand_list') }}">Marcas</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="">Categorias</a>
+            <a class="nav-link" href="{{ url_for('admin.category_list') }}">Categorias</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="">Cores</a>
+            <a class="nav-link" href="{{ url_for('admin.color_list') }}">Cores</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="">Tamanhos</a>
+            <a class="nav-link" href="{{ url_for('admin.size_list') }}">Tamanhos</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="">Embalagens</a>
+            <a class="nav-link" href="{{ url_for('admin.packaging_list') }}">Embalagens</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+              <i class="bi bi-box-arrow-right"></i> Sair
+            </a>
           </li>
         </ul>
         <div class="p-2 m-auto text-center text-dark">
@@ -85,3 +98,5 @@
       </div>
     </div>
   </nav>
+
+  {% include '_mensagem.html' %}

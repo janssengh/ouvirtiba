@@ -1,0 +1,41 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+  <h2 class="d-flex justify-content-between align-items-center">
+    Lista de Marcas
+    <a href="{{ url_for('admin.brand_insert') }}" class="btn btn-primary">+ Nova Marca</a>
+  </h2>
+  {% from "_erroformulario.html" import render_field %}
+
+  
+
+  <table class="table table-striped mt-3">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Descrição</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for brand in brands %}
+      <tr>
+        <td>{{ brand.id }}</td>
+        <td>{{ brand.name }}</td>
+        <td class="text-end">
+          <a href="{{ url_for('admin.brand_update', brand_id=brand.id) }}" class="btn btn-success btn-sm">Editar</a>
+          <form action="{{ url_for('admin.brand_delete', brand_id=brand.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm"
+              onclick="return confirm('Deseja realmente excluir a marca {{ brand.name }}?')">Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

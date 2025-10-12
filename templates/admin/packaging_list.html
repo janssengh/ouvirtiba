@@ -1,0 +1,55 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+  <h2 class="d-flex justify-content-between align-items-center">
+    Lista de Embalagens
+    <a href="{{ url_for('admin.packaging_ins') }}" class="btn btn-primary">+ Nova Embalagem</a>
+  </h2>
+  {% from "_erroformulario.html" import render_field %}
+
+  <table class="table table-striped mt-3">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Descrição Formato</th>
+        <th>Peso</th>
+        <th>Comprimento</th>
+        <th>Altura</th>
+        <th>Largura</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for packaging in packagings %}
+      <tr>
+        <td>{{ packaging.id }}</td>
+        {% if packaging.format == 1 %}
+          {% set discformat = "Caixa/Pacote" %}
+        {% elif packaging.format == 2 %}
+          {% set discformat = "Rolo/Prisma" %}
+        {% else %}
+          {% set discformat = "Envelope" %}
+        {% endif %}
+
+        <td>{{discformat}}</td>
+        <td>{{packaging.weight}} kg</td>
+        <td>{{packaging.length}} cm</td>
+        <td>{{packaging.height}} cm</td>
+        <td>{{packaging.width}} cm</td>
+        <td class="text-end">
+          <a href="{{ url_for('admin.packaging_upd', packaging_id=packaging.id) }}" class="btn btn-success btn-sm">Editar</a>
+          <form action="{{ url_for('admin.packaging_del', packaging_id=packaging.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm"
+              onclick="return confirm('Deseja realmente excluir a embalagem {{ packaging.name }}?')">Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

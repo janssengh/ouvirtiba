@@ -5,7 +5,25 @@
 {% include 'navbar_admin.html' %}
 
 <div class="container mt-3">
-  <h3 class="mt-2 text-start data-text">{{titulo}}</h3>
+  <h3 class="mt-2 text-start data-text">{{titulo}}</h3> 
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">
+          {% if type_id == 1 %}
+              Aparelhos Auditivos
+          {% elif type_id == 2 %}
+              Acessórios
+          {% else %}
+              Todos os Produtos
+          {% endif %}
+      </h4>
+
+      <a href="{{ url_for('admin.produto_inserir', type_id=type_id) if type_id is not none else url_for('admin.produto_inserir') }}" class="btn btn-success">
+          <i class="bi bi-plus-circle"></i> Novo Produto
+      </a>
+
+  </div>
+  
   <table class="table table table-sm table-striped">
     <thead>
       <th>Tipo</th>
@@ -24,9 +42,9 @@
       {% for produto in produtos %}
       <tr>
         {% if produto.type_id == 1 %}
-        <td>Aparelhos Auditivos</td>
+        <td>AA</td>
         {% else %}
-        <td>Acessórios</td>
+        <td>Ac</td>
         {% endif %}
         <td>{{produto.categoria.name}}</td>
         <td>{{produto.name}}</td>
@@ -36,7 +54,7 @@
         <td>{{produto.colors}}</td>
         <td>{{produto.marca.name}}</td>
         <td><img src="{{url_for('static',filename='img/admin/' + produto.image_1)}}" width="50" height="40"></td>
-        <td><a href="" class="btn btn-success btn-sm">Editar</a></td>
+        <td><a href="{{ url_for('admin.produto_editar', id=produto.id) }}" class="btn btn-success btn-sm">Editar</a></td>
         <td>
           <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
             data-bs-target="#exampleModal-{{produto.id}}">
@@ -57,13 +75,15 @@
             <div class="modal-body">
               <span class="text-danger">Deseja realmente excluir esta categoria {{produto.name}}?</span>
             </div>
+            
             <div class="modal-footer">
               <button type="button" class="btn btn-warning btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <!--<button type="button" class="btn btn-primary">Save changes</button>-->
-              <form action="" method="POST">
+              
+              <form action="{{ url_for('admin.produto_excluir', produto_id=produto.id) }}" method="POST">
                 <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
               </form>
             </div>
+
           </div>
         </div>
       </div>
@@ -74,7 +94,5 @@
   </table>
 
 </div>
-
-{% include '_mensagem.html' %}
 
 {% endblock content %}

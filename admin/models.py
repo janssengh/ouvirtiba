@@ -110,9 +110,14 @@ class Packaging(Base):
     length = db.Column(db.Numeric(15, 2), nullable=False)
     height = db.Column(db.Numeric(15, 2), nullable=False)
     width = db.Column(db.Numeric(15, 2), nullable=False)
-
     store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
-    loja = db.relationship('Store', backref=db.backref('lojas.embalagem', lazy=True))    
+    loja = db.relationship('Store', backref=db.backref('lojas.embalagem', lazy=True))
+
+    @property
+    def dimension(self):
+        """Retorna uma string formatada com as dimensões."""
+        return f"{self.format}(F) - {self.length}(C)x{self.width}(L)x{self.height}(A) ({self.weight}kg)"
+
 
 class Product(Base):
     __tablename__ = 'product'
@@ -148,6 +153,5 @@ class Product(Base):
 
     store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
     loja = db.relationship('Store', backref=db.backref('lojas.produto', lazy=True))
-    type_id = db.Column(db.Integer, nullable=False)    
 
 

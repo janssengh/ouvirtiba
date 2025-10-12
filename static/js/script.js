@@ -63,3 +63,57 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  // ✅ Captura o TYPE_ID passado do Flask (usado para produtos)
+  const initialTypeId = typeof TYPE_ID_URL !== 'undefined' ? TYPE_ID_URL : 'null';
+
+  const btnCancelar = document.getElementById("btnCancelar");
+  if (!btnCancelar) return; // segurança
+
+  btnCancelar.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    const confirmar = confirm("Deseja realmente cancelar? As alterações não salvas serão perdidas.");
+
+    if (confirmar) {
+      // 🔍 Detecta automaticamente se é uma tela de MARCA (brand_ins.html ou brand_upd.html)
+      const isBrandPage = window.location.pathname.includes("/brand/");
+
+      // 🔍 NOVO: Detecta automaticamente se é uma tela de CATEGORIA
+      const isCategoryPage = window.location.pathname.includes("/category/");
+
+      // 🔍 NOVO: Detecta automaticamente se é uma tela de COR
+      const isColorPage = window.location.pathname.includes("/color/"); //
+
+       // 🔍 NOVO: Detecta automaticamente se é uma tela de TAMANHO
+      const isSizePage = window.location.pathname.includes("/size/"); 
+
+      // 🔍 NOVO: Detecta automaticamente se é uma tela de EMBALAGEM
+      const isPackagingPage = window.location.pathname.includes("/packaging/"); 
+
+      if (isBrandPage) {
+        // Retorna para a lista de marcas
+        window.location.href = "/admin/brand/list";
+      } else if (isCategoryPage) {
+        // Retorna para a lista de categorias
+        window.location.href = "/admin/category/list";
+      } else if (isColorPage) { //
+        // Retorna para a lista de cores
+        window.location.href = "/admin/color/list"; //
+      } else if (isSizePage) { // <-- NOVO BLOCO
+        // Retorna para a lista de tamanhos
+        window.location.href = "/admin/size/list";   
+      } else if (isPackagingPage) { // <-- NOVO BLOCO
+        // Retorna para a lista de embalagens
+        window.location.href = "/admin/packaging/list";     
+      } else if (initialTypeId && initialTypeId !== "null") {
+        // Retorna para a lista filtrada por tipo (produtos)
+        window.location.href = `/admin/${initialTypeId}`;
+      } else {
+        // Padrão de segurança
+        window.location.href = "/admin";
+      }
+    }
+  });
+});

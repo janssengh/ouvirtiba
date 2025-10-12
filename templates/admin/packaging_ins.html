@@ -1,0 +1,35 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+<div class="container mt-4">
+  <h2>Nova Embalagem</h2>
+  <form method="POST" action="{{ url_for('admin.packaging_ins') }}">
+    <div class="mb-3">
+
+        <div class="form-control">
+            <label for="format">Adicionar um Formato</label>
+            <select name="format" id="format" class="form-select" required>
+            <option value="">-- Selecione um Formato --</option>
+            <option value="1">Caixa/Pacote</option>
+            <option value="2">Rolo/Prisma</option>
+            <option value="3">Envelope</option>
+            </select>
+
+            <label>Peso</label>
+            <input type="number" name="weight" class="form-control" required min="1">
+            <label>Comprimento</label>
+            <input type="number" name="length" class="form-control" required min="1">
+            <label>Altura</label>
+            <input type="number" name="height" class="form-control" required min="1">
+            <label>Largura</label>
+            <input type="number" name="width" class="form-control" required min="1">
+        </div>
+        
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+  </form>
+</div>
+{% endblock %}

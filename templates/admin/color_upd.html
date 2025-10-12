@@ -1,0 +1,17 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+<div class="container mt-4">
+  <h2>Editar Cor: {{ cor.name }}</h2>
+  <form method="POST" action="{{ url_for('admin.color_upd', color_id=cor.id) }}">
+    <div class="mb-3">
+      <label for="descricao" class="form-label">Descrição da Cor</label>
+      <input type="text" class="form-control" name="descricao" id="descricao" value="{{ cor.name }}" required>
+    </div>
+    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+  </form>
+</div>
+{% endblock %}

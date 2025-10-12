@@ -1,0 +1,33 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+<div class="container mt-4">
+  <h2>Editar Embalagem: {{ embalagem.name }}</h2>
+  <form method="POST" action="{{ url_for('admin.packaging_upd', packaging_id=embalagem.id) }}">
+    <div class="mb-3">
+        <div class="form-embal">
+            <label for="format">Adicionar um Formato</label>
+            <select name="format" id="format" class="form-select" required>
+            <option value="{{embalagem.format}}">{{discformat}}</option>
+            <option value="1">Caixa/Pacote</option>
+            <option value="2">Rolo/Prisma</option>
+            <option value="3">Envelope</option>
+            </select>
+            <label for="">Peso</label>
+            <input type="number" name="weight" class="form-control" value="{{embalagem.weight}}" required min="1">
+            <label for="">Comprimento</label>
+            <input type="number" name="length" class="form-control" value="{{embalagem.length}}" required min="1">
+            <label for="">Altura</label>
+            <input type="number" name="height" class="form-control" value="{{embalagem.height}}" required min="1">
+            <label for="">Largura</label>
+            <input type="number" name="width" class="form-control" value="{{embalagem.width}}" required min="1">
+        </div>
+        
+    </div>
+    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+  </form>
+</div>
+{% endblock %}

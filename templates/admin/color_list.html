@@ -1,0 +1,39 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+  <h2 class="d-flex justify-content-between align-items-center">
+    Lista de Cores
+    <a href="{{ url_for('admin.color_ins') }}" class="btn btn-primary">+ Nova Cor</a>
+  </h2>
+  {% from "_erroformulario.html" import render_field %}
+
+  <table class="table table-striped mt-3">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Descrição</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for color in colors %}
+      <tr>
+        <td>{{ color.id }}</td>
+        <td>{{ color.name }}</td>
+        <td class="text-end">
+          <a href="{{ url_for('admin.color_upd', color_id=color.id) }}" class="btn btn-success btn-sm">Editar</a>
+          <form action="{{ url_for('admin.color_del', color_id=color.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm"
+              onclick="return confirm('Deseja realmente excluir a cor {{ color.name }}?')">Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

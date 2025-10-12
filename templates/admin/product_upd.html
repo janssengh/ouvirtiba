@@ -1,0 +1,156 @@
+{% extends 'layout_admin.html' %}
+
+{% include 'navbar_admin.html' %}
+
+{% block content %}
+
+<style>
+    .card img {
+        transition: transform 0.3s ease-in-out;
+    }
+    .card img:hover {
+        transform: scale(1.05);
+    }
+</style>
+
+
+<section class="mt-3">
+    <div class="container">
+        <div class="row">
+            <div class="row justify-content-center align-items-center">
+                <div class="col-9">
+
+                    {% from '_erroformulario.html' import render_field %}
+
+                    <form method="post" enctype="multipart/form-data" class="p-4 p-md-5 border rounded-3 bg-light">
+                        <div class="text-center p-2 data-text">
+                            <h4>Alterar Produtos</h4>
+                        </div>
+                        {{form.csrf_token}}
+
+                        <input type="hidden" name="type_id" value="{{ produto.type_id }}">
+                        {{ render_field(form.name, class="form-control", placeholder="Nome do Produto") }}
+                        {{ render_field(form.price, class="form-control", placeholder="Preço do Produto") }}
+                        {{ render_field(form.discount, class="form-control", placeholder="Desconto do Produto") }}
+                        {{ render_field(form.stock, class="form-control", placeholder="Estoque do Produto") }}
+
+                        <label for="marca">Adicionar uma Marca</label>
+                        <select name="marca" id="marca" class="form-select" required>
+                            <option value="">Selecione uma Marca</option> 
+                            {% for brand in marcas %}
+                                {% set is_selected = 'selected' if brand.id == produto.brand_id else '' %}
+                                <option value="{{ brand.id }}" {{ is_selected }}>{{ brand.name }}</option>
+                            {% endfor %}
+                        </select>
+
+
+                        <label for="categoria">Adicionar uma Categoria</label>
+                        <select name="categoria" id="categoria" class="form-select" required>
+                            <option value="">Selecione uma Categoria</option> 
+                            {% for category in categorias %}
+                                {% set is_selected = 'selected' if category.id == produto.category_id else '' %}
+                                <option value="{{ category.id }}" {{ is_selected }}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="cor">Adicionar uma Cor</label>
+                        <select name="cor" id="cor" class="form-select" required>
+
+                            <option value="">Selecione uma Cor</option> 
+                            {% for color in cores %}
+                                {% set is_selected = 'selected' if color.id == produto.color_id else '' %}
+                                <option value="{{ color.id }}" {{ is_selected }}>{{ color.name }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="tamanho">Adicionar um Tamanho</label>
+                        <select name="tamanho" id="tamanho" class="form-select" required>
+                            <option value="">Selecione uma Marca</option> 
+                            {% for size in tamanhos %}
+                                {% set is_selected = 'selected' if size.id == produto.size_id else '' %}
+                                <option value="{{ size.id }}" {{ is_selected }}>{{ size.name }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="embalagem">Adicionar uma Embalagem</label>
+                        <select name="embalagem" id="embalagem" class="form-select" required>
+                            <option value="">Selecione uma Embalagem</option>
+                            {% for embalagem in embalagens %}
+                                {% set is_selected = 'selected' if embalagem.id == produto.packaging_id else '' %}
+                                <option value="{{ embalagem.id }}" {{ is_selected }}>{{ embalagem.dimension }}</option>
+                            {% endfor %}
+                        </select>
+
+                        {{ render_field(form.discription, class="form-control", placeholder="Descrição do Produto",
+                        rows="10") }}
+
+
+                        <div class="row row-cols-1 row-cols-md-3 g-4 text-center">
+                            <div class="col">
+                                <div class="card shadow-sm h-100 border-0">
+                                    <div class="d-flex justify-content-center align-items-center bg-light rounded" 
+                                        style="height: 200px; overflow: hidden;">
+                                        <img src="{{ url_for('static', filename='img/admin/' + produto.image_1) }}" 
+                                            alt="{{ produto.name }}" 
+                                            style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title mb-0 text-secondary fw-semibold">Imagem 1</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col">
+                                <div class="card shadow-sm h-100 border-0">
+                                    <div class="d-flex justify-content-center align-items-center bg-light rounded" 
+                                        style="height: 200px; overflow: hidden;">
+                                        <img src="{{ url_for('static', filename='img/admin/' + produto.image_2) }}" 
+                                            alt="{{ produto.name }}" 
+                                            style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title mb-0 text-secondary fw-semibold">Imagem 2</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col">
+                                <div class="card shadow-sm h-100 border-0">
+                                    <div class="d-flex justify-content-center align-items-center bg-light rounded" 
+                                        style="height: 200px; overflow: hidden;">
+                                        <img src="{{ url_for('static', filename='img/admin/' + produto.image_3) }}" 
+                                            alt="{{ produto.name }}" 
+                                            style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title mb-0 text-secondary fw-semibold">Imagem 3</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="container mt-2">
+                            <div class="row">
+                                <div class="col-md-4">{{ render_field(form.image_1, class="form-control")}}</div>
+                                <div class="col-md-4">{{ render_field(form.image_2, class="form-control")}}</div>
+                                <div class="col-md-4">{{ render_field(form.image_3, class="form-control")}}</div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success mt-2">Atualizar Produto</button>
+                        <a id="btnCancelar" class="btn btn-outline-danger mt-2">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>                       
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Define a variável global TYPE_ID_URL usando o type_id do produto que está sendo atualizado.
+    // O script.js irá ler esta variável.
+    const TYPE_ID_URL = "{{ produto.type_id|default('null') }}"; 
+</script>
+
+{% endblock content %}

@@ -1,0 +1,17 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+<div class="container mt-4">
+  <h2>Editar Categoria</h2>
+  <form method="POST" action="{{ url_for('admin.category_update', category_id=categoria.id) }}">
+    <div class="mb-3">
+      <label for="descricao" class="form-label">Descrição da Categoria</label>
+      <input type="text" class="form-control" name="descricao" id="descricao" value="{{ categoria.name }}" required>
+    </div>
+    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+  </form>
+</div>
+{% endblock %}
