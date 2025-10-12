@@ -25,12 +25,14 @@
         <td>{{ category.id }}</td>
         <td>{{ category.name }}</td>
         <td class="text-end">
-          <a href="{{ url_for('admin.category_update', category_id=category.id) }}" class="btn btn-success btn-sm">Editar</a>
-          <form action="{{ url_for('admin.category_delete', category_id=category.id) }}" method="POST" style="display:inline;">
-            <button type="submit" class="btn btn-danger btn-sm"
-              onclick="return confirm('Deseja realmente excluir a categoria {{ category.name }}?')">Excluir</button>
-          </form>
-        </td>
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('admin.category_update', category_id=category.id) }}" class="btn btn-success btn-sm">Editar</a>
+            <form action="{{ url_for('admin.category_delete', category_id=category.id) }}" method="POST" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm"
+                onclick="return confirm('Deseja realmente excluir a categoria {{ category.name }}?')">Excluir</button>
+            </form>
+          </div>
+        </td>      
       </tr>
       {% endfor %}
     </tbody>

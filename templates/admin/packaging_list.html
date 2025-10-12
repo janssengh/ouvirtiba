@@ -40,12 +40,15 @@
         <td>{{packaging.length}} cm</td>
         <td>{{packaging.height}} cm</td>
         <td>{{packaging.width}} cm</td>
+
         <td class="text-end">
+          <div class="d-flex gap-2 justify-content-end">
           <a href="{{ url_for('admin.packaging_upd', packaging_id=packaging.id) }}" class="btn btn-success btn-sm">Editar</a>
           <form action="{{ url_for('admin.packaging_del', packaging_id=packaging.id) }}" method="POST" style="display:inline;">
             <button type="submit" class="btn btn-danger btn-sm"
               onclick="return confirm('Deseja realmente excluir a embalagem {{ packaging.name }}?')">Excluir</button>
           </form>
+          </div>
         </td>
       </tr>
       {% endfor %}

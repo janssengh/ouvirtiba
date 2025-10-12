@@ -27,11 +27,13 @@
         <td>{{ brand.id }}</td>
         <td>{{ brand.name }}</td>
         <td class="text-end">
-          <a href="{{ url_for('admin.brand_update', brand_id=brand.id) }}" class="btn btn-success btn-sm">Editar</a>
-          <form action="{{ url_for('admin.brand_delete', brand_id=brand.id) }}" method="POST" style="display:inline;">
-            <button type="submit" class="btn btn-danger btn-sm"
-              onclick="return confirm('Deseja realmente excluir a marca {{ brand.name }}?')">Excluir</button>
-          </form>
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('admin.brand_update', brand_id=brand.id) }}" class="btn btn-success btn-sm">Editar</a>
+            <form action="{{ url_for('admin.brand_delete', brand_id=brand.id) }}" method="POST" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm"
+                onclick="return confirm('Deseja realmente excluir a marca {{ brand.name }}?')">Excluir</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% endfor %}

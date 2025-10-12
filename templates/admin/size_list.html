@@ -25,11 +25,13 @@
         <td>{{ size.id }}</td>
         <td>{{ size.name }}</td>
         <td class="text-end">
+          <div class="d-flex gap-2 justify-content-end">
           <a href="{{ url_for('admin.size_upd', size_id=size.id) }}" class="btn btn-success btn-sm">Editar</a>
           <form action="{{ url_for('admin.size_del', size_id=size.id) }}" method="POST" style="display:inline;">
             <button type="submit" class="btn btn-danger btn-sm"
               onclick="return confirm('Deseja realmente excluir o tamanho {{ size.name }}?')">Excluir</button>
           </form>
+          </div>
         </td>
       </tr>
       {% endfor %}
