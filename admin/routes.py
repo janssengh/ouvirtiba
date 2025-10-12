@@ -40,7 +40,6 @@ auth_bp = Blueprint('auth', __name__)
 @admin_bp.route('/<int:type_id>')
 @login_required
 def product_list(type_id):
-    print('entrou na rota admin')
     if 'email' not in session:
         flash(f'Favor fazer o seu login no sistema primeiro!', 'danger')
         return redirect(url_for('auth.login', origin='admin'))
