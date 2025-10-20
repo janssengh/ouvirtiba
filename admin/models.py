@@ -120,6 +120,17 @@ class Packaging(Base):
 
 
 class Product(Base):
+    @property
+    def type_name(self):
+        """Retorna o nome do tipo de produto."""
+        if self.type_id == 1:
+            return "Aparelhos Auditivos"
+        elif self.type_id == 2:
+            return "Acessórios"
+        else:
+            return "Outros"
+
+
     __tablename__ = 'product'
 
     id = db.Column(db.Integer, primary_key=True)

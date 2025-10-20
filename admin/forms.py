@@ -1,6 +1,23 @@
-from wtforms import Form, StringField, validators, PasswordField, IntegerField, DecimalField, TextAreaField 
+import re
+
+from wtforms import Form, StringField, validators, PasswordField, IntegerField, DecimalField, TextAreaField, BooleanField
 from flask_wtf import FlaskForm # ✅ Importe FlaskForm ou Form (se preferir)
 from flask_wtf.file import FileAllowed, FileField, FileRequired
+from wtforms.validators import DataRequired, Length, NumberRange, Regexp, URL as WTFormURL
+from validate_docbr import CNPJ
+
+cnpj = CNPJ()
+
+# Validação Simples de CNPJ (apenas formato de 14 dígitos)
+def validate_cnpj_simple(form, field):
+    cnpj_number = re.sub(r'[^0-9]', '', field.data)
+    if len(cnpj_number) != 14:
+        raise validators.ValidationError('CNPJ deve conter 14 dígitos numéricos.')
+    
+    if not cnpj.validate(cnpj_number):
+        # ✅ Mensagem de erro personalizada
+        raise validators.ValidationError('CNPJ inválido!')
+    # Para uma validação de dígito verificador, seria necessário instalar uma biblioteca (como pycnpj)
 
 
 class RegistrationForm(Form):
@@ -41,3 +58,55 @@ class ProductForm(FlaskForm):
     image_3 = FileField('Imagem 3 :', validators=[
                                                   FileAllowed(['jpg', 'png', 'gif', 'jpeg'])])
     
+
+class StoreForm(FlaskForm):
+    # Campos que exigem validação específica:
+    name = StringField('Nome', validators=[DataRequired('O nome da loja é obrigatório.')])
+    
+    # Código -> CNPJ com validação customizada (14 dígitos)
+    code = StringField('CNPJ', validators=[
+        DataRequired('O CNPJ é obrigatório.'),
+        validate_cnpj_simple # Validação simples do formato
+    ])
+
+    # Taxa de frete: maior ou igual a zero
+    freight_rate = DecimalField('Taxa de Frete', validators=[
+        NumberRange(min=0, message='A taxa de frete deve ser maior ou igual a zero.')
+    ])
+    
+    # Qtde de páginas: maior ou igual a zero
+    pages = IntegerField('Qtd. Páginas', validators=[
+        NumberRange(min=0, message='A quantidade de páginas deve ser maior ou igual a zero.')
+    ])
+    
+    # Telefone: obrigatório, 10 dígitos (DDD + 8 dígitos)
+    phone = StringField('Telefone (DDD+9 dígitos)', validators=[
+        DataRequired('O telefone é obrigatório.'),
+        Length(min=11, max=11, message='O telefone deve ter exatamente 11 dígitos (DDD+9 dígitos).'),
+        Regexp(r'^\d{11}$', message='O telefone deve conter apenas 11 números.')
+    ])
+    
+    # URL: obrigatória, iniciando com https://
+    url = StringField('URL', validators=[
+        DataRequired('A URL é obrigatória.'),
+        WTFormURL(message='Formato de URL inválido. Ex: https://www.exemplo.com'),
+        Regexp(r'^https://', message='A URL deve obrigatoriamente começar com "https://".')
+    ])
+
+    logotipo_1 = FileField('Logotipo Principal', validators=[
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Somente imagens!')
+    ])
+    logotipo_2 = FileField('Logotipo Fundo Claro', validators=[
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Somente imagens!')
+    ])
+    
+    # Outros campos (não precisam de validação complexa além de obrigatório/tipo)
+    zipcode = StringField('CEP Origem', validators=[DataRequired('O CEP é obrigatório.')])
+    address = StringField('Endereço', validators=[DataRequired('O endereço é obrigatório.')])
+    number = IntegerField('Número', validators=[DataRequired('O número é obrigatório.')])
+    complement = StringField('Complemento (opcional)')
+    neighborhood = StringField('Bairro', validators=[DataRequired('O bairro é obrigatório.')])
+    city = StringField('Cidade', validators=[DataRequired('A cidade é obrigatória.')])
+    region = StringField('Estado (UF)', validators=[DataRequired('O estado (UF) é obrigatório.'), Length(min=2, max=2)])
+    home = BooleanField('Destaque na Home')
+    #home = StringField('Destaque na Home') # Será tratado no routes.py ('S' ou 'N')

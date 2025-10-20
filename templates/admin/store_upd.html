@@ -1,0 +1,227 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+        <h2 class="card-title mb-3">{{ titulo }}</h2>
+
+        <form method="POST"
+            enctype="multipart/form-data"
+            action="{{ url_for('admin.store_upd', store_id=store.id) }}"
+            class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}            
+            <div class="row g-3">
+
+                <!-- 1) CNPJ: primeiro campo, somente leitura + hidden para envio -->
+                <div class="col-md-4">
+                    <label for="code" class="form-label">CNPJ *</label>
+                    <input type="text" class="form-control" id="code" name="code" value="{{ store.code }}" readonly>
+                    <input type="hidden" name="cnpj_hidden" id="cnpj_hidden" value="{{ store.code }}">
+                    <div class="form-text">CNPJ não pode ser alterado aqui.</div>
+                </div>
+
+                <!-- 2) Nome obrigatório -->
+                <div class="col-md-5">
+                    <label for="name" class="form-label">Nome *</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ store.name }}" required>
+                </div>
+
+                <!-- 3) CEP (Origem) -->
+                <div class="col-md-3">
+                    <label for="zipcode" class="form-label">CEP Origem *</label>
+                    <input type="text" class="form-control" id="zipcode" name="zipcode" value="{{ store.zipcode }}" required>
+                </div>
+
+                <!-- Endereço e complementos -->
+                <div class="col-md-6">
+                    <label for="address" class="form-label">Endereço *</label>
+                    <input type="text" class="form-control" id="address" name="address" value="{{ store.address }}" required>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="number" class="form-label">Número</label>
+                    <input type="text" class="form-control" id="number" name="number" value="{{ store.number }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="complement" class="form-label">Complemento</label>
+                    <input type="text" class="form-control" id="complement" name="complement" value="{{ store.complement or '' }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="neighborhood" class="form-label">Bairro *</label>
+                    <input type="text" class="form-control" id="neighborhood" name="neighborhood" value="{{ store.neighborhood }}" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="city" class="form-label">Cidade *</label>
+                    <input type="text" class="form-control" id="city" name="city" value="{{ store.city }}" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="region" class="form-label">Estado (UF) *</label>
+                    <input type="text" class="form-control" id="region" name="region" maxlength="2" value="{{ store.region }}" required>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="freight_rate" class="form-label">Taxa Frete (R$)</label>
+                    <input type="number" step="0.01" class="form-control" id="freight_rate" name="freight_rate" value="{{ store.freight_rate }}">
+                    <div class="form-text">Se não informado, será considerado 0.</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="pages" class="form-label">Qtd. Páginas</label>
+                    <input type="number" class="form-control" id="pages" name="pages" value="{{ store.pages }}">
+                    <div class="form-text">Se não informado, será considerado 0.</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Telefone *</label>
+                    <input type="text" class="form-control" id="phone" name="phone" value="{{ store.phone or '' }}" placeholder="DDD + 9 dígitos" required>
+                    <div class="form-text">Somente números (11 dígitos: DDD + 9 dígitos).</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="url" class="form-label">URL *</label>
+                    <input type="text" class="form-control" id="url" name="url" value="{{ store.url }}" required>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" value="S" id="home" name="home" {% if store.home == 'S' %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="home">
+                            Destaque na Home?
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                <label for="logo" class="form-label fw-semibold">Logotipo Principal</label>
+
+                {% if store.logo %}
+                    <div class="mb-2 text-center border rounded p-2 bg-light">
+                    <img src="{{ url_for('static', filename='img/admin/' ~ store.logo) }}" 
+                        alt="Logotipo atual" style="max-height:100px;">
+                    <div class="small text-muted mt-1">Imagem atual: {{ store.logo }}</div>
+                    </div>
+                {% else %}
+                    <div class="text-muted small">Nenhum logotipo principal cadastrado.</div>
+                {% endif %}
+
+                {{ form.logotipo_1(class="form-control mt-2", id="logotipo_1") }}
+                {% for error in form.logotipo_1.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+
+                <div class="form-text">Selecione uma nova imagem para substituir o logotipo atual.</div>
+                </div>
+
+                <div class="col-md-6">
+                <label for="logo_white" class="form-label fw-semibold">Logotipo Fundo Claro</label>
+
+                {% if store.logo_white %}
+                    <div class="mb-2 text-center border rounded p-2 bg-light">
+                    <img src="{{ url_for('static', filename='img/admin/' ~ store.logo_white) }}" 
+                        alt="Logotipo branco atual" style="max-height:100px;">
+                    <div class="small text-muted mt-1">Imagem atual: {{ store.logo_white }}</div>
+                    </div>
+                {% else %}
+                    <div class="text-muted small">Nenhum logotipo branco cadastrado.</div>
+                {% endif %}
+
+                {{ form.logotipo_2(class="form-control mt-2", id="logotipo_2") }}
+                {% for error in form.logotipo_2.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+
+
+                <div class="form-text">Selecione uma nova imagem para substituir o logotipo branco atual.</div>
+                </div>
+
+                <div class="col-12 mt-4 d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-success px-4">Atualizar Loja</button>
+                    <a href="{{ url_for('admin.store_list') }}" class="btn btn-secondary px-4" id="cancelBtn">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showAlert(message) {
+    alert(message);
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const form = document.querySelector('form');
+    const phoneInput = document.getElementById('phone');
+    const cepInput = document.getElementById('zipcode');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const freightInput = document.getElementById('freight_rate');
+    const pagesInput = document.getElementById('pages');
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function(event) {
+        event.preventDefault();
+        if (confirm("Tem certeza que deseja cancelar? Todas as alterações não salvas serão perdidas.")) {
+          window.location.href = this.href;
+        }
+      });
+    }
+
+    if (phoneInput) {
+      phoneInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0,11);
+      });
+    }
+
+    async function buscarCep(cep) {
+      cep = (cep || '').replace(/\D/g, '');
+      if (cep.length !== 8) return;
+      try {
+        const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await resp.json();
+        if (data.erro) { showAlert('CEP não encontrado.'); return; }
+        document.getElementById('address').value = data.logradouro || '';
+        document.getElementById('neighborhood').value = data.bairro || '';
+        document.getElementById('city').value = data.localidade || '';
+        document.getElementById('region').value = data.uf || '';
+        document.getElementById('number').focus();
+      } catch (err) {
+        showAlert('Erro ao buscar o CEP.');
+      }
+    }
+
+    if (cepInput) {
+      cepInput.addEventListener('blur', () => buscarCep(cepInput.value));
+      cepInput.addEventListener('change', () => buscarCep(cepInput.value));
+    }
+
+    form.addEventListener('submit', function(e) {
+      const name = document.getElementById('name');
+      if (!name || !name.value.trim()) { e.preventDefault(); showAlert('O campo Nome é obrigatório.'); name && name.focus(); return; }
+
+      const url = document.getElementById('url');
+      if (!url || !url.value.trim()) { e.preventDefault(); showAlert('O campo URL é obrigatório.'); url && url.focus(); return; }
+
+      if (phoneInput) {
+        const phone = phoneInput.value.replace(/\D/g, '');
+        if (!phone) { e.preventDefault(); showAlert('O telefone é obrigatório.'); phoneInput.focus(); return; }
+        if (phone.length !== 11) { e.preventDefault(); showAlert('O telefone deve conter exatamente 11 dígitos numéricos (DDD + 9 dígitos).'); phoneInput.focus(); return; }
+      }
+
+      if (!freightInput.value) freightInput.value = 0;
+      if (!pagesInput.value) pagesInput.value = 0;
+
+      const cnpjHidden = document.getElementById('cnpj_hidden');
+      if (!cnpjHidden || !cnpjHidden.value) { e.preventDefault(); showAlert('CNPJ não informado.'); return; }
+    });
+  });
+</script>
+
+{% endblock %}

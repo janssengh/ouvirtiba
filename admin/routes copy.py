@@ -159,7 +159,6 @@ def login(origin):
             session['email'] = form.email.data
             session['store_id'] = user.store_id
             session['name'] = user.name
-            session['username'] = user.username
             flash(f'{form.email.data} logado com sucesso!', 'success')
 
             if origin == 'admin':
@@ -1166,35 +1165,12 @@ def store_del(store_id):
         return redirect(url_for('auth.login', origin='admin'))
 
     store = Store.query.get_or_404(store_id)
-    img_dir = os.path.join(current_app.root_path, 'static', 'img', 'admin')
 
     try:
-        # Remove logotipo principal, se existir
-        if store.logo:
-            logo_path = os.path.join(img_dir, store.logo)
-            if os.path.exists(logo_path):
-                try:
-                    os.remove(logo_path)
-                    print(f"✅ Logotipo principal removido: {logo_path}")
-                except Exception as e:
-                    print(f"⚠️ Erro ao remover logotipo principal: {e}")
-
-        # Remove logotipo branco, se existir
-        if store.logo_white:
-            logo_white_path = os.path.join(img_dir, store.logo_white)
-            if os.path.exists(logo_white_path):
-                try:
-                    os.remove(logo_white_path)
-                    print(f"✅ Logotipo branco removido: {logo_white_path}")
-                except Exception as e:
-                    print(f"⚠️ Erro ao remover logotipo branco: {e}")
-
-        # Deleta a loja do banco
         nome_loja = store.name
         db.session.delete(store)
         db.session.commit()
         flash(f'A Loja "{nome_loja}" foi excluída com sucesso!', 'success')
-
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir a loja: {e}', 'danger')

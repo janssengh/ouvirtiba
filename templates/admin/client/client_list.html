@@ -1,0 +1,88 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Lista de Clientes</h2>
+        
+        <a href="{{ url_for('client_bp.client_register_start') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Novo Cliente
+        </a>
+    </div>
+
+    <hr>
+    
+    <table class="table table-striped table-hover mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>Identificação</th>
+                <th>Nome</th>
+                <th>Cidade</th>
+                <th>UF</th>
+                <th>Contato</th>
+                <th>Dt|Hr Cadastro</th>
+                <th>Editar</th>
+                <th>Excluir</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in clients %}
+            <tr>
+                {# ... (Sua lógica de formatação de código) ... #}
+                {% if c.type == 'D' %}
+                <td>{{'{}/{}/{}-{}:{}:{}:{}'.format(c.code[:2], c.code[2:4], c.code[4:6], c.code[6:8], c.code[8:10], c.code[10:12], c.code[12:])}}</td>
+                {% elif c.type =='J' %}
+                <td>{{'{}.{}.{}/{}-{}'.format(c.code[:2], c.code[2:5], c.code[5:8], c.code[8:12], c.code[12:])}}</td>
+                {% else %}  
+                <td>{{'{}.{}.{}-{}'.format(c.code[:3], c.code[3:6], c.code[6:9], c.code[9:])}}</td>
+                {% endif %}
+                
+                <td>{{ c.name }}</td>
+                <td>{{ c.city }}</td>
+                <td>{{ c.region }}</td>
+                <td>{{'({}) {}-{}'.format(c.contact[:2], c.contact[2:7], c.contact[7:])}}</td>
+                <td>{{c.created_date.strftime('%d/%m/%y %H:%M')}}</td>
+                
+                {# BOTÃO EDITAR #}
+                <td>
+                    <a href="{{ url_for('client_bp.client_update', id=c.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                </td>
+                
+                {# BOTÃO DELETAR (ABRE O MODAL) - Manter aqui para referência #}
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                        data-bs-target="#delModal-{{c.id}}">
+                        Excluir
+                    </button>
+                </td>
+            </tr>
+
+            <div class="modal fade" id="delModal-{{c.id}}" tabindex="-1" aria-labelledby="delModalLabel-{{c.id}}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="delModalLabel-{{c.id}}">Excluir Cliente</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span class="text-danger">Deseja realmente excluir o cliente <strong>{{ c.name }}</strong>? Esta ação é irreversível.</span>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-warning btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                            
+                            <form action="{{ url_for('client_bp.client_del', client_id=c.id) }}" method="POST">
+                                <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

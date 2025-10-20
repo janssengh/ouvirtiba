@@ -17,57 +17,27 @@
             <a class="nav-link active" aria-current="page" href="{{ url_for('admin.product_list') }}">Home</a>
           </li>
 
+        <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Loja | Usuário</a>
+            <ul class="dropdown-menu">
+              <li><a href="{{ url_for('admin.store_list') }}" class="dropdown-item">Lojas</a></li> 
+              <li><a href="{{ url_for('admin.user_list') }}" class="dropdown-item">Usuários</a></li> 
+            </ul>
+          </li>          
+
+          <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('client_bp.client_list') }}">Clientes</a>
+          </li>
+
+          <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('order_bp.order_list') }}">Pedidos</a>
+          </li>
+
           <li class="nav-item dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Tipo</a>
             <ul class="dropdown-menu">
               <li><a href="{{ url_for('admin.product_list', type_id=1) }}" class="dropdown-item">AA - Aparelhos Auditivos</a></li>
               <li><a href="{{ url_for('admin.product_list', type_id=2) }}" class="dropdown-item">Ac - Acessórios</a></li>
-            </ul>
-          </li>
-
-          <li class="nav-item dropdown">
-            <a href="" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Cadastros</a>
-            <ul class="dropdown-menu">
-                <li><a href="" class="dropdown-item">Registrar &raquo;</a>
-                  <ul class="dropdown-menu submenu">
-                    <li><a href="" class="dropdown-item">Produto &raquo;</a>
-                      <ul class="dropdown-menu submenu multi-menu">
-                          <li><a href="" class="dropdown-item">Marca</a></li>
-                          <li><a href="" class="dropdown-item">Categoria</a></li>
-                          <li><a href="" class="dropdown-item">Cor</a></li>
-                          <li><a href="" class="dropdown-item">Tamanho</a></li>
-                          <li><a href="" class="dropdown-item">Embalagem</a></li>
-                          <li><a href="" class="dropdown-item">Produto</a></li>
-                      </ul>
-                    </li>
-                    <li><a href="" class="dropdown-item">Cliente &raquo;</a>
-                      <ul class="dropdown-menu submenu multi-menu">
-                          <li><a href="" class="dropdown-item">Física/Jurídica</a></li>
-                          <li><a href="" class="dropdown-item">Diversos</a></li>
-                      </ul>
-                    </li>
-                    <li><a href="" class="dropdown-item">Pedido &raquo;</a>
-                      <ul class="dropdown-menu submenu multi-menu">
-                          <li><a href="" class="dropdown-item">Acessórios que acompamham</a></li>
-                          <li><a href="" class="dropdown-item">Pedido</a></li>
-                      </ul>
-                    </li>
-                    <li><a href="" class="dropdown-item">Blog</a></li>
-                    <li><a href="" class="dropdown-item">Usuário</a></li>
-                  </ul>
-                </li>
-                <li><a href="" class="dropdown-item">Consultar &raquo;</a>
-                  <ul class="dropdown-menu submenu">
-                    <li><a href="" class="dropdown-item">Clientes</a></li>
-                    <li><a href="" class="dropdown-item">Pedido &raquo;</a>
-                      <ul class="dropdown-menu submenu multi-menu">
-                        <li><a href="" class="dropdown-item">Acessórios que acompamham</a></li>
-                        <li><a href="" class="dropdown-item">Pedidos</a></li>
-                      </ul>
-                    </li>
-                    <li><a href="" class="dropdown-item">Blogs</a></li>
-                  </ul>
-                </li>
             </ul>
           </li>
           
@@ -93,7 +63,7 @@
           </li>
         </ul>
         <div class="p-2 m-auto text-center text-dark">
-          <h6 style="color: rgb(230,87,66)">{{(session['Store']['Name'])}}</h6>
+          <h6 style="color: rgb(230,87,66)">{{session['username']}} | {{(session['Store']['City'])}}</h6>
         </div>
       </div>
     </div>

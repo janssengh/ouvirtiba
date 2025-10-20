@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+
+    <title>{{titulo}}</title>
+    <style>
+        body { font-size: 10pt; }
+        .table-sm td, .table-sm th { padding: 0.3rem; }
+        .pedido-header-table td { vertical-align: top; padding: 10px; }
+        .titulo-secao { background-color: #f8f9fa; font-weight: bold; padding: 5px; margin-top: 10px; margin-bottom: 5px; }
+        .tabela-itens thead tr { background-color: #dee2e6; }
+        /* Garantir que as imagens sejam menores no PDF */
+        .logo-img { max-height: 80px; width: auto; }
+    </style>
+  </head>
+  <body>
+
+    <div class="container mt-4">    
+        <div class="row">
+            <div class="container text-center">
+                
+                <table class="table table-sm pedido-header-table" border="1" style="width: 100%;">       
+                    <tr class="pedido">
+                        <td style="width: 25%; text-align: center;">
+                            {% if titulo == "Visualizar Pedido" %}
+                                <img src="{{url_for('static', filename=caminho_logo)}}" class="logo-img">
+                            {% else %}
+                                <img src="{{logohtml}}" class="logo-img" alt="Logo da Loja" />
+                            {% endif %}
+                        </td>
+                        <td style="width: 45%; text-align: left;">
+                            {% set store_code = store["Code"] %}
+                            {% if store_code|length == 14 %}
+                                {% set formatted_code = '{}.{}.{}/{}-{}'.format(store_code[:2], store_code[2:5], store_code[5:8], store_code[8:12], store_code[12:]) %}
+                            {% elif store_code|length == 11 %}
+                                {% set formatted_code = '{}.{}.{}-{}'.format(store_code[:3], store_code[3:6], store_code[6:9], store_code[9:]) %}
+                            {% else %}
+                                {% set formatted_code = store_code %}
+                            {% endif %}
+                            
+                            Fornecedor: {{formatted_code}} - {{store["Name"]}}
+                            <br>
+                            Endereço: {{store["Address"]}}, {{store["Number"]}} 
+                            {% if store["Complement"] %} - {{store["Complement"]}} {% endif %} 
+                            - {{store["Neighborhood"]}} - {{store["City"]}} - {{store["Region"]}}
+                            <br>
+                            {% set store_phone = store["Phone"] %}
+                            Contato: {{'({}) {}-{}'.format(store_phone[:2], store_phone[2:7], store_phone[7:])}}
+                        </td>
+                        <td style="width: 30%; text-align: left;">
+                            <b>Número Pedido: {{order.number}}</b><br>
+                            Data pedido: {{order.created_at.strftime('%d/%m/%Y')}}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="titulo-secao">DADOS DO CLIENTE E PAGAMENTO</div>
+            <table class="table table-sm" style="width: 100%;">
+                <tr class="pedido">
+                    <td style="width: 50%; vertical-align: top;">
+                        Cliente: {{order.client.name}} 
+                        <br>
+                        Endereço: {{order.client.address}}, {{order.client.number}} 
+                            {% if order.client.complement %} - {{order.client.complement}} {% endif %} 
+                            - {{order.client.neighborhood}} - {{order.client.city}} - {{order.client.region}}                
+                        <br>
+                        {% set client_contact = order.client.contact %}
+                        Telefone: {{'({}) {}-{}'.format(client_contact[:2], client_contact[2:7], client_contact[7:])}} - E-mail: {{order.client.email}}
+                    </td>
+                    <td style="width: 50%; vertical-align: top;">
+                        {% set amount_float = order.amount|float %}
+                        {% set amount_inp_float = order.payment_amount_inp|float %}
+
+                        {% if order.payment_form == 1 %}
+                            Forma de Pagamento: Dinheiro (À Vista)
+                        {% elif order.payment_form == 2 %}
+                            Forma de Pagamento: Pix (À Vista)
+                        {% elif order.payment_form == 3 %}
+                            Forma de Pagamento: Cartão Débito (À Vista)
+                        {% elif order.payment_form == 4 %}
+                            Forma de Pagamento: Cartão Crédito - {{order.payment_condition}}X
+                        {% else %}  
+                            {% set installment_balance = amount_float - amount_inp_float %}
+                            {% set installment_value = (installment_balance / order.payment_condition)|float %}
+
+                            {% set payment_name_inp = "" %}
+                            {% if order.payment_form_inp == 1 %}
+                                {% set payment_name_inp = "Dinheiro" %}
+                            {% elif order.payment_form_inp == 2 %}
+                                {% set payment_name_inp = "Pix" %}
+                            {% elif order.payment_form_inp == 3 %}
+                                {% set payment_name_inp = "Cartão Débito" %}
+                            {% endif %}
+
+                            Entrada: R$ {{ "%0.2f" | format(amount_inp_float) | replace('.', ',') }} ({{payment_name_inp}})
+                            <br>
+                            Saldo: R$ {{ "%0.2f" | format(installment_balance) | replace('.', ',') }}
+                            <br>
+                            Parcelamento: {{order.payment_condition}}X de R$ {{ "%0.2f" | format(installment_value) | replace('.', ',') }} (Cartão Crédito)
+                        {% endif %}
+                        <br>
+                        Valor Total do Pedido: R$ {{ "%0.2f" | format(amount_float) | replace('.', ',') }}
+                    </td>
+                </tr>
+            </table>
+
+            <div class="titulo-secao">ITENS DO PEDIDO</div>
+            <div class="col-md-12">
+                <table class="table table-sm tabela-itens" border="1" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <td style="width: 5%;"><b>Item</b></td>
+                            <td style="width: 40%;"><b>Produto</b></td>
+                            <td style="width: 10%; text-align: right;"><b>Qtde.</b></td>
+                            <td style="width: 15%; text-align: right;"><b>Preço Unit.</b></td>
+                            <td style="width: 10%; text-align: right;"><b>Vlr.Total</b></td>
+                            <td style="width: 10%; text-align: right;"><b>Desc.</b></td>
+                            <td style="width: 10%; text-align: right;"><b>Total Liq.</b></td>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% set total_pedido = 0.0 %}
+                        {% for oi in ordersitem %}
+                        <tr>
+                            <td>{{loop.index}}</td>
+                            <td>{{oi.product.name}}</td> 
+                            <td style="text-align: right;">{{oi.quantity}}</td>
+                            
+                            {% set price = "%0.2f" | format(oi.price|float) | replace('.', ',') %}
+                            <td style="text-align: right;">R$ {{price}}</td>
+                            
+                            {% set amount_initial = "%0.2f" | format(oi.amount_initial|float) | replace('.', ',') %}
+                            <td style="text-align: right;">R$ {{amount_initial}}</td>
+                            
+                            {% set discount = "%0.2f" | format(oi.discount|float) | replace('.', ',') %}
+                            <td style="text-align: right;">R$ {{discount}}</td>
+                            
+                            {% set amount = "%0.2f" | format(oi.amount|float) | replace('.', ',') %}
+                            <td style="text-align: right;">R$ {{amount}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        {% set total_amount = "%0.2f" | format(order.amount|float) | replace('.', ',') %}
+                        <tr>
+                            <td colspan="6" class="text-end fw-bold">VALOR TOTAL DO PEDIDO</td>
+                            <td style="text-align: right;" class="fw-bold">R$ {{total_amount}}</td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="7">
+                                <p class="fw-bold mt-2 mb-1">OBSERVAÇÕES:</p>
+                                <p class="mb-1">{{order.observation or "Nenhuma observação informada."}}</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="7">
+                                <p class="mt-2 mb-1">Representante legal: <b>Roeland Egbert Janssen</b></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="pt-5">
+                                <div style="width: 40%; float: left; text-align: center; border-top: 1px solid #000;">
+                                    Assinatura do Cliente
+                                </div>
+                                <div style="width: 40%; float: right; text-align: center; border-top: 1px solid #000;">
+                                    Assinatura do Vendedor/Representante
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div>
+                    {% if titulo == "Visualizar Pedido" %}
+                        <form action="" method="post" class="d-inline-block float-end ms-2">
+                            <button type="submit" class="btn btn-sm btn-warning">Gerar PDF e Emitir</button>
+                        </form>
+                        <a class="btn btn-sm btn-success float-end" href="{{ url_retorno }}">Retornar para Lista de Pedidos</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+  </body>
+</html>

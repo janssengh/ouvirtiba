@@ -1,0 +1,219 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4 mb-5">
+    <h2 class="mb-4">{{ titulo }}</h2>
+
+    <form method="POST" enctype="multipart/form-data" class="border rounded-3 shadow-sm p-4 bg-light">
+        {{ form.hidden_tag() }}
+
+        <!-- CNPJ antes do nome -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                {{ form.code.label(class="form-label") }}
+                {{ form.code(class="form-control", id="cnpj", placeholder="Somente números") }}
+            </div>
+            <div class="col-md-5">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control", id="name") }}
+            </div>
+            <div class="col-md-3">
+                {{ form.zipcode.label(class="form-label") }}
+                {{ form.zipcode(class="form-control", id="zipcode", placeholder="Ex: 89237000") }}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">{{ form.address.label(class="form-label") }} {{ form.address(class="form-control", id="address") }}</div>
+            <div class="col-md-2">{{ form.number.label(class="form-label") }} {{ form.number(class="form-control", id="number") }}</div>
+            <div class="col-md-4">{{ form.complement.label(class="form-label") }} {{ form.complement(class="form-control", id="complement") }}</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">{{ form.neighborhood.label(class="form-label") }} {{ form.neighborhood(class="form-control", id="neighborhood") }}</div>
+            <div class="col-md-4">{{ form.city.label(class="form-label") }} {{ form.city(class="form-control", id="city") }}</div>
+            <div class="col-md-4">{{ form.region.label(class="form-label") }} {{ form.region(class="form-control", id="region") }}</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">{{ form.freight_rate.label(class="form-label") }} {{ form.freight_rate(class="form-control") }}</div>
+            <div class="col-md-3">
+                {{ form.phone.label(class="form-label") }}
+                {{ form.phone(class="form-control", id="phone", placeholder="DDD + 8 dígitos", maxlength="10") }}
+            </div>
+            <div class="col-md-3">{{ form.pages.label(class="form-label") }} {{ form.pages(class="form-control") }}</div>
+            <div class="col-md-3">{{ form.url.label(class="form-label") }} {{ form.url(class="form-control") }}</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Logotipo Principal</label>
+                {{ form.logotipo_1(class="form-control", id="logotipo_1") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Logotipo Branco</label>
+                {{ form.logotipo_2(class="form-control", id="logotipo_2") }}
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 d-flex align-items-center">
+                <div class="form-check mt-3">
+                    {{ form.home(class="form-check-input") }}
+                    <label class="form-check-label fw-semibold ms-1">Destaque na Home</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{{ url_for('admin.store_list') }}" class="btn btn-secondary px-4">Cancelar</a>
+            <button type="submit" class="btn btn-success px-4">Salvar</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Função auxiliar para exibir alertas
+    function showAlert(message) {
+        // Implemente sua lógica de exibição de alerta aqui (ex: Toastr, SweetAlert, ou um simples alert)
+        // Se você já tem uma função 'showAlert' (como no snippet do seu arquivo), use-a.
+        console.warn(message);
+        alert(message); // Usando 'alert' como fallback
+    }
+
+    // === Função de Validação do CNPJ (Algoritmo de Dígito Verificador) ===
+    function validarCNPJ(cnpj) {
+        // Remove caracteres não numéricos
+        cnpj = cnpj.replace(/[^\d]+/g, '');
+
+        if (cnpj == '') return false;
+
+        // Elimina CNPJs com 14 dígitos iguais
+        if (cnpj.length != 14 || /^(0{14}|1{14}|2{14}|3{14}|4{14}|5{14}|6{14}|7{14}|8{14}|9{14})$/.test(cnpj))
+            return false;
+
+        // Valida DVs (Dígitos Verificadores)
+        let tamanho = cnpj.length - 2;
+        let numeros = cnpj.substring(0, tamanho);
+        let digitos = cnpj.substring(tamanho);
+        let soma = 0;
+        let pos = tamanho - 7;
+
+        for (let i = tamanho; i >= 1; i--) {
+            soma += numeros.charAt(tamanho - i) * pos--;
+            if (pos < 2) pos = 9;
+        }
+
+        let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+        if (resultado != digitos.charAt(0)) return false;
+
+        tamanho = tamanho + 1;
+        numeros = cnpj.substring(0, tamanho);
+        soma = 0;
+        pos = tamanho - 7;
+
+        for (let i = tamanho; i >= 1; i--) {
+            soma += numeros.charAt(tamanho - i) * pos--;
+            if (pos < 2) pos = 9;
+        }
+
+        resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+        if (resultado != digitos.charAt(1)) return false;
+
+        return true;
+    }
+
+    // === Lógica de Submissão do Formulário ===
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.querySelector('form');
+        const cnpjInput = document.getElementById('cnpj');
+        const phoneInput = document.getElementById('phone');
+        const cepInput = document.getElementById('zipcode');
+        // Novos Inputs de Arquivo
+        const logo1Input = document.getElementById('logotipo_1'); // Supondo id='logotipo_1'
+        const logo2Input = document.getElementById('logotipo_2'); // Supondo id='logotipo_2'
+
+        form.addEventListener('submit', function(event) {
+            let valid = true;
+
+            // 1. Validação de CNPJ
+            if (cnpjInput) {
+                let cnpj = cnpjInput.value.replace(/\D/g, "");
+
+                if (cnpj === "") {
+                    // O WTForms lida com o DataRequired, mas o JS pode ajudar o usuário imediatamente.
+                    showAlert("⚠️ O campo CNPJ é obrigatório.");
+                    cnpjInput.focus();
+                    valid = false;
+                } else if (!validarCNPJ(cnpj)) {
+                    showAlert("⚠️ CNPJ inválido! Verifique o número digitado.");
+                    cnpjInput.focus();
+                    valid = false;
+                }
+            }
+            
+            // 2. Validação de Telefone (mantendo sua lógica anterior)
+            if (valid && phoneInput) { // Executa se o CNPJ for válido ou se não houver campo CNPJ
+                // Mantém a sua validação de telefone de 10 dígitos (DDD + 8 dígitos)
+                if (phoneInput.value.length === 0) {
+                    showAlert("⚠️ O telefone é obrigatório.");
+                    phoneInput.focus();
+                    valid = false;
+                } else if (phoneInput.value.length !== 10) {
+                    showAlert("⚠️ O telefone deve conter 10 dígitos numéricos (DDD + 8 dígitos).");
+                    phoneInput.focus();
+                    valid = false;
+                }
+            }
+
+            // 3. ADICIONADO: Validação de Logotipos (Arquivos)
+            if (valid && logo1Input) {
+                if (logo1Input.files.length === 0) {
+                    showAlert("⚠️ O Logotipo Principal é obrigatório!");
+                    logo1Input.focus();
+                    valid = false;
+                }
+            }
+            
+            if (valid && logo2Input) {
+                if (logo2Input.files.length === 0) {
+                    showAlert("⚠️ O Logotipo para Fundo Claro é obrigatório!");
+                    logo2Input.focus();
+                    valid = false;
+                }
+            }            
+
+            // Impede a submissão se qualquer validação JS falhar
+            if (!valid) {
+                event.preventDefault();
+            }
+        });
+
+        // === Busca CEP automática via ViaCEP (mantida) ===
+        if (cepInput) {
+            cepInput.addEventListener("blur", function() {
+                let cep = this.value.replace(/\D/g, "");
+                if (cep.length !== 8) {
+                    showAlert("⚠️ CEP inválido. Digite um CEP com 8 dígitos.");
+                    return;
+                }
+                fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.erro) {
+                            showAlert("⚠️ CEP não encontrado.");
+                            return;
+                        }
+                        document.getElementById("address").value = data.logradouro || "";
+                        document.getElementById("neighborhood").value = data.bairro || "";
+                        document.getElementById("city").value = data.localidade || "";
+                        document.getElementById("region").value = data.uf || "";
+                        document.getElementById("number").focus();
+                    })
+                    .catch(() => showAlert("⚠️ Erro ao buscar o CEP. Tente novamente."));
+            });
+        }
+    });
+</script>
+{% endblock %}

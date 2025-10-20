@@ -1,0 +1,236 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<form action="/cliente/salvar" method="post" id="address-form" novalidate>
+
+    <div class="text-center p-2 data-text">
+        <h4>{{titulo}}</h4>
+    </div>
+    
+    {{form.csrf_token}}
+
+    <div class="row mb-3">
+        <div class="col-md-2"></div>
+            <div class="col-md-4">
+            {{form.zipcode.label}}
+            {{form.zipcode(class='form-control shadow-none', id="client-cep", placeholder='Digite seu CEP')}} 
+            
+            {% if form.zipcode.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.zipcode.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-2"></div>
+        <div class="col-md-4">
+            {{form.address.label}}
+            {{form.address(class='form-control data-input', id="client-address", placeholder='Digite seu endereço',
+            )}}
+            {% if form.address.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.address.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {{form.complement.label}}
+            {{form.complement(class='form-control data-input', id="client-complement", placeholder='Digite seu complemento',
+            )}}
+            {% if form.complement.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.complement.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {{form.city.label}}
+            {{form.city(class='form-control data-input', id="client-city", placeholder='Digite sua cidade',
+            )}}
+            {% if form.city.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.city.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+        </div>
+        <div class="col-md-4">
+            {{form.number.label}}
+            {{form.number(class='form-control data-input', id="client-number", placeholder='Digite seu número de endereço',
+            )}}
+            {% if form.number.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.number.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {{form.neighborhood.label}}
+            {{form.neighborhood(class='form-control data-input', id="client-neighborhood", placeholder='Digite seu bairro',
+            )}}
+            {% if form.neighborhood.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.neighborhood.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {{form.region.label}}
+            {{form.region(class='form-control data-input', id="client-region", placeholder='Digite sua Unidade de Federação',
+            )}}
+            {% if form.region.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.region.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <button type="submit" class="btn btn-sm btn-success mt-3">Cadastrar</button>
+            <a class="btn btn-sm btn-danger mt-3" href="{{ url_for('client_bp.client_list') }}">Cancelar</a>
+            
+
+        </div>
+    </div>
+</form>
+
+{# ======================================================= #}
+{# NOVO BLOCO DE SCRIPT PARA BUSCA DE CEP #}
+{# ======================================================= #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obter referências aos campos. Se um ID estiver errado ou faltando, isso retornará null.
+        const cepInput = document.getElementById('client-cep');
+        
+        // Garante que todos os campos de endereço preenchíveis automaticamente estão na lista
+        const autoFillFields = [
+            { element: document.getElementById('client-address'), name: 'logradouro' },
+            { element: document.getElementById('client-neighborhood'), name: 'bairro' },
+            { element: document.getElementById('client-city'), name: 'localidade' }, // ✅ CRÍTICO: Garantir este ID
+            { element: document.getElementById('client-region'), name: 'uf' }     // ✅ CRÍTICO: Garantir este ID
+        ];
+
+        const complementInput = document.getElementById('client-complement');
+        const numberInput = document.getElementById('client-number');
+        
+        // 🚨 Verificação de segurança (DEBUG)
+        if (!cepInput) {
+            console.error("Erro Fatal: Campo CEP (id='client-cep') não encontrado.");
+            return;
+        }
+        autoFillFields.forEach(field => {
+            if (!field.element) {
+                console.error(`Erro Fatal: Campo de endereço (id='${field.element ? field.element.id : 'N/A'}') não encontrado.`);
+                // Você pode optar por retornar aqui também, mas vamos permitir o preenchimento manual
+            }
+        });
+
+        // Função para limpar e liberar (remover readonly) os campos de endereço
+        function clearAddressFields() {
+            autoFillFields.forEach(field => {
+                if (field.element) {
+                    field.element.value = '';
+                    field.element.removeAttribute('readonly');
+                    field.element.removeAttribute('disabled');
+                }
+            });
+            if (complementInput) complementInput.value = '';
+        }
+        
+        function searchCep() {
+            let cep = cepInput.value.replace(/\D/g, ''); 
+            
+            if (cep.length !== 8) {
+                if (cep.length === 0) clearAddressFields();
+                return;
+            }
+            
+            clearAddressFields(); // Limpa antes de iniciar a busca
+            
+            // Ativa o disabled para feedback visual (busca)
+            autoFillFields.forEach(field => {
+                if (field.element) field.element.setAttribute('disabled', 'disabled');
+            });
+
+            // Requisição com maior tratamento de erro
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Remove o disabled após a resposta, permitindo edição
+                    autoFillFields.forEach(field => {
+                        if (field.element) field.element.removeAttribute('disabled');
+                    });
+
+                    if (data.erro) {
+                        alert("CEP não encontrado. Por favor, preencha o endereço manualmente.");
+                        if (document.getElementById('client-address')) document.getElementById('client-address').focus();
+                    } else {
+                        // Preenche e Bloqueia (readonly) campos preenchidos
+                        autoFillFields.forEach(field => {
+                            const value = data[field.name];
+                            if (field.element) {
+                                if (value) {
+                                    field.element.value = value;
+                                    // Bloqueia com readonly, pois foi preenchido pela API
+                                    field.element.setAttribute('readonly', 'readonly');
+                                } else {
+                                    // Campo não preenchido pela API (ex: logradouro em CEP genérico), fica liberado
+                                    field.element.removeAttribute('readonly');
+                                }
+                            }
+                        });
+
+                        // Complemento e Número (sempre manuais)
+                        if (complementInput && data.complemento) {
+                            complementInput.value = data.complemento;
+                        }
+                        if (numberInput) numberInput.focus();
+                    }
+                })
+                .catch(error => {
+                    // Reativa e limpa os campos em caso de erro (rede, JSON inválido, HTTP)
+                    autoFillFields.forEach(field => {
+                        if (field.element) field.element.removeAttribute('disabled');
+                    });
+                    console.error("Erro na busca de CEP:", error);
+                    alert("Ocorreu um erro ao buscar o CEP. Por favor, preencha o endereço manualmente.");
+                    if (addressInput) addressInput.focus();
+                });
+        }
+
+        // Adiciona o evento de busca no blur
+        cepInput.addEventListener('blur', searchCep);
+        
+        // Máscara para o CEP
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); 
+            let maskedValue = '';
+            
+            if (value.length > 5) {
+                maskedValue = value.substring(0, 5) + '-' + value.substring(5, 8);
+            } else {
+                maskedValue = value;
+            }
+            e.target.value = maskedValue;
+        });
+    });
+</script>
+
+{% endblock content %}

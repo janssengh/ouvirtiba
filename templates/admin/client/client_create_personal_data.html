@@ -1,0 +1,102 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+
+<form action="/cliente/proximo_passo" method="post" id="personal-data-form" novalidate>
+    <div class="text-center p-2 data-text">
+        <h4>{{titulo}}</h4>
+    </div>
+
+    {{form.csrf_token}}
+
+    <div class="row mb-3">
+        <div class="col-md-2"></div>
+        <div class="col-md-4">
+            {{form.code.label}}
+            {{form.code(class='form-control', placeholder='Digite seu CPF/CNPJ (opcional)')}}
+            {% if form.code.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.code.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+        </div>
+
+        <div class='col-md-4'>
+
+            {{form.name.label}}
+            {{form.name(class='form-control', placeholder='Digite seu nome completo')}}
+            {% if form.name.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.name.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-2"></div>
+        <div class="col-md-4">
+
+            {{form.contact.label}}
+            {{form.contact(class='form-control', placeholder='Digite seu número de telefone com o DDD')}}
+            {% if form.contact.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.contact.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+        </div>
+        
+        <div class='col-md-4'>
+
+            {{form.email.label}}
+            {{form.email(class='form-control', placeholder='email@mail.com')}}
+            {% if form.email.errors %}
+            <ul class='list-unstyled'>
+                {% for error in form.email.errors %}
+                <li class='alert alert-warning'>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" id="btnCancelarCli" class="btn btn-sm btn-danger me-2">Cancelar</button>
+                <button type="submit" class="btn btn-sm btn-success">Próximo</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+{# ======================================================= #}
+{# NOVO BLOCO DE SCRIPT PARA CONFIRMAÇÃO DO CANCELAMENTO   #}
+{# O script foi mantido inalterado, pois a funcionalidade está correta. #}
+{# ======================================================= #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnCancelar = document.getElementById('btnCancelarCli');
+
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', function() {
+                // Solicita a confirmação do usuário
+                if (confirm('Tem certeza que deseja cancelar? As alterações não salvas serão perdidas.')) {
+                    // Se confirmar, redireciona para a lista de clientes
+                    window.location.href = "{{ url_for('client_bp.client_list') }}";
+                }
+            });
+        }
+    });
+</script>
+
+
+{% endblock content %}

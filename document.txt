@@ -94,3 +94,77 @@ routes:
 def product_list():
     products = Product.query.all()
     return render_template('admin/product_list.html', products=products)
+
+
+# =========================================================
+# FLUXO DE CADASTRO DE CLIENTE MULTI-STEP
+# =========================================================
+
+# ROTA 1.1: CADASTRO DE CLIENTE (PF/PJ)
+@client_bp.route('/cliente/cadastrar', methods=['GET', 'POST'])
+def client_register_fjpj():
+    # ✅ Usa o formulário renomeado
+    form = FormClientPFJ()
+    
+    if form.validate_on_submit():
+        try:
+            # 1. Determinar o tipo (Física 'F' ou Jurídica 'J')
+            code_data = ''.join(filter(str.isdigit, form.code.data))
+            client_type = 'F' if len(code_data) == 11 else 'J'
+            
+            # 2. Armazenar dados básicos na session para o próximo passo
+            session['client_reg_data'] = { # ✅ Usa chave mais clara
+                'code': code_data, 
+                'name': form.name.data,
+                'contact': form.contact.data, 
+                'email': form.email.data,
+                'type': client_type
+            }
+            
+            # 3. Redirecionar para o passo 2 (Endereço)
+            return redirect(url_for('client_bp.client_register_address'))
+
+        except Exception as e:
+            flash(f'Erro interno ao processar dados. {e}', 'danger')
+            
+    # ✅ Renderiza o template de cadastro inicial (NOME PROFISSIONALIZADO)
+    return render_template('client/client_create_personal_data.html', form=form, titulo="Registrar Novo Cliente", stperson="active")
+
+# ROTA 1.2: CADASTRO DE CLIENTE (DIVERSOS)
+@client_bp.route('/cliente/diversos', methods=['GET', 'POST'])
+def client_register_div():
+    # ✅ Usa o formulário renomeado
+    form = FormClientDiv()
+    
+    if form.validate_on_submit():
+        # 1. Armazenar dados básicos na session (Type 'D')
+        session['client_reg_data'] = { # ✅ Usa chave mais clara
+            'code': form.code.data, 
+            'name': form.name.data,
+            'contact': form.contact.data, 
+            'email': form.email.data,
+            'type': 'D' # Cliente Diversos
+        }
+        
+        # 2. Redirecionar para o passo 2 (Endereço)
+        return redirect(url_for('client_bp.client_register_address'))
+
+    # ✅ Renderiza o template de cadastro diverso (NOME PROFISSIONALIZADO)
+    # Assumindo que o template é o mesmo da primeira etapa, com o form diferente.
+    return render_template('client/client_create_personal_data.html', form=form, titulo="Cadastrar Cliente Diversos", stperson="active")
+
+
+# ROTA 2: CADASTRO DE CLIENTE - ENDEREÇO
+@client_bp.route('/cliente/endereco', methods=['GET'])
+def client_register_address():
+    # 1. Verificar se o Passo 1 foi concluído
+    if 'client_reg_data' not in session:
+        flash('Por favor, preencha os dados básicos antes de prosseguir.', 'warning')
+        return redirect(url_for('client_bp.client_register_fjpj')) 
+
+    # ✅ Usa o formulário renomeado (Endereço)
+    form = FormClientAddress()
+
+    # O submit deste formulário deve ir para a rota client_save
+    # ✅ Renderiza o template de endereço (NOME PROFISSIONALIZADO)
+    return render_template('client/client_create_address.html', form=form, titulo="Registrar Novo Cliente - Endereço (Passo 2 de 2)", stperson="active")

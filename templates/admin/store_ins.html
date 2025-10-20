@@ -1,0 +1,173 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4 mb-5">
+    <h2 class="mb-4">{{ titulo }}</h2>
+
+    <form method="POST" enctype="multipart/form-data" class="border rounded-3 shadow-sm p-4 bg-light">
+        {{ form.hidden_tag() }}
+
+        <!-- CNPJ antes do nome -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                {{ form.code.label(class="form-label") }}
+                {{ form.code(class="form-control", id="cnpj", placeholder="Somente números") }}
+            </div>
+            <div class="col-md-5">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control", id="name") }}
+            </div>
+            <div class="col-md-3">
+                {{ form.zipcode.label(class="form-label") }}
+                {{ form.zipcode(class="form-control", id="zipcode", placeholder="Ex: 89237000") }}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">{{ form.address.label(class="form-label") }} {{ form.address(class="form-control", id="address") }}</div>
+            <div class="col-md-2">{{ form.number.label(class="form-label") }} {{ form.number(class="form-control", id="number") }}</div>
+            <div class="col-md-4">{{ form.complement.label(class="form-label") }} {{ form.complement(class="form-control", id="complement") }}</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">{{ form.neighborhood.label(class="form-label") }} {{ form.neighborhood(class="form-control", id="neighborhood") }}</div>
+            <div class="col-md-4">{{ form.city.label(class="form-label") }} {{ form.city(class="form-control", id="city") }}</div>
+            <div class="col-md-4">{{ form.region.label(class="form-label") }} {{ form.region(class="form-control", id="region") }}</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">{{ form.freight_rate.label(class="form-label") }} {{ form.freight_rate(class="form-control") }}</div>
+            <div class="col-md-3">
+                {{ form.phone.label(class="form-label") }}
+                {{ form.phone(class="form-control", id="phone", placeholder="DDD + 8 dígitos", maxlength="10") }}
+            </div>
+            <div class="col-md-3">{{ form.pages.label(class="form-label") }} {{ form.pages(class="form-control") }}</div>
+            <div class="col-md-3">{{ form.url.label(class="form-label") }} {{ form.url(class="form-control") }}</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Logotipo Principal</label>
+                {{ form.logotipo_1(class="form-control", id="logotipo_1") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Logotipo Branco</label>
+                {{ form.logotipo_2(class="form-control", id="logotipo_2") }}
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 d-flex align-items-center">
+                <div class="form-check mt-3">
+                    {{ form.home(class="form-check-input") }}
+                    <label class="form-check-label fw-semibold ms-1">Destaque na Home</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{{ url_for('admin.store_list') }}" class="btn btn-secondary px-4">Cancelar</a>
+            <button type="submit" class="btn btn-success px-4">Salvar</button>
+        </div>
+    </form>
+</div>
+<script>
+    // Função auxiliar para exibir alertas
+    function showAlert(message) {
+        console.warn(message);
+        alert(message);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.querySelector('form');
+        const cnpjInput = document.getElementById('cnpj');
+        const phoneInput = document.getElementById('phone');
+        const cepInput = document.getElementById('zipcode');
+        const logo1Input = document.getElementById('logotipo_1');
+        const logo2Input = document.getElementById('logotipo_2');
+        const cancelBtn = document.querySelector('a.btn-secondary');
+
+        // === Confirmação ao cancelar ===
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                if (confirm("Tem certeza que deseja cancelar? Todas as alterações não salvas serão perdidas.")) {
+                    window.location.href = this.href;
+                }
+            });
+        }
+
+        form.addEventListener('submit', function(event) {
+            let valid = true;
+
+            // 1. Validação de CNPJ
+            if (cnpjInput) {
+                let cnpj = cnpjInput.value.replace(/\D/g, "");
+                if (cnpj === "") {
+                    showAlert("⚠️ O campo CNPJ é obrigatório.");
+                    cnpjInput.focus();
+                    valid = false;
+                } else if (!validarCNPJ(cnpj)) {
+                    showAlert("⚠️ CNPJ inválido! Verifique o número digitado.");
+                    cnpjInput.focus();
+                    valid = false;
+                }
+            }
+
+            // 2. Validação de telefone
+            if (valid && phoneInput) {
+                if (phoneInput.value.length === 0) {
+                    showAlert("⚠️ O telefone é obrigatório.");
+                    phoneInput.focus();
+                    valid = false;
+                } else if (phoneInput.value.length !== 10) {
+                    showAlert("⚠️ O telefone deve conter 10 dígitos numéricos (DDD + 8 dígitos).");
+                    phoneInput.focus();
+                    valid = false;
+                }
+            }
+
+            // 3. Validação de logotipos
+            if (valid && logo1Input && logo1Input.files.length === 0) {
+                showAlert("⚠️ O Logotipo Principal é obrigatório!");
+                logo1Input.focus();
+                valid = false;
+            }
+            if (valid && logo2Input && logo2Input.files.length === 0) {
+                showAlert("⚠️ O Logotipo para Fundo Claro é obrigatório!");
+                logo2Input.focus();
+                valid = false;
+            }
+
+            if (!valid) event.preventDefault();
+        });
+
+        // === Busca CEP automática via ViaCEP ===
+        if (cepInput) {
+            cepInput.addEventListener("blur", function() {
+                let cep = this.value.replace(/\D/g, "");
+                if (cep.length !== 8) {
+                    showAlert("⚠️ CEP inválido. Digite um CEP com 8 dígitos.");
+                    return;
+                }
+                fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.erro) {
+                            showAlert("⚠️ CEP não encontrado.");
+                            return;
+                        }
+                        document.getElementById("address").value = data.logradouro || "";
+                        document.getElementById("neighborhood").value = data.bairro || "";
+                        document.getElementById("city").value = data.localidade || "";
+                        document.getElementById("region").value = data.uf || "";
+                        document.getElementById("number").focus();
+                    })
+                    .catch(() => showAlert("⚠️ Erro ao buscar o CEP. Tente novamente."));
+            });
+        }
+    });
+</script>
+
+{% endblock %}

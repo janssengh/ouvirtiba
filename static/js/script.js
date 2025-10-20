@@ -77,6 +77,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const confirmar = confirm("Deseja realmente cancelar? As alterações não salvas serão perdidas.");
 
     if (confirmar) {
+
       // 🔍 Detecta automaticamente se é uma tela de MARCA (brand_ins.html ou brand_upd.html)
       const isBrandPage = window.location.pathname.includes("/brand/");
 
@@ -92,6 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // 🔍 NOVO: Detecta automaticamente se é uma tela de EMBALAGEM
       const isPackagingPage = window.location.pathname.includes("/packaging/"); 
 
+
       if (isBrandPage) {
         // Retorna para a lista de marcas
         window.location.href = "/admin/brand/list";
@@ -106,7 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
         window.location.href = "/admin/size/list";   
       } else if (isPackagingPage) { // <-- NOVO BLOCO
         // Retorna para a lista de embalagens
-        window.location.href = "/admin/packaging/list";     
+        window.location.href = "/admin/packaging/list";   
       } else if (initialTypeId && initialTypeId !== "null") {
         // Retorna para a lista filtrada por tipo (produtos)
         window.location.href = `/admin/${initialTypeId}`;

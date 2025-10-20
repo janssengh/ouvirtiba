@@ -1,0 +1,147 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary mb-0">
+            📋 {{ titulo or "Lista de Pedidos" }}
+        </h2>
+        <a href="{{ url_for('order_bp.order_create') }}" class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Novo Pedido
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr class="text-center">
+                        <th>Nº</th>
+                        <th>Cliente</th>
+                        <th>Data</th>
+                        <th>Forma de Pagto</th>
+                        <th>Valor Total</th>
+                        <th>Status</th>
+                        <th>Itens</th>
+                        <th>Excluir</th>
+                        <th>PDF</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for o in orders %}
+                    <tr>
+                        <td class="text-center fw-semibold">{{ o.number }}</td>
+                        <td>{{ o.client.name }}</td>
+                        <td class="text-center">{{ o.created_at.strftime('%d/%m/%Y') }}</td>
+
+                        <!-- Forma de pagamento -->
+                        <td>
+                            {% if o.payment_form == 1 %}
+                                À vista - Dinheiro
+                            {% elif o.payment_form == 2 %}
+                                À vista - Pix
+                            {% elif o.payment_form == 3 %}
+                                À vista - C.Débito
+                            {% elif o.payment_form == 4 %}
+                                C.Créd {{ o.payment_condition }}x
+                            {% else %}
+                                <!-- Parcelado -->
+                                {% set amount_num = o.amount|float %}
+                                {% set amount_inp_num = o.payment_amount_inp|float %}
+                                {% set balance_payable = amount_num - amount_inp_num %}
+                                {% set condition_num = o.payment_condition|int %}
+                                {% set installment_pay = "%0.2f" | format(balance_payable / condition_num) %}
+                                {% set installment_pay = installment_pay.replace('.', ',') %}
+                                {% set product_amount_inp = "%0.2f" | format(o.payment_amount_inp|float) %}
+                                {% set product_amount_inp = product_amount_inp.replace('.', ',') %}
+                                Ent. R$ {{ product_amount_inp }} + {{ o.payment_condition }}x R$ {{ installment_pay }}
+                            {% endif %}
+                        </td>
+
+                        <!-- Valor total formatado -->
+                        {% set product_amount = "%0.2f" | format(o.amount|float) %}
+                        {% set product_amount = product_amount.replace('.', ',') %}
+                        <td class="text-end fw-semibold">R$ {{ product_amount }}</td>
+
+                        <!-- Status -->
+                        <td class="text-center">
+                            {% if o.status == "N" %}
+                                <span class="badge bg-warning text-dark">Não Emitido</span>
+                            {% elif o.status == "S" %}
+                                <span class="badge bg-success">Emitido</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Desconhecido</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Itens -->
+                        <td class="text-center">
+                            <a href="{{ url_for('order_bp.orderitem_list', order_id=o.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-box-seam"></i> Itens
+                            </a>
+                        </td>
+
+                        <!-- Excluir -->
+                        <td class="text-center">
+                            {% if o.status == "N" %}
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm" 
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalExcluir-{{ o.id }}">
+                                    <i class="bi bi-trash"></i> Excluir
+                                </button>
+                            {% else %}
+                                <span class="text-muted">
+                                    <i class="bi bi-lock"></i> Bloqueado
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- PDF -->
+                        <td class="text-center">
+                            <a href="{{ url_for('order_bp.orderpdf', order_id=o.id) }}" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
+                            </a>
+                        </td>
+                    </tr>                    </tr>
+
+                    <!-- Modal de Confirmação -->
+                    <div class="modal fade" id="modalExcluir-{{ o.id }}" tabindex="-1" aria-labelledby="modalExcluirLabel-{{ o.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title" id="modalExcluirLabel-{{ o.id }}">
+                                        Confirmar Exclusão
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <p class="fw-bold mb-0 text-danger">
+                                        Tem certeza que deseja excluir o pedido nº {{ o.number }}?
+                                    </p>
+                                    <small class="text-muted">Esta ação não poderá ser desfeita.</small>
+                                </div>
+                                <div class="modal-footer justify-content-between">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                        Cancelar
+                                    </button>
+                                    <form action="{{ url_for('order_bp.order_delete', order_id=o.id) }}" method="POST">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

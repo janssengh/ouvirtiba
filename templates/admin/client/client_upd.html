@@ -1,0 +1,281 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h2>Editar Cliente: {{ form.name.data }}</h2>
+    <hr>
+
+    <form method="POST" action="{{ url_for('client_bp.client_update', id=updatecliente.id) }}" class="needs-validation" novalidate>
+        
+        {{ form.csrf_token }}
+        
+        <input type="hidden" id="{{ form.type.id }}" name="{{ form.type.name }}" value="{{ form.type.data }}">
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# O campo 'code' deve ser de leitura, a menos que seja um 'cliente diverso' #}
+                    <input type="text" 
+                           id="{{ form.code.id }}" 
+                           name="{{ form.code.name }}" 
+                           value="{{ form.code.data }}" 
+                           class="form-control" 
+                           placeholder="CPF/CNPJ/Contato"
+                           {% if updatecliente.type != 'D' %} readonly {% endif %} required>
+                    <label for="{{ form.code.id }}">Identificação (CPF/CNPJ/Contato)</label>
+                    <div class="invalid-feedback">
+                        {% for error in form.code.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-5">
+                <div class="form-floating">
+                    <input type="text" id="{{ form.name.id }}" name="{{ form.name.name }}" value="{{ form.name.data }}" class="form-control" placeholder="Nome Completo" required>
+                    <label for="{{ form.name.id }}">Nome Completo</label>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <input type="email" id="{{ form.email.id }}" name="{{ form.email.name }}" value="{{ form.email.data }}" class="form-control" placeholder="E-mail" required>
+                    <label for="{{ form.email.id }}">E-mail</label>
+                </div>
+            </div>
+            </div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="form-floating">
+                    <input type="text" id="{{ form.contact.id }}" name="{{ form.contact.name }}" value="{{ form.contact.data }}" class="form-control" placeholder="Contato" required>
+                    <label for="{{ form.contact.id }}">Contato</label>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# O campo CEP deve ser sempre editável, mas com máscara #}
+                    <input type="text" id="client-cep" name="{{ form.zipcode.name }}" value="{{ form.zipcode.data }}" class="form-control" placeholder="CEP" required>
+                    <label for="client-cep">CEP</label>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating">
+                    {# O campo Endereço é o primeiro a ser desabilitado #}
+                    <input type="text" id="client-address" name="{{ form.address.name }}" value="{{ form.address.data }}" class="form-control data-input" placeholder="Endereço" disabled required>
+                    <label for="client-address">Endereço</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# Número sempre editável #}
+                    <input type="number" id="{{ form.number.id }}" name="{{ form.number.name }}" value="{{ form.number.data }}" class="form-control" placeholder="Número" required>
+                    <label for="{{ form.number.id }}">Número</label>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# Complemento sempre editável (ou habilitável) #}
+                    <input type="text" id="client-complement" name="{{ form.complement.name }}" value="{{ form.complement.data or '' }}" class="form-control data-input" placeholder="Complemento">
+                    <label for="client-complement">Complemento (Opcional)</label>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# Bairro desabilitado inicialmente #}
+                    <input type="text" id="client-neighborhood" name="{{ form.neighborhood.name }}" value="{{ form.neighborhood.data }}" class="form-control data-input" placeholder="Bairro" disabled required>
+                    <label for="client-neighborhood">Bairro</label>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# Cidade desabilitada inicialmente #}
+                    <input type="text" id="client-city" name="{{ form.city.name }}" value="{{ form.city.data }}" class="form-control data-input" placeholder="Cidade" disabled required>
+                    <label for="client-city">Cidade</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="form-floating">
+                    {# UF desabilitada inicialmente #}
+                    <input type="text" id="client-region" name="{{ form.region.name }}" value="{{ form.region.data }}" class="form-control data-input" placeholder="UF" disabled required>
+                    <label for="client-region">UF</label>
+                </div>
+            </div>
+            </div>
+
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <button type="button" id="btnCancelarCli" class="btn btn-secondary">Cancelar</button>            
+            </div>
+        </div>
+    </form>
+</div>
+
+{# ======================================================= #}
+{# LÓGICA JAVASCRIPT: Auto-preenchimento e HABILITAÇÃO CONDICIONAL #}
+{# ======================================================= #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cepInput = document.getElementById('client-cep');
+        const addressForm = document.querySelector('#address-form'); // Assumindo que você tem um ID ou altere o seletor
+        
+        // Elementos do Endereço
+        const addressInput = document.getElementById('client-address');
+        const complementInput = document.getElementById('client-complement');
+        const neighborhoodInput = document.getElementById('client-neighborhood');
+        const cityInput = document.getElementById('client-city');
+        const regionInput = document.getElementById('client-region');
+        
+        // Array de campos de endereço que *podem* ser preenchidos pelo CEP
+        const autoFillFields = [
+            { element: addressInput, viaCepKey: 'logradouro' },
+            { element: neighborhoodInput, viaCepKey: 'bairro' },
+            { element: cityInput, viaCepKey: 'localidade' },
+            { element: regionInput, viaCepKey: 'uf' }
+        ];
+
+        // 1. Função para HABILITAR um campo
+        function enableField(element) {
+            if (element) {
+                element.removeAttribute('disabled');
+            }
+        }
+        
+        // 2. Função para LIMPAR E DESABILITAR todos os campos de endereço preenchidos pelo CEP
+        function clearAndDisableAddressFields() {
+            autoFillFields.forEach(field => {
+                if (field.element) {
+                    field.element.value = '';
+                    field.element.setAttribute('disabled', 'disabled');
+                }
+            });
+            // O complemento não desabilita, mas limpa.
+            if (complementInput) complementInput.value = '';
+        }
+        
+        // 3. LÓGICA DE BUSCA E HABILITAÇÃO CONDICIONAL
+        function searchCep() {
+            let cep = cepInput.value.replace(/\D/g, '');
+
+            if (cep.length !== 8) return; 
+
+            // Limpa os campos enquanto busca e os desabilita
+            clearAndDisableAddressFields(); 
+
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.erro) {
+                        autoFillFields.forEach(field => {
+                            const element = field.element;
+                            const value = data[field.viaCepKey] || ''; 
+                            
+                            element.value = value;
+                            
+                            // *** REGRA PRINCIPAL: HABILITA SE O VALOR RETORNADO FOR VAZIO ***
+                            if (!value) {
+                                enableField(element);
+                                // Adiciona um placeholder para guiar o usuário
+                                element.placeholder = 'CAMPO VAZIO, PREENCHA MANUALMENTE';
+                            } else {
+                                // Se preencheu, MANTÉM DESABILITADO (READONLY)
+                                element.setAttribute('disabled', 'disabled');
+                            }
+                        });
+
+                        // Complemento (Complemento sempre vem vazio do ViaCEP para a maioria dos endereços)
+                        // Apenas preenche se o ViaCEP retornar algo (raro, mas possível)
+                        if (data.complemento && complementInput) {
+                            complementInput.value = data.complemento;
+                        }
+                        
+                        // Foca no campo que precisa de entrada manual (ex: Número)
+                        const numberInput = document.getElementById('{{ form.number.id }}');
+                        if (numberInput) numberInput.focus();
+                    } else {
+                        // CEP não encontrado ou erro na API -> HABILITA TUDO PARA PREENCHIMENTO MANUAL
+                        alert("CEP não encontrado. Por favor, preencha o endereço manualmente.");
+                        autoFillFields.forEach(field => enableField(field.element));
+                        if (addressInput) addressInput.focus();
+                    }
+                })
+                .catch(error => {
+                    // Reativa todos os campos em caso de erro na requisição
+                    console.error("Erro na busca de CEP:", error);
+                    alert("Ocorreu um erro ao buscar o CEP. Por favor, preencha o endereço manualmente.");
+                    autoFillFields.forEach(field => enableField(field.element));
+                    if (addressInput) addressInput.focus();
+                });
+        }
+
+        // Adiciona o evento para disparar a busca quando o campo CEP perder o foco (blur)
+        cepInput.addEventListener('blur', searchCep);
+        
+        // 4. LÓGICA DE PRE-SUBMIT: REATIVAR TODOS OS CAMPOS DESABILITADOS ANTES DE ENVIAR
+        const submitButton = document.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.addEventListener('click', function(e) {
+                // Remove o atributo 'disabled' de todos os campos que têm a classe 'data-input' 
+                // para que o Flask receba os dados.
+                document.querySelectorAll('.data-input').forEach(field => {
+                    if (field.hasAttribute('disabled')) {
+                        field.removeAttribute('disabled');
+                        // Opcional: Re-adiciona 'readonly' se você *não* quiser que o usuário 
+                        // tenha editado o campo (mas queremos que edite se veio vazio)
+                        // Neste caso, se ele está desabilitado, é porque o ViaCEP o preencheu.
+                    }
+                });
+                
+                // O Flask-WTF exige que o campo de tipo seja um campo de formulário para ser validado.
+                // Já colocamos ele como hidden no HTML.
+                
+                // Remove a desabilitação para garantir que o 'code' seja enviado para clientes Diversos
+                const codeInput = document.getElementById('{{ form.code.id }}');
+                if (codeInput && codeInput.hasAttribute('readonly') && codeInput.value === '{{ updatecliente.code }}') {
+                    // Mantém o campo readonly, mas garante que o valor seja enviado no POST
+                    codeInput.removeAttribute('readonly'); 
+                }
+            });
+        }
+        
+        // Lógica de Cancelar (Mantida do snippet anterior)
+        const btnCancelar = document.getElementById('btnCancelarCli');
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', function() {
+                if (confirm('Tem certeza que deseja cancelar? As alterações não salvas serão perdidas.')) {
+                    window.location.href = "{{ url_for('client_bp.client_list') }}";
+                }
+            });
+        }
+        
+        // Máscara para o CEP (Mantida do snippet anterior)
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); 
+            let maskedValue = '';
+            
+            if (value.length > 5) {
+                maskedValue = value.substring(0, 5) + '-' + value.substring(5, 8);
+            } else {
+                maskedValue = value;
+            }
+            e.target.value = maskedValue;
+        });
+    });
+</script>
+{% endblock %}

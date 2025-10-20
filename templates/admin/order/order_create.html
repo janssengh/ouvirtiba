@@ -1,0 +1,226 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="fw-bold text-primary mb-3">{{ titulo }}</h3>
+            <form method="POST">
+                <!-- Cliente e Observação -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="client_id" class="form-label">Cliente</label>
+                        <select name="client_id" id="client_id" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            {% for c in clients %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="observation" class="form-label">Observação</label>
+                        <input type="text" name="observation" id="observation" class="form-control">
+                    </div>
+                </div>
+
+                <hr>
+                <!-- Forma de Pagamento -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="payment_form" class="form-label">Forma de Pagamento</label>
+                        <select name="payment_form" id="payment_form" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="1">Dinheiro</option>
+                            <option value="2">Pix</option>
+                            <option value="3">Cartão Débito</option>
+                            <option value="4">Cartão Crédito</option>
+                            <option value="5">Entrada + Parcelas Cartão Crédito</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4" id="payment_amount_div" style="display:none;">
+                        <label for="payment_amount_inp" class="form-label">Valor de Entrada</label>
+                        <input type="number" step="0.01" min="0" name="payment_amount_inp" id="payment_amount_inp" class="form-control">
+                    </div>
+
+                    <div class="col-md-4" id="payment_form_inp_div" style="display:none;">
+                        <label for="payment_form_inp" class="form-label">Forma da Entrada</label>
+                        <select name="payment_form_inp" id="payment_form_inp" class="form-select">
+                            <option value="">Selecione...</option>
+                            <option value="1">Dinheiro</option>
+                            <option value="2">Pix</option>
+                            <option value="3">Cartão Débito</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4" id="payment_condition_div" style="display:none;">
+                        <label for="payment_condition" class="form-label">Parcelamento (Qtde)</label>
+                        <input type="number" min="1" max="18" name="payment_condition" id="payment_condition" class="form-control">
+                    </div>
+                </div>
+
+                <hr>
+                <h5 class="text-secondary mb-2">Itens do Pedido</h5>
+
+                <div id="itens-container">
+                    <div class="row mb-2 item-row align-items-center">
+                        <div class="col-md-4">
+                            <select name="product_id[]" class="form-select product-select" required>
+                                <option value="">Produto...</option>
+                                {% for tipo, produtos_tipo in products | groupby('type_name') %}
+                                <optgroup label="{{ tipo }}">
+                                    {% for p in produtos_tipo %}
+                                    <option value="{{ p.id }}" data-price="{{ p.price }}">
+                                        {{ p.name }} (Estoque: {{ p.stock }})
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" name="quantity[]" class="form-control quantity-input" min="1" value="1" required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" step="0.01" min="0" name="price[]" class="form-control price-input" placeholder="Preço" required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" name="item_total[]" class="form-control total-input" readonly placeholder="Total">
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-item">🗑</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mb-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="add-item">+ Adicionar Item</button>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success">💾 Salvar Pedido</button>
+                    <button type="button" id="cancel-button" class="btn btn-outline-secondary">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // Atualiza o preço ao selecionar produto
+    function updatePrice(selectElement) {
+        const selected = selectElement.options[selectElement.selectedIndex];
+        const price = selected.getAttribute("data-price") || "";
+        const row = selectElement.closest(".item-row");
+        row.querySelector(".price-input").value = price;
+        updateRowTotal(row);
+    }
+
+    // Atualiza o total do item
+    function updateRowTotal(row) {
+        const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
+        const price = parseFloat(row.querySelector(".price-input").value) || 0;
+        const total = qty * price;
+        row.querySelector(".total-input").value = total.toFixed(2);
+    }
+
+    // Valida estoque em tempo real
+    async function checkStock(row) {
+        const select = row.querySelector(".product-select");
+        const qtyInput = row.querySelector(".quantity-input");
+        const productId = select.value;
+
+        if (!productId) return;
+
+        try {
+            const response = await fetch(`/admin/order/check_stock/${productId}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const stock = data.stock;
+
+            const qty = parseInt(qtyInput.value) || 0;
+            if (qty > stock) {
+                alert(`❌ Estoque insuficiente! Disponível: ${stock}, solicitado: ${qty}.`);
+                qtyInput.value = stock; // força o valor máximo permitido
+                updateRowTotal(row); // atualiza total do item
+            }
+        } catch (err) {
+            console.error("Erro ao verificar estoque:", err);
+        }
+    }
+
+    // Aplica listeners de eventos a uma linha
+    function applyRowListeners(row) {
+        const productSelect = row.querySelector(".product-select");
+        const qtyInput = row.querySelector(".quantity-input");
+        const priceInput = row.querySelector(".price-input");
+        const removeBtn = row.querySelector(".remove-item");
+
+        if (productSelect) productSelect.addEventListener("change", () => updatePrice(productSelect));
+        if (qtyInput) qtyInput.addEventListener("input", () => updateRowTotal(row));
+        if (priceInput) priceInput.addEventListener("input", () => updateRowTotal(row));
+        if (removeBtn) removeBtn.addEventListener("click", () => row.remove());
+        if (qtyInput) qtyInput.addEventListener("input", () => {
+            updateRowTotal(row);
+            checkStock(row);
+        });
+
+    }
+
+    // Inicializa linhas existentes
+    document.querySelectorAll(".item-row").forEach(row => applyRowListeners(row));
+
+    // Adiciona novo item
+    document.getElementById("add-item").addEventListener("click", () => {
+        const container = document.getElementById("itens-container");
+        const clone = container.querySelector(".item-row").cloneNode(true);
+
+        // limpa campos
+        clone.querySelectorAll("input").forEach(i => i.value = "");
+        clone.querySelector("select").selectedIndex = 0;
+
+        container.appendChild(clone);
+        applyRowListeners(clone);
+    });
+
+    // ----------- PAGAMENTO -----------
+    const paymentFormSelect = document.getElementById("payment_form");
+    const paymentAmountDiv = document.getElementById("payment_amount_div");
+    const paymentConditionDiv = document.getElementById("payment_condition_div");
+    const paymentFormInpDiv = document.getElementById("payment_form_inp_div");
+
+    function updatePaymentFields() {
+        const val = parseInt(paymentFormSelect.value);
+
+        paymentAmountDiv.style.display = "none";
+        paymentConditionDiv.style.display = "none";
+        paymentFormInpDiv.style.display = "none";
+
+        if (val === 4) {
+            paymentConditionDiv.style.display = "block";
+        } else if (val === 5) {
+            paymentAmountDiv.style.display = "block";
+            paymentFormInpDiv.style.display = "block";
+            paymentConditionDiv.style.display = "block";
+        }
+    }
+
+    paymentFormSelect.addEventListener("change", updatePaymentFields);
+
+    // Confirmação ao cancelar o pedido
+    const cancelButton = document.getElementById("cancel-button");
+    if (cancelButton) {
+        cancelButton.addEventListener("click", function() {
+            const confirmCancel = confirm("Tem certeza que deseja cancelar este pedido?\nTodas as informações preenchidas serão perdidas.");
+            if (confirmCancel) {
+                window.location.href = "{{ url_for('order_bp.order_list') }}";
+            }
+        });
+    }
+});
+</script>
+
+{% endblock content %}

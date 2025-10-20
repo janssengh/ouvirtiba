@@ -1,0 +1,92 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="fw-bold text-primary mb-0">📦 Lista de Itens do Pedido</h2>
+            <hr class="mt-2" style="width: 50%; margin: 0 auto;">
+        </div>
+    </div>
+
+    <!-- Cabeçalho do Pedido -->
+    <div class="card shadow-sm p-3 mb-4">
+        <div class="row">
+            <div class="col-md-4 col-sm-6 mb-2">
+                <strong>Número do Pedido:</strong><br>
+                {{ order.number }}
+            </div>
+
+            <div class="col-md-4 col-sm-6 mb-2">
+                <strong>Cliente:</strong><br>
+                {{ order.client.name }}
+            </div>
+
+            <div class="col-md-4 col-sm-6 mb-2">
+                {% set total = ("%0.2f" | format(order.amount|float) | string()).replace('.',',') %}
+                <strong>Total do Pedido:</strong><br>
+                R$ {{ total }}
+            </div>
+
+            <div class="col-md-12 mt-2">
+                <strong>Observação:</strong><br>
+                {{ order.observation or '-' }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Itens -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="fw-bold text-secondary mb-3">{{ titulo }}</h5>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle">
+                    <thead class="table-light">
+                        <tr class="text-center">
+                            <th>#</th>
+                            <th>Produto</th>
+                            <th>Qtde</th>
+                            <th>Preço Unit.</th>
+                            <th>Vlr. Total</th>
+                            <th>Desc.</th>
+                            <th>Total c/ Desc.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for oi in ordersitem %}
+                        <tr>
+                            <td class="text-center">{{ loop.index }}</td>
+                            <td>{{ oi.product.name }}</td>
+                            <td class="text-center">{{ oi.quantity }}</td>
+
+                            {% set price = ("%0.2f" | format(oi.price|float) | string()).replace('.',',') %}
+                            <td class="text-end">R$ {{ price }}</td>
+
+                            {% set total_bruto = ("%0.2f" | format(oi.amount_initial|float) | string()).replace('.',',') %}
+                            <td class="text-end">R$ {{ total_bruto }}</td>
+
+                            {% set desconto = ("%0.2f" | format(oi.discount|float) | string()).replace('.',',') %}
+                            <td class="text-end">R$ {{ desconto }}</td>
+
+                            {% set total_liq = ("%0.2f" | format(oi.amount|float) | string()).replace('.',',') %}
+                            <td class="text-end fw-semibold">R$ {{ total_liq }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3 text-end">
+                <a class="btn btn-outline-danger btn-sm" href="{{ url_for('order_bp.order_list') }}">
+                    ⬅ Voltar à Lista de Pedidos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include '_mensagem.html' %}
+{% endblock content %}

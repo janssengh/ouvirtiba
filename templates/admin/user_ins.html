@@ -1,0 +1,47 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h2>{{ titulo }}</h2>
+    <form method="POST" action="{{ url_for('admin.user_ins') }}" class="needs-validation" novalidate>
+        
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="name" class="form-label">Nome Completo *</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="col-md-6">
+                <label for="username" class="form-label">Username *</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+
+            <div class="col-md-6">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="col-md-6">
+                <label for="password" class="form-label">Senha *</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <div class="col-md-12">
+                <label for="store_id" class="form-label">Loja Vinculada *</label>
+                <select class="form-select" id="store_id" name="store_id" required>
+                    <option value="">Selecione uma loja...</option>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-success">Cadastrar Usuário</button>
+                <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
