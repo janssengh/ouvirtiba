@@ -48,7 +48,6 @@
                         <tr class="text-center">
                             <th>#</th>
                             <th>Produto</th>
-                            <th>Nº Série</th>
                             <th>Qtde</th>
                             <th>Preço Unit.</th>
                             <th>Vlr. Total</th>
@@ -61,13 +60,6 @@
                         <tr>
                             <td class="text-center">{{ loop.index }}</td>
                             <td>{{ oi.product.name }}</td>
-                            <td class="text-center">
-                                {% if oi.serialnumber %}
-                                    <span class="badge bg-info text-dark">{{ oi.serialnumber }}</span>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
                             <td class="text-center">{{ oi.quantity }}</td>
 
                             {% set price = ("%0.2f" | format(oi.price|float) | string()).replace('.',',') %}

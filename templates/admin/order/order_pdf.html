@@ -129,7 +129,15 @@
                         {% for oi in ordersitem %}
                         <tr>
                             <td>{{loop.index}}</td>
-                            <td>{{oi.product.name}}</td> 
+
+                            <td>
+                                {% if oi.serialnumber %}
+                                    {{oi.product.name}} SN {{oi.serialnumber}}
+                                {% else %}
+                                    {{oi.product.name}}
+                                {% endif %}
+                            </td>
+
                             <td style="text-align: right;">{{oi.quantity}}</td>
                             
                             {% set price = "%0.2f" | format(oi.price|float) | replace('.', ',') %}

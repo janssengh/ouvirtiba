@@ -1,0 +1,44 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h3>{{ titulo }}</h3>
+    <hr>
+
+    {% if success %}
+        {% if "simulada" in message.lower() %}
+            <div class="alert alert-warning border border-warning">
+                ⚙️ <strong>Modo Simulado:</strong> {{ message }}
+                <br>
+                <small>O ambiente SVRS (homologação) está temporariamente fora do ar. Esta resposta foi gerada localmente para fins de teste.</small>
+            </div>
+        {% else %}
+            <div class="alert alert-success border border-success">
+                ✅ <strong>Sucesso:</strong> {{ message }}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-danger border border-danger">
+            ❌ <strong>Erro:</strong> {{ message }}
+        </div>
+    {% endif %}
+
+    {% if response_text %}
+        <h5 class="mt-4">📄 XML de Retorno:</h5>
+        <div class="card bg-light p-3 mt-2">
+            <pre style="white-space: pre-wrap; font-size: 0.9rem;">{{ response_text }}</pre>
+        </div>
+    {% else %}
+        <div class="alert alert-info mt-4">Nenhuma resposta recebida da SEFAZ.</div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('nfe_bp.nfe_list') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar à lista de notas
+        </a>
+    </div>
+</div>
+
+{% endblock %}

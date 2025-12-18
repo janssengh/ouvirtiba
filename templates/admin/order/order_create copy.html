@@ -65,8 +65,7 @@
 
                 <div id="itens-container">
                     <div class="row mb-2 item-row align-items-center">
-                        <div class="col-md-3">
-                            <label class="form-label small">Produto</label>
+                        <div class="col-md-4">
                             <select name="product_id[]" class="form-select product-select" required>
                                 <option value="">Produto...</option>
                                 {% for tipo, produtos_tipo in products | groupby('type_name') %}
@@ -81,23 +80,15 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label small">Nº Série</label>
-                            <input type="text" name="serialnumber[]" class="form-control serialnumber-input" maxlength="15" placeholder="Número de série">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">Qtde</label>
                             <input type="number" name="quantity[]" class="form-control quantity-input" min="1" value="1" required>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label small">Preço</label>
                             <input type="number" step="0.01" min="0" name="price[]" class="form-control price-input" placeholder="Preço" required>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label small">Total</label>
                             <input type="text" name="item_total[]" class="form-control total-input" readonly placeholder="Total">
                         </div>
-                        <div class="col-md-1 text-center">
-                            <label class="form-label small">&nbsp;</label>
+                        <div class="col-md-2 text-center">
                             <button type="button" class="btn btn-outline-danger btn-sm remove-item">🗑</button>
                         </div>
                     </div>
@@ -153,8 +144,8 @@ document.addEventListener("DOMContentLoaded", function() {
             const qty = parseInt(qtyInput.value) || 0;
             if (qty > stock) {
                 alert(`❌ Estoque insuficiente! Disponível: ${stock}, solicitado: ${qty}.`);
-                qtyInput.value = stock;
-                updateRowTotal(row);
+                qtyInput.value = stock; // força o valor máximo permitido
+                updateRowTotal(row); // atualiza total do item
             }
         } catch (err) {
             console.error("Erro ao verificar estoque:", err);
@@ -176,6 +167,7 @@ document.addEventListener("DOMContentLoaded", function() {
             updateRowTotal(row);
             checkStock(row);
         });
+
     }
 
     // Inicializa linhas existentes
@@ -231,4 +223,4 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-{% endblock content %}  
+{% endblock content %}

@@ -169,7 +169,7 @@ def order_create():
             product_ids = request.form.getlist('product_id[]')
             quantities = request.form.getlist('quantity[]')
             prices = request.form.getlist('price[]')
-            serialnumbers = request.form.getlist('serialnumber[]')
+            serialnumbers = request.form.getlist('serialnumber[]')  # ✅ Captura a lista
 
             payment_form = int(request.form.get('payment_form', 0))
             payment_amount_inp = 0
@@ -227,7 +227,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
 
             total_pedido = 0
 
-            # Itera sobre os índices das listas
+            # ✅ CORREÇÃO: Itera sobre os índices das listas
             for i in range(len(product_ids)):
                 pid = product_ids[i]
                 qty = quantities[i] if i < len(quantities) else None
@@ -240,12 +240,12 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                 qty = int(qty)
                 prc = float(prc)
 
-                # Buscar produto
+                # 🔍 Buscar produto
                 product = Product.query.get(pid)
                 if not product:
                     continue
 
-                # Verificar se há estoque suficiente
+                # 🚫 Verificar se há estoque suficiente
                 if qty > product.stock:
                     flash(f"❌ Estoque insuficiente para o produto '{product.name}'. "
                         f"Disponível: {product.stock}, solicitado: {qty}.", "danger")
@@ -254,7 +254,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
 
                 preco_original = float(product.price)
 
-                # Calcular desconto e valores
+                # 💰 Calcular desconto e valores
                 if prc < preco_original:
                     discount = (preco_original - prc) * qty
                     amount_initial = preco_original * qty
@@ -266,12 +266,12 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
 
                 total_pedido += amount
 
-                # Limita o serial a 15 caracteres e trata string vazia
+                # ✅ Limita o serial a 15 caracteres e trata string vazia
                 serial_clean = None
                 if serial and serial.strip():
                     serial_clean = serial.strip()[:15]
 
-                # Inserir item do pedido
+                # 💾 Inserir item do pedido
                 item = Customer_request_item(
                     customer_request_id=order.id,
                     product_id=pid,
@@ -280,11 +280,11 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                     discount=discount,
                     amount_initial=amount_initial,
                     amount=amount,
-                    serialnumber=serial_clean
+                    serialnumber=serial_clean  # ✅ Passa o serial limpo
                 )
                 db.session.add(item)
 
-                # Atualizar estoque do produto
+                # 📦 Atualizar estoque do produto
                 product.stock -= qty
                 if product.stock < 0:
                     product.stock = 0

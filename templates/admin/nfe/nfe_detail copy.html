@@ -1,0 +1,99 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-center">DANFE NFC-e (Modelo 65)</h3>
+  <p class="text-center small text-muted">Espelho de Nota Fiscal Eletrônica para Consumidor</p>
+  <hr>
+
+  <!-- Cabeçalho da Nota -->
+  <div class="row">
+    <div class="col-md-8">
+      <h5><strong>Emitente:</strong> Ourvitiba Aparelhos Auditivos</h5>
+      <p>
+
+        CNPJ: {{'{}.{}.{}/{}-{}'.format((session['Store']['Code'])[:2], (session['Store']['Code'])[2:5], (session['Store']['Code'])[5:8], (session['Store']['Code'])[8:12], (session['Store']['Code'])[12:])}}<br>
+        Endereço: {{(session['Store']['Address'])}},{{(session['Store']['Number'])}} - {{(session['Store']['Neighborhood'])}} - {{(session['Store']['City'])}}/{{(session['Store']['Region'])}}<br>
+        Telefone: {{'({}) {}-{}'.format((session['Store']['Phone'])[:2], (session['Store']['Phone'])[2:7], (session['Store']['Phone'])[7:])}}
+      </p>
+    </div>
+    <div class="col-md-4 text-end">
+      <h5>NFC-e Nº {{ nota.number }}</h5>
+      <p>Data de Emissão: {{ nota.issue_date.strftime('%d/%m/%Y %H:%M') }}</p>
+
+      <p><strong>Chave de Acesso:</strong> {{ nota.access_key_formatted or '—' }}</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Dados do Cliente -->
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <h5><strong>Consumidor:</strong> {{ nota.client.name }}</h5>
+      <p>
+        {% if nota.client.type == 'D' %}
+          CPF/CNPJ: Não informado
+        {% elif nota.client.type =='J' %}
+          CNPJ: {{'{}.{}.{}/{}-{}'.format(nota.client.code[:2], nota.client.code[2:5], nota.client.code[5:8], nota.client.code[8:12], nota.client.code[12:])}}
+        {% elif nota.client.type == 'F' %}  
+          CPF: {{'{}.{}.{}-{}'.format(nota.client.code[:3], nota.client.code[3:6], nota.client.code[6:9], nota.client.code[9:])}}
+        {% else %}
+          CPF/CNPJ: {{ nota.client.code if nota.client.code else 'Não informado' }}
+        {% endif %}
+        Endereço: {{ nota.client.address if nota.client.address else '—' }}, {{ nota.client.number if nota.client.number else '—' }} - {{ nota.client.neighborhood if nota.client.neighborhood else '—' }} - {{ nota.client.city if nota.client.city else '—' }}/{{ nota.client.region if nota.client.region else '—' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Itens -->
+  <table class="table table-bordered table-sm">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Produto</th>
+        <th>NCM</th>
+        <th>CFOP</th>
+        <th>CSOSN</th>
+        <th class="text-end">Qtde</th>
+        <th class="text-end">Vlr Unit.</th>
+        <th class="text-end">Vlr Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in itens %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.product.name }}</td>
+        <td>{{ item.ncm }}</td>
+        <td>{{ item.cfop }}</td>
+        <td>{{ item.csosn }}</td>
+        <td class="text-end">{{ item.quantity }}</td>
+        <td class="text-end">{{ "%.2f"|format(item.unit_price) }}</td>
+        <td class="text-end">{{ "%.2f"|format(item.total_price) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Totais -->
+  <div class="text-end">
+    <h5><strong>Total da Nota:</strong> R$ {{ "%.2f"|format(nota.total_value) }}</h5>
+  </div>
+
+  <hr>
+
+  <!-- Rodapé -->
+  <div class="text-center mt-4">
+    <p class="small text-muted mb-1">Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</p>
+    <p class="small">Consulta via leitor de QR Code no portal da SEFAZ</p>
+    <p class="small"><strong>Situação:</strong>
+      {% if nota.status == 'A' %}Autorizada{% elif nota.status == 'C' %}Cancelada{% else %}Rascunho{% endif %}
+    </p>
+  </div>
+
+  <div class="text-center mt-3">
+    <a href="{{ url_for('nfe_bp.nfe_list') }}" class="btn btn-secondary">Voltar</a>
+  </div>
+</div>
+{% endblock %}

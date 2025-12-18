@@ -41,6 +41,7 @@ class Customer_request_item(Base):
     discount = db.Column(db.Numeric(15,2), default=0)
     amount_initial = db.Column(db.Numeric(15,2), nullable=False)
     amount = db.Column(db.Numeric(15,2), nullable=False)
+    serialnumber = db.Column(db.String(15), nullable=True)
 
     # relacionamento com Customer_request
     orderitem = db.relationship('Customer_request', backref='ordersitem', lazy=True)

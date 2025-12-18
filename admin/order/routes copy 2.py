@@ -10,6 +10,8 @@ order_bp = Blueprint('order_bp', __name__, template_folder='templates')
 @order_bp.route('/admin/order/list')
 def order_list():
     orders = Customer_request.query.all()
+
+    # Se houver um link para o cadastro nesta template, ele DEVE apontar para 'client_bp.client_register_start'
     return render_template('admin/order/order_list.html', orders=orders, titulo="Lista de Pedidos")
 
 @order_bp.route('/admin/order/<int:order_id>/items')
@@ -21,6 +23,8 @@ def orderitem_list(order_id):
         .order_by(Customer_request_item.price.desc())
         .all()
     )
+    #ordersitem = order.items  # relacionamento com Customer_request_item
+
     return render_template(
         'order/orderitem_list.html',
         order=order,
@@ -33,10 +37,12 @@ def orderitem_list(order_id):
 def order_delete(order_id):
     order = Customer_request.query.get_or_404(order_id)
 
+    # Verifica se o pedido pode ser excluído
     if order.status != "N":
         flash("❌ Este pedido já foi emitido e não pode ser excluído.", "warning")
         return redirect(url_for('order_bp.order_list'))
 
+    # 🔄 Repor estoque antes da exclusão
     for item in order.items:
         product = Product.query.get(item.product_id)
         if product:
@@ -53,9 +59,9 @@ def order_delete(order_id):
 
     return redirect(url_for('order_bp.order_list'))
 
-
-@order_bp.route('/admin/order/orderpdf/<int:order_id>', methods=['GET','POST'])
-def orderpdf(order_id):
+# Emitir Pedido
+@order_bp.route('/admin/order/orderpdf/<int:order_id>', methods=['GET','POST']) # Corrigido para order_id
+def orderpdf(order_id): # Corrigido para order_id
     if 'email' not in session:
         flash(f'Favor fazer o seu login no sistema primeiro!', 'danger')
         return redirect(url_for('login', origin='admin'))
@@ -65,7 +71,11 @@ def orderpdf(order_id):
     caminho_logo = 'img/admin/' + store_logo
     store = session['Store']
 
+    # Dados do Item do Pedido
     order = Customer_request.query.get_or_404(order_id)
+
+    #ordersitem = order.items 
+    #ordersitem = sorted(ordersitem, key=lambda item: item.price, reverse=True)
 
     ordersitem = (
         Customer_request_item.query
@@ -77,45 +87,64 @@ def orderpdf(order_id):
     order_number = order.number
     order_status = order.status
 
+    # ✅ CORREÇÃO/IMPLEMENTAÇÃO: Novo nome do arquivo (pedidopdf-primeironome.pdf)
     try:
         first_name = order.client.name.split(' ')[0]
+        # Sanitiza para URL/Nome de arquivo: remove acentos, caracteres especiais e converte para minúsculas
         sanitized_name = unidecode.unidecode(first_name).lower()
         sanitized_name = re.sub(r'[^a-z0-9]', '', sanitized_name) 
+
         new_filename = f'pedidopdf-{sanitized_name}.pdf'
         nomearquivo = f'Arquivo: {new_filename}'
+
     except Exception:
         new_filename = f'pedidopdf-{order_number}.pdf'
         nomearquivo = f'Arquivo: {new_filename}'
         
     if request.method == "POST":  
+        # Se pedido não emitido
         if order_status == "N":
+            # ❌ Correção: 'order_status' é uma string, você precisa atualizar o objeto 'order'.
+            # order_status.status = 'S'
+            # ✅ Correção:
             order.status = 'S'
             db.session.commit()
 
+        # Emitir pedido em PDF
         titulo = 'Pedido de Compra'
         nomearquivo = 'Arquivo: pedidopdf-'+ str(order_number)+'.pdf'
 
+        # Transformando imagem para Base64  
         try:
             with open("static/img/admin/" + store_logo, "rb") as image2string:  
                 logo_binario = base64.b64encode(image2string.read()) 
             logo_string = logo_binario.decode("utf-8")
             logohtml = (f'data:image/png;base64,{logo_string}')
         except FileNotFoundError:
+             # Caso a imagem não seja encontrada, use uma string vazia ou um placeholder
             logohtml = "" 
             flash("⚠️ Logo não encontrada no caminho 'static/img/admin/'", "warning")
+
+        # ⚠️ Melhoria: Adicionar o caminho absoluto para o Bootstrap CDN no header do PDF 
+        # Isso é crucial para o wkhtmltopdf renderizar corretamente o CSS
+        # Inserido no order_pdf.html (cabeçalho)
 
         options = {'encoding': 'UTF-8', 
                    'orientation': 'Portrait', 
                    'header-center': titulo, 
                    'header-right': 'Page: [page]/[toPage]', 
-                   'header-left': 'Ouvirtiba Aparelhos Auditivos',
+                   'header-left': 'Ouvirtiba Aparelhos Auditivos', # Melhoria: Usar o nome da loja
                    'footer-right': 'Emissão: [date]', 
                    'footer-left': nomearquivo,
                    'footer-line': '', 
                    'footer-spacing': 2, 
-                   'enable-local-file-access': ''
+                   # ❌ Correção: 'enable-local-file-access' não deve ter valor 'None' para funcionar, 
+                   # ele deve ser omitido ou o parâmetro correto deve ser usado se necessário
+                   # para acesso a arquivos locais, que já é o padrão em alguns casos, mas pode falhar
+                   'enable-local-file-access': '' # Pode ser necessário, deixar vazio para garantir que o wkhtmltopdf possa acessar recursos locais/CDN.
                    }
 
+        # Melhoria: Adicionado link para a lista de pedidos no template, então 'caminho_logo' não é mais necessário aqui no POST
         rendered = render_template('order/order_pdf.html', 
                                    logohtml=logohtml, 
                                    titulo='Pedido de Compra', 
@@ -125,29 +154,37 @@ def orderpdf(order_id):
 
         config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
 
+        # ❌ Correção: Adicionar flash de sucesso após emitir
         flash(f"✅ Pedido {new_filename} emitido com sucesso!", "success")
 
         try:
             pdf = pdfkit.from_string(rendered, configuration=config, options=options)
         except Exception as e:
             flash(f"❌ Erro ao gerar PDF: {e}", "danger")
+            # Reverte a alteração de status se a geração do PDF falhar criticamente
             if order.status == 'S':
                  order.status = 'N'
                  db.session.commit()
             return redirect(url_for('order_bp.order_list'))
 
+        # gerar pdf
         response = make_response(pdf)
         response.headers['content-Type'] = 'application/pdf'
+
+        # attached salva na pasta download
         response.headers['content-Disposition'] = f'attachment;filename="{new_filename}"'        
+        # abre o arquivo --> response.headers['content-Disposition'] = 'inline;filename='+ 'pedidopdf-' + str(number)+'.pdf'
         return response
 
+    # ❌ Melhoria: No método GET, renderizar o template e dar a opção de gerar o PDF via POST.
+    # Corrigir o redirecionamento após a visualização:
     return render_template('order/order_pdf.html', 
                            titulo='Visualizar Pedido', 
                            ordersitem=ordersitem, 
                            order=order, 
                            caminho_logo=caminho_logo,
                            store=store,
-                           url_retorno=url_for('order_bp.order_list'))
+                           url_retorno=url_for('order_bp.order_list')) # Adicionado URL de retorno
 
 @order_bp.route('/admin/order/check_stock/<int:product_id>', methods=['GET'])
 def check_stock(product_id):
@@ -169,20 +206,21 @@ def order_create():
             product_ids = request.form.getlist('product_id[]')
             quantities = request.form.getlist('quantity[]')
             prices = request.form.getlist('price[]')
-            serialnumbers = request.form.getlist('serialnumber[]')
+            serialnumbers = request.form.getlist('serialnumber[]')  # ✅ Captura a lista            
 
-            payment_form = int(request.form.get('payment_form', 0))
+            payment_form = int(request.form.get('payment_form', 0))  # obrigatório
             payment_amount_inp = 0
             payment_form_inp = 0
             payment_condition = 0
 
             OBS_FIXA = """ESTE PEDIDO É VALIDO COMO GARANTIA! Garantia válida para revisão a cada 4(quatro) meses e não funcionamento de fábrica. 
 A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso de cerumin, molhado e quebrado, assim como danos aos acessórios(receptores e olivas)."""
-            obs_form = request.form.get('observation', '')
+            obs_form = request.form.get('observation', '')  # texto de entrada do usuário
             observation_final = f"{OBS_FIXA}\n\n{obs_form}"
 
             if payment_form > 3:
                 if payment_form == 4:
+                    # Cartão Crédito → apenas parcelamento de 2 a 18x
                     payment_condition = int(request.form.get('payment_condition', 0))
                     if not 2 <= payment_condition <= 18:
                         flash("Parcelamento inválido (permitido 2 a 18 vezes).", "danger")
@@ -190,6 +228,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                     payment_amount_inp = 0
                     payment_form_inp = 0
                 else:
+                    # Entrada + Parcelas Cartão Crédito
                     payment_amount_inp = float(request.form.get('payment_amount_inp', 0))
                     if payment_amount_inp <= 0:
                         flash("Informe o valor de entrada.", "danger")
@@ -205,9 +244,11 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                         flash("Parcelamento inválido (permitido 1 a 18 vezes).", "danger")
                         return redirect(url_for('order_bp.order_create'))
             else:
+                # Dinheiro / Pix / Débito
                 payment_condition = 0
                 payment_amount_inp = 0
                 payment_form_inp = 0
+
 
             order = Customer_request(
                 store_id=session['Store']['Id'],
@@ -218,34 +259,30 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                 payment_condition=payment_condition,
                 payment_amount_inp=payment_amount_inp,
                 payment_form_inp=payment_form_inp,
-                amount=0,
+                amount=0,  # será calculado após adicionar itens
                 status='N'
             )
 
             db.session.add(order)
-            db.session.flush()
+            db.session.flush()  # para pegar o ID antes de adicionar os itens
 
             total_pedido = 0
 
-            # Itera sobre os índices das listas
-            for i in range(len(product_ids)):
-                pid = product_ids[i]
-                qty = quantities[i] if i < len(quantities) else None
-                prc = prices[i] if i < len(prices) else None
-                serial = serialnumbers[i] if i < len(serialnumbers) else None
 
+
+            for pid, qty, prc, serial in zip(product_ids, quantities, prices, serialnumbers):
                 if not pid or not qty or not prc:
                     continue
 
                 qty = int(qty)
                 prc = float(prc)
 
-                # Buscar produto
+                # 🔎 Buscar produto
                 product = Product.query.get(pid)
                 if not product:
                     continue
 
-                # Verificar se há estoque suficiente
+                # 🚫 Verificar se há estoque suficiente
                 if qty > product.stock:
                     flash(f"❌ Estoque insuficiente para o produto '{product.name}'. "
                         f"Disponível: {product.stock}, solicitado: {qty}.", "danger")
@@ -254,7 +291,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
 
                 preco_original = float(product.price)
 
-                # Calcular desconto e valores
+                # 💰 Calcular desconto e valores
                 if prc < preco_original:
                     discount = (preco_original - prc) * qty
                     amount_initial = preco_original * qty
@@ -266,12 +303,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
 
                 total_pedido += amount
 
-                # Limita o serial a 15 caracteres e trata string vazia
-                serial_clean = None
-                if serial and serial.strip():
-                    serial_clean = serial.strip()[:15]
-
-                # Inserir item do pedido
+                # 💾 Inserir item do pedido
                 item = Customer_request_item(
                     customer_request_id=order.id,
                     product_id=pid,
@@ -280,16 +312,17 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                     discount=discount,
                     amount_initial=amount_initial,
                     amount=amount,
-                    serialnumber=serial_clean
+                    serialnumber=serialnumbers if serialnumbers else None  # ✅ ADICIONAR ESTA LINHA
                 )
                 db.session.add(item)
 
-                # Atualizar estoque do produto
+                # 📦 Atualizar estoque do produto
                 product.stock -= qty
                 if product.stock < 0:
-                    product.stock = 0
+                    product.stock = 0  # segurança extra
 
                 db.session.add(product)
+
 
             order.amount = total_pedido
             db.session.commit()
