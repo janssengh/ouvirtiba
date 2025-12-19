@@ -56,188 +56,109 @@ def order_delete(order_id):
 
 @order_bp.route('/admin/order/orderpdf/<int:order_id>', methods=['GET','POST'])
 def orderpdf(order_id):
-    import logging
-    import traceback
-    
-    # Configura logging
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-    
     if 'email' not in session:
         flash(f'Favor fazer o seu login no sistema primeiro!', 'danger')
         return redirect(url_for('login', origin='admin'))
     
+    store_id = int(session['Store']['Id'])
+    store_logo = session['Store']['Logo']
+    caminho_logo = 'img/admin/' + store_logo
+    store = session['Store']
+
+    order = Customer_request.query.get_or_404(order_id)
+
+    ordersitem = (
+        Customer_request_item.query
+        .filter_by(customer_request_id=order_id)
+        .order_by(Customer_request_item.price.desc())
+        .all()
+    )
+
+    order_number = order.number
+    order_status = order.status
+
     try:
-        store_id = int(session['Store']['Id'])
-        store_logo = session['Store']['Logo']
-        caminho_logo = 'img/admin/' + store_logo
-        store = session['Store']
+        first_name = order.client.name.split(' ')[0]
+        sanitized_name = unidecode.unidecode(first_name).lower()
+        sanitized_name = re.sub(r'[^a-z0-9]', '', sanitized_name) 
+        new_filename = f'pedido-{sanitized_name}.pdf'
+        nomearquivo = f'Arquivo: {new_filename}'
+    except Exception:
+        new_filename = f'pedido-{order_number}.pdf'
+        nomearquivo = f'Arquivo: {new_filename}'
+        
+    if request.method == "POST":  
+        if order_status == "N":
+            order.status = 'S'
+            db.session.commit()
 
-        order = Customer_request.query.get_or_404(order_id)
-
-        ordersitem = (
-            Customer_request_item.query
-            .filter_by(customer_request_id=order_id)
-            .order_by(Customer_request_item.price.desc())
-            .all()
-        )
-
-        order_number = order.number
-        order_status = order.status
+        titulo = 'Pedido de Compra'
+        nomearquivo = 'Arquivo: pedido-'+ str(order_number)+'.pdf'
 
         try:
-            first_name = order.client.name.split(' ')[0]
-            sanitized_name = unidecode.unidecode(first_name).lower()
-            sanitized_name = re.sub(r'[^a-z0-9]', '', sanitized_name) 
-            new_filename = f'pedido-{sanitized_name}.pdf'
-            nomearquivo = f'Arquivo: {new_filename}'
+            with open("static/img/admin/" + store_logo, "rb") as image2string:  
+                logo_binario = base64.b64encode(image2string.read()) 
+            logo_string = logo_binario.decode("utf-8")
+            logohtml = (f'data:image/png;base64,{logo_string}')
+        except FileNotFoundError:
+            logohtml = "" 
+            flash("⚠️ Logo não encontrada no caminho 'static/img/admin/'", "warning")
+
+        options = {'encoding': 'UTF-8', 
+                   'orientation': 'Portrait', 
+                   'header-center': titulo, 
+                   'header-right': 'Page: [page]/[toPage]', 
+                   'header-left': 'Ouvirtiba Aparelhos Auditivos',
+                   'footer-right': 'Emissão: [date]', 
+                   'footer-left': nomearquivo,
+                   'footer-line': '', 
+                   'footer-spacing': 2, 
+                   'enable-local-file-access': ''
+                   }
+
+        rendered = render_template('order/order_pdf.html', 
+                                   logohtml=logohtml, 
+                                   titulo='Pedido de Compra', 
+                                   ordersitem=ordersitem, 
+                                   order=order,
+                                   store=store)
+
+        config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+
+        # Define o caminho completo onde o PDF será salvo
+        import os
+        pdf_folder = 'static/pdf'
+        
+        # Cria a pasta se não existir
+        if not os.path.exists(pdf_folder):
+            os.makedirs(pdf_folder)
+        
+        pdf_path = os.path.join(pdf_folder, new_filename)
+
+        flash(f"✅ Pedido {new_filename} emitido com sucesso!", "success")
+
+        try:
+            # Gera o PDF e salva no caminho especificado
+            pdfkit.from_string(rendered, pdf_path, configuration=config, options=options)
+                
         except Exception as e:
-            logger.error(f"Erro ao sanitizar nome: {e}")
-            new_filename = f'pedido-{order_number}.pdf'
-            nomearquivo = f'Arquivo: {new_filename}'
-            
-        if request.method == "POST":  
-            logger.info(f"Gerando PDF para pedido {order_number}")
-            
-            if order_status == "N":
-                order.status = 'S'
-                db.session.commit()
-
-            titulo = 'Pedido de Compra'
-            nomearquivo = 'Arquivo: pedido-'+ str(order_number)+'.pdf'
-
-            try:
-                with open("static/img/admin/" + store_logo, "rb") as image2string:  
-                    logo_binario = base64.b64encode(image2string.read()) 
-                logo_string = logo_binario.decode("utf-8")
-                logohtml = (f'data:image/png;base64,{logo_string}')
-            except FileNotFoundError as e:
-                logger.warning(f"Logo não encontrada: {e}")
-                logohtml = "" 
-                flash("⚠️ Logo não encontrada no caminho 'static/img/admin/'", "warning")
-            except Exception as e:
-                logger.error(f"Erro ao carregar logo: {e}")
-                logohtml = ""
-
-            # Renderiza o template HTML
-            try:
-                rendered = render_template('order/order_pdf.html', 
-                                           logohtml=logohtml, 
-                                           titulo='Pedido de Compra', 
-                                           ordersitem=ordersitem, 
-                                           order=order,
-                                           store=store)
-                logger.info("Template renderizado com sucesso")
-            except Exception as e:
-                logger.error(f"Erro ao renderizar template: {e}")
-                logger.error(traceback.format_exc())
-                flash(f"❌ Erro ao renderizar template: {e}", "danger")
-                if order.status == 'S':
-                    order.status = 'N'
-                    db.session.commit()
-                return redirect(url_for('order_bp.order_list'))
-
-            # Define o caminho completo onde o PDF será salvo
-            import os
-            pdf_folder = 'static/pdf'
-            
-            # Cria a pasta se não existir
-            try:
-                if not os.path.exists(pdf_folder):
-                    os.makedirs(pdf_folder)
-                    logger.info(f"Pasta {pdf_folder} criada")
-            except Exception as e:
-                logger.error(f"Erro ao criar pasta {pdf_folder}: {e}")
-                flash(f"❌ Erro ao criar pasta de PDFs: {e}", "danger")
-                if order.status == 'S':
-                    order.status = 'N'
-                    db.session.commit()
-                return redirect(url_for('order_bp.order_list'))
-            
-            pdf_path = os.path.join(pdf_folder, new_filename)
-            logger.info(f"Caminho do PDF: {pdf_path}")
-
-            # Tenta diferentes configurações do wkhtmltopdf
-            config = None
-            wkhtmltopdf_paths = [
-                '/usr/local/bin/wkhtmltopdf',  # Linux comum
-                '/usr/bin/wkhtmltopdf',  # Linux alternativo
-                'C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe',  # Windows
-                None  # Deixa o pdfkit tentar encontrar automaticamente
-            ]
-            
-            for path in wkhtmltopdf_paths:
-                try:
-                    if path is None:
-                        logger.info("Tentando encontrar wkhtmltopdf automaticamente")
-                        config = None
-                        break
-                    elif os.path.exists(path) if path else False:
-                        logger.info(f"wkhtmltopdf encontrado em: {path}")
-                        config = pdfkit.configuration(wkhtmltopdf=path)
-                        break
-                except Exception as e:
-                    logger.warning(f"Erro ao configurar caminho {path}: {e}")
-                    continue
-
-            options = {
-                'encoding': 'UTF-8', 
-                'orientation': 'Portrait', 
-                'header-center': titulo, 
-                'header-right': 'Page: [page]/[toPage]', 
-                'header-left': 'Ouvirtiba Aparelhos Auditivos',
-                'footer-right': 'Emissão: [date]', 
-                'footer-left': nomearquivo,
-                'footer-line': '', 
-                'footer-spacing': 2, 
-                'enable-local-file-access': '',
-                'quiet': ''
-            }
-
-            try:
-                # Gera o PDF e salva no caminho especificado
-                logger.info("Iniciando geração do PDF...")
-                if config:
-                    pdfkit.from_string(rendered, pdf_path, configuration=config, options=options)
-                else:
-                    pdfkit.from_string(rendered, pdf_path, options=options)
-                logger.info(f"PDF gerado com sucesso em: {pdf_path}")
-                flash(f"✅ Pedido {new_filename} emitido com sucesso!", "success")
-                    
-            except OSError as e:
-                logger.error(f"Erro OSError ao gerar PDF: {e}")
-                logger.error(traceback.format_exc())
-                flash(f"❌ wkhtmltopdf não encontrado. Instale com: apt-get install wkhtmltopdf", "danger")
-                if order.status == 'S':
-                    order.status = 'N'
-                    db.session.commit()
-                return redirect(url_for('order_bp.order_list'))
-            except Exception as e:
-                logger.error(f"Erro ao gerar PDF: {e}")
-                logger.error(traceback.format_exc())
-                flash(f"❌ Erro ao gerar PDF: {e}", "danger")
-                if order.status == 'S':
-                    order.status = 'N'
-                    db.session.commit()
-                return redirect(url_for('order_bp.order_list'))
-
-            # Redireciona para a lista de pedidos após salvar o PDF
+            flash(f"❌ Erro ao gerar PDF: {e}", "danger")
+            if order.status == 'S':
+                 order.status = 'N'
+                 db.session.commit()
             return redirect(url_for('order_bp.order_list'))
 
-        return render_template('order/order_pdf.html', 
-                               titulo='Visualizar Pedido', 
-                               ordersitem=ordersitem, 
-                               order=order, 
-                               caminho_logo=caminho_logo,
-                               store=store,
-                               url_retorno=url_for('order_bp.order_list'))
-                               
-    except Exception as e:
-        logger.error(f"Erro geral na rota orderpdf: {e}")
-        logger.error(traceback.format_exc())
-        flash(f"❌ Erro inesperado: {e}", "danger")
+        # Redireciona para a lista de pedidos após salvar o PDF
         return redirect(url_for('order_bp.order_list'))
-    
+
+    return render_template('order/order_pdf.html', 
+                           titulo='Visualizar Pedido', 
+                           ordersitem=ordersitem, 
+                           order=order, 
+                           caminho_logo=caminho_logo,
+                           store=store,
+                           url_retorno=url_for('order_bp.order_list'))
+
 @order_bp.route('/admin/order/check_stock/<int:product_id>', methods=['GET'])
 def check_stock(product_id):
     product = Product.query.get(product_id)
