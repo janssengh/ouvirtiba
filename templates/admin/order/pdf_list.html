@@ -1,0 +1,113 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<style>
+  .btn-compact { padding: .1rem .35rem !important; line-height: 1.1; }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary mb-0">
+            📄 {{ titulo or "Lista de PDFs Gerados" }}
+        </h2>
+        <a href="{{ url_for('order_bp.order_list') }}" class="btn btn-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Voltar aos Pedidos
+        </a>
+    </div>
+
+    {% if pdf_files|length == 0 %}
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle me-2"></i>
+        Nenhum arquivo PDF encontrado na pasta /static/pdf
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr class="text-center">
+                        <th>Nº</th>
+                        <th>Nome do Arquivo</th>
+                        <th>Data de Criação</th>
+                        <th>Tamanho</th>
+                        <th>Abrir</th>
+                        <th>Excluir</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for pdf in pdf_files %}
+                    <tr>
+                        <td class="text-center fw-semibold">{{ loop.index }}</td>
+                        
+                        <td>
+                            <i class="bi bi-file-pdf text-danger me-2"></i>
+                            {{ pdf.name }}
+                        </td>
+                        
+                        <td class="text-center">{{ pdf.created_at }}</td>
+                        
+                        <td class="text-center">{{ pdf.size }}</td>
+                        
+                        <!-- Abrir PDF -->
+                        <td class="text-center">
+                            <a href="{{ url_for('static', filename='pdf/' + pdf.name) }}" 
+                               target="_blank"
+                               class="btn btn-outline-success btn-sm btn-compact text-nowrap">
+                                <i class="bi bi-file-earmark-pdf"></i> Abrir
+                            </a>
+                        </td>
+
+                        <!-- Excluir PDF -->
+                        <td class="text-center">
+                            <button type="button" 
+                                    class="btn btn-outline-danger btn-sm btn-compact text-nowrap" 
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalExcluir-{{ loop.index }}">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal de Confirmação -->
+                    <div class="modal fade" id="modalExcluir-{{ loop.index }}" tabindex="-1" aria-labelledby="modalExcluirLabel-{{ loop.index }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title" id="modalExcluirLabel-{{ loop.index }}">
+                                        Confirmar Exclusão
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <p class="fw-bold mb-2 text-danger">
+                                        Tem certeza que deseja excluir o arquivo?
+                                    </p>
+                                    <p class="text-muted mb-0">
+                                        <strong>{{ pdf.name }}</strong>
+                                    </p>
+                                    <small class="text-muted">Esta ação não poderá ser desfeita.</small>
+                                </div>
+                                <div class="modal-footer justify-content-between">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                        Cancelar
+                                    </button>
+                                    <form action="{{ url_for('order_bp.pdf_delete', filename=pdf.name) }}" method="POST">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock content %}

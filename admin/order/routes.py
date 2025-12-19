@@ -2,7 +2,7 @@ from flask import Blueprint, session, render_template, redirect, url_for, flash,
 from admin.order.models import Customer_request, Customer_request_item, db
 from admin.client.models import Client  
 from admin.models import Product
-import base64, pdfkit.pdfkit, re, unidecode
+import base64, pdfkit.pdfkit, re, unidecode, os
 from datetime import datetime
 
 order_bp = Blueprint('order_bp', __name__, template_folder='templates')
@@ -81,10 +81,10 @@ def orderpdf(order_id):
         first_name = order.client.name.split(' ')[0]
         sanitized_name = unidecode.unidecode(first_name).lower()
         sanitized_name = re.sub(r'[^a-z0-9]', '', sanitized_name) 
-        new_filename = f'pedidopdf-{sanitized_name}.pdf'
+        new_filename = f'pedido-{sanitized_name}.pdf'
         nomearquivo = f'Arquivo: {new_filename}'
     except Exception:
-        new_filename = f'pedidopdf-{order_number}.pdf'
+        new_filename = f'pedido-{order_number}.pdf'
         nomearquivo = f'Arquivo: {new_filename}'
         
     if request.method == "POST":  
@@ -93,7 +93,7 @@ def orderpdf(order_id):
             db.session.commit()
 
         titulo = 'Pedido de Compra'
-        nomearquivo = 'Arquivo: pedidopdf-'+ str(order_number)+'.pdf'
+        nomearquivo = 'Arquivo: pedido-'+ str(order_number)+'.pdf'
 
         try:
             with open("static/img/admin/" + store_logo, "rb") as image2string:  
@@ -125,10 +125,22 @@ def orderpdf(order_id):
 
         config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
 
+        # Define o caminho completo onde o PDF será salvo
+        import os
+        pdf_folder = 'static/pdf'
+        
+        # Cria a pasta se não existir
+        if not os.path.exists(pdf_folder):
+            os.makedirs(pdf_folder)
+        
+        pdf_path = os.path.join(pdf_folder, new_filename)
+
         flash(f"✅ Pedido {new_filename} emitido com sucesso!", "success")
 
         try:
-            pdf = pdfkit.from_string(rendered, configuration=config, options=options)
+            # Gera o PDF e salva no caminho especificado
+            pdfkit.from_string(rendered, pdf_path, configuration=config, options=options)
+                
         except Exception as e:
             flash(f"❌ Erro ao gerar PDF: {e}", "danger")
             if order.status == 'S':
@@ -136,10 +148,8 @@ def orderpdf(order_id):
                  db.session.commit()
             return redirect(url_for('order_bp.order_list'))
 
-        response = make_response(pdf)
-        response.headers['content-Type'] = 'application/pdf'
-        response.headers['content-Disposition'] = f'attachment;filename="{new_filename}"'        
-        return response
+        # Redireciona para a lista de pedidos após salvar o PDF
+        return redirect(url_for('order_bp.order_list'))
 
     return render_template('order/order_pdf.html', 
                            titulo='Visualizar Pedido', 
@@ -307,3 +317,82 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
         products=products,
         titulo="Novo Pedido"
     )
+
+# Gerenciar pdf's gerados 
+
+@order_bp.route('/admin/order/pdf/list')
+def pdf_list():
+    """Lista todos os arquivos PDF gerados na pasta static/pdf"""
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+    
+    pdf_folder = 'static/pdf'
+    pdf_files = []
+    
+    # Verifica se a pasta existe
+    if os.path.exists(pdf_folder):
+        # Lista todos os arquivos PDF
+        for filename in os.listdir(pdf_folder):
+            if filename.endswith('.pdf'):
+                filepath = os.path.join(pdf_folder, filename)
+                
+                # Obtém informações do arquivo
+                file_stats = os.stat(filepath)
+                file_size = file_stats.st_size
+                
+                # Formata o tamanho
+                if file_size < 1024:
+                    size_str = f"{file_size} B"
+                elif file_size < 1024 * 1024:
+                    size_str = f"{file_size / 1024:.1f} KB"
+                else:
+                    size_str = f"{file_size / (1024 * 1024):.1f} MB"
+                
+                # Formata a data de criação
+                created_timestamp = file_stats.st_mtime
+                created_date = datetime.fromtimestamp(created_timestamp)
+                created_str = created_date.strftime('%d/%m/%Y %H:%M')
+                
+                pdf_files.append({
+                    'name': filename,
+                    'size': size_str,
+                    'created_at': created_str,
+                    'timestamp': created_timestamp
+                })
+        
+        # Ordena por data de criação (mais recente primeiro)
+        pdf_files.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    return render_template(
+        'order/pdf_list.html',
+        pdf_files=pdf_files,
+        titulo="Lista de PDFs Gerados"
+    )
+
+
+@order_bp.route('/admin/order/pdf/delete/<filename>', methods=['POST'])
+def pdf_delete(filename):
+    """Exclui um arquivo PDF específico"""
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+    
+    # Valida o nome do arquivo (segurança)
+    if '..' in filename or '/' in filename or '\\' in filename:
+        flash("❌ Nome de arquivo inválido!", "danger")
+        return redirect(url_for('order_bp.pdf_list'))
+    
+    pdf_folder = 'static/pdf'
+    filepath = os.path.join(pdf_folder, filename)
+    
+    try:
+        if os.path.exists(filepath) and filename.endswith('.pdf'):
+            os.remove(filepath)
+            flash(f"✅ Arquivo '{filename}' excluído com sucesso!", "success")
+        else:
+            flash(f"❌ Arquivo '{filename}' não encontrado!", "danger")
+    except Exception as e:
+        flash(f"❌ Erro ao excluir arquivo: {e}", "danger")
+    
+    return redirect(url_for('order_bp.pdf_list'))

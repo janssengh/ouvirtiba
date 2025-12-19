@@ -63,7 +63,15 @@
             <table class="table table-sm" style="width: 100%;">
                 <tr class="pedido">
                     <td style="width: 50%; vertical-align: top;">
-                        Cliente: {{order.client.name}} 
+
+                        {% if order.client.type == 'D' %}
+                            Cliente: {{'{}/{}/{}-{}:{}:{}:{}'.format(order.client.code[:2], order.client.code[2:4], order.client.code[4:6], order.client.code[6:8], order.client.code[8:10], order.client.code[10:12], order.client.code[12:])}} - {{order.client.name}} 
+                        {% elif order.client.type =='J' %}
+                            Cliente: {{'{}.{}.{}/{}-{}'.format(order.client.code[:2], order.client.code[2:5], order.client.code[5:8], order.client.code[8:12], order.client.code[12:])}} - {{order.client.name}} 
+                        {% else %}  
+                            Cliente: {{'{}.{}.{}-{}'.format(order.client.code[:3], order.client.code[3:6], order.client.code[6:9], order.client.code[9:])}} - {{order.client.name}} 
+                        {% endif %}
+
                         <br>
                         Endereço: {{order.client.address}}, {{order.client.number}} 
                             {% if order.client.complement %} - {{order.client.complement}} {% endif %} 
@@ -188,7 +196,7 @@
                 <div>
                     {% if titulo == "Visualizar Pedido" %}
                         <form action="" method="post" class="d-inline-block float-end ms-2">
-                            <button type="submit" class="btn btn-sm btn-warning">Gerar PDF e Emitir</button>
+                            <button type="submit" class="btn btn-sm btn-warning">Gerar PDF</button>
                         </form>
                         <a class="btn btn-sm btn-success float-end" href="{{ url_retorno }}">Retornar para Lista de Pedidos</a>
                     {% endif %}
