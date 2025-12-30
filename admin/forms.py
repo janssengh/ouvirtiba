@@ -82,7 +82,7 @@ class StoreForm(FlaskForm):
     # Telefone: obrigatório, 11 dígitos (DDD + 9 dígitos)
     phone = StringField('Telefone (DDD+9 dígitos)', validators=[
         DataRequired('O telefone é obrigatório.'),
-        Length(min=10,max=10, message='O telefone deve ter exatamente 11 dígitos (DDD+9 dígitos).'),
+        Length(min=11,max=11, message='O telefone deve ter exatamente 11 dígitos (DDD+9 dígitos).'),
         Regexp(r'^\d{11}$', message='O telefone deve conter apenas 11 números.')
     ])
     
