@@ -83,6 +83,8 @@ def append_qrcode_to_xml(nfe_xml: Element, access_key: str, ambiente: int, token
 
     return nfe_xml
 
+
+
 # cria o gerador de cupom
 import qrcode
 from fpdf import FPDF
@@ -164,13 +166,26 @@ def nfe_list():
 @nfe_bp.route('/admin/nfe/new', methods=['GET', 'POST'])
 def nfe_create():
     #clients = Client.query.order_by(Client.name).all()
-    orders = Customer_request.query.order_by(Customer_request.id.desc()).all()
+    orders = Customer_request.query.filter_by(is_invoiced='N').order_by(Customer_request.id.desc()).all()    
+
+    # Criando o dicionário: { id_do_pedido: valor_do_desconto }
+    discounts_dict = {order.id: float(order.discount or 0) for order in orders}
 
     if request.method == 'POST':
         client_id = request.form.get('client_id')
         # Garante que order_id seja None se vier vazio do formulário
         order_id = request.form.get('order_id') or None 
         total_value = float(request.form.get('total_value', 0))
+
+        # 2. Converte para Inteiro para bater com a chave do dicionário
+        try:
+            order_id = int(order_id)
+        except (TypeError, ValueError):
+            order_id = None
+
+        # 3. Busca o desconto usando o ID convertido
+        # O .get(order_id, 0) evita o erro KeyError se o ID não existir
+        discount = discounts_dict.get(order_id, 0.0)
 
         # -------------------------
         # 🔹 Geração da chave de acesso dinâmica
@@ -212,7 +227,8 @@ def nfe_create():
             order_id=order_id, 
             total_value=total_value,
             status='N',
-            access_key=chave
+            access_key=chave,
+            discount=discount
         )
 
         try:
@@ -240,11 +256,13 @@ def nfe_create():
                         invoice_id=new_invoice.id,
                         product_id=item.product_id,
                         quantity=item.quantity,
+                        discount=item.discount,
+                        serialnumber=item.serialnumber,
                         # Mapeamento dos campos. unit_price e total_price esperam Float/Numeric
                         unit_price=float(item.price), 
                         total_price=float(item.amount), # Usa o valor final do item (já com desconto, se houver),
                         ncm="90214000",
-                        cfop="5702",
+                        cfop="5102",
                         csosn="102"
                     )
                     invoice_items.append(invoice_item)
@@ -252,10 +270,21 @@ def nfe_create():
                 # Adiciona todos os novos itens à sessão de uma só vez (bulk add)
                 db.session.add_all(invoice_items)
             
-            # Confirma a transação (criação da Nota e de todos os Itens)
-            db.session.commit() 
-            flash(f"✅ Nota Fiscal {new_invoice.number} criada com sucesso!", "success")
-            return redirect(url_for('nfe_bp.nfe_list'))
+            # Localize o pedido original
+            order = Customer_request.query.get(order_id)
+            if order:
+                order.is_invoiced = 'S' # Marca como Nota Gerada
+
+                # Confirma a transação (criação da Nota e de todos os Itens)
+                db.session.commit()
+                flash(f"✅ Nota Fiscal {new_invoice.number} criada com sucesso!", "success")
+                return redirect(url_for('nfe_bp.nfe_list'))
+            else:
+                db.session.rollback() 
+                print(f"Erro ao criar NFE: {e}") # Loga o erro
+                flash(f"❌ Erro ao criar Nota Fiscal. Detalhes: {e}", "danger")
+                return redirect(url_for('nfe_bp.nfe_create'))   
+
 
         except Exception as e:
             # Em caso de qualquer erro (criação da Nota ou dos Itens), 
@@ -296,6 +325,727 @@ def nfe_detail(id):
         itens=items,
         titulo=f"Detalhes da Nota Fiscal #{invoice.number}"
     )
+
+@nfe_bp.route('/invoice_a4/<int:invoice_id>/pdf', methods=['GET'])
+def generate_invoice_a4_pdf(invoice_id):
+    # 1. DEFINIÇÃO DAS VARIÁVEIS NO INÍCIO (Resolve o UnboundLocalError)
+    invoice = Invoice.query.get_or_404(invoice_id)
+    client = Client.query.get(invoice.client_id)
+    items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
+    store = session.get('Store', {}) # Agora 'store' está disponível para o canhoto
+
+    # Configuração do PDF
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.set_margins(10, 10, 10)
+    pdf.add_page()
+    
+    # --- 0. CANHOTO (Topo da Nota) ---
+    pdf.rect(10, 10, 155, 15) # Quadro texto/assinatura
+    pdf.rect(165, 10, 35, 15) # Quadro NF-e / Série
+    
+    pdf.set_font("Helvetica", size=6)
+    pdf.set_xy(11, 11)
+    # Referência ao item [cite: 1] do PDF enviado
+    nome_loja = store.get('Name', 'JANSSEN APARELHOS AUDITIVOS LTDA').upper()
+    pdf.multi_cell(150, 3, txt=f"RECEBEMOS DE {nome_loja} OS PRODUTOS E SERVIÇOS CONSTANTES NA NOTA FISCAL INDICADA AO LADO")
+    
+    pdf.set_xy(11, 19)
+    pdf.cell(35, 5, txt="DATA DE RECEBIMENTO", border="T")
+    pdf.set_xy(48, 19)
+    pdf.cell(115, 5, txt="IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR", border="T")
+    
+    pdf.set_xy(165, 11)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.cell(35, 4, txt="NF-e", ln=1, align="C")
+    pdf.set_x(165)
+    pdf.cell(35, 4, txt=f"Nº {invoice.number}", ln=1, align="C")
+    pdf.set_x(165)
+    pdf.cell(35, 4, txt=f"Série {getattr(invoice, 'series', '1')}", align="C")
+
+    # --- LINHA DE SERRILHA (PONTILHADA) ---
+    pdf.set_draw_color(100, 100, 100) # Cinza
+    # Ajustado para os nomes de argumentos aceitos pela biblioteca fpdf2
+    pdf.dashed_line(10, 27, 200, 27, dash_length=1, space_length=1)
+    pdf.set_draw_color(0, 0, 0) # Volta para preto
+    
+    # --- 1. CABEÇALHO (IDENTIFICAÇÃO DO EMITENTE) ---
+    pdf.ln(10)
+    y_emitente = pdf.get_y()
+    
+    # --- BLOCO 1: QUADRADO EM BRANCO (LOGOTIPO) ---
+    # Posicionado na extrema esquerda (x=10), tamanho 28x30mm
+    pdf.rect(10, y_emitente, 28, 30) 
+    # Linha interna leve próximo ao contorno (margem de 1mm)
+    pdf.set_draw_color(200, 200, 200) # Cinza claro
+    pdf.rect(11, y_emitente + 1, 26, 28)
+    pdf.set_draw_color(0, 0, 0) # Volta para preto
+
+    # --- BLOCO 2: IDENTIFICAÇÃO DO EMITENTE (AJUSTE DE DISTRIBUIÇÃO) ---
+    pdf.rect(38, y_emitente, 62, 30)
+    pdf.set_xy(39, y_emitente + 3) # Começa um pouco mais abaixo
+    pdf.set_font("Helvetica", "B", 9) # Nome da loja levemente maior
+    pdf.multi_cell(60, 4, txt=nome_loja, align="C")
+    
+    # Aumento da fonte do endereço e espaçamento (line_height de 3.5 em vez de 3)
+    pdf.set_font("Helvetica", size=7.5) 
+    pdf.set_x(39)
+    address_info = f"{store.get('Address')}, {store.get('Number')}\n{store.get('Neighborhood')} - {store.get('Cep origem')}\n{store.get('City')} - {store.get('Region')}\nFone: {store.get('Phone')}"
+    pdf.multi_cell(60, 4, txt=address_info, align="C")
+
+    # --- BLOCO 3: DANFE (CENTRALIZADO EM RELAÇÃO AO RESTANTE) ---
+    # Mantém a largura de 30mm, começando em x=100
+    pdf.rect(100, y_emitente, 30, 30)
+    pdf.set_xy(100, y_emitente + 1)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(30, 4, txt="DANFE", ln=1, align="C")
+    
+    pdf.set_font("Helvetica", size=5)
+    pdf.set_x(100)
+    pdf.multi_cell(30, 2.5, txt="DOCUMENTO AUXILIAR\nDA NOTA FISCAL\nELETRÔNICA", align="C")
+    
+    # Caixinha de Entrada/Saída
+    pdf.set_font("Helvetica", size=7)
+    pdf.set_xy(102, y_emitente + 11)
+    pdf.cell(10, 4, txt="0 - ENTRADA")
+    pdf.set_xy(102, y_emitente + 15)
+    pdf.cell(10, 4, txt="1 - SAÍDA")
+    pdf.rect(122, y_emitente + 13, 4, 4)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_xy(122, y_emitente + 13)
+    pdf.cell(4, 4, txt="1", align="C")
+    
+    # Nº e Série (dentro do bloco central)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.set_xy(100, y_emitente + 20)
+    pdf.cell(30, 3.5, txt=f"Nº {invoice.number}", align="C", ln=1)
+    pdf.set_x(100)
+    pdf.cell(30, 3.5, txt=f"SÉRIE: {getattr(invoice, 'series', '1')}", align="C", ln=1)
+
+    # --- BLOCO 4: CONTROLE DO FISCO / CHAVE (MOLDURA IDÊNTICA) ---
+    # Usamos a mesma espessura dos outros (0.2)
+    pdf.set_line_width(0.2) 
+    pdf.rect(130, y_emitente, 70, 30)
+    
+    # 1. Título
+    pdf.set_xy(130, y_emitente + 1)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(70, 3, txt="CONTROLE DO FISCO", align="C", ln=1)
+    
+    # 2. Código de Barras
+    try:
+        import barcode
+        from barcode.writer import ImageWriter
+        chave_limpa = "".join(filter(str.isdigit, str(invoice.access_key)))
+        writer = ImageWriter()
+        COD128 = barcode.get_barcode_class('code128')
+        my_barcode = COD128(chave_limpa, writer=writer)
+        
+        options = {"module_height": 10.0, "module_width": 0.2, "quiet_zone": 1.0, "write_text": False}
+        barcode_filename = f"temp_barcode_{invoice.id}"
+        path_completo = my_barcode.save(barcode_filename, options=options)
+        pdf.image(path_completo, x=132, y=y_emitente + 4, w=66, h=10)
+        
+        if os.path.exists(path_completo):
+            os.remove(path_completo)
+    except Exception as e:
+        print(f"ERRO BARCODE: {e}")
+
+    # 3. Chave de Acesso (Centralizada e em uma linha)
+    pdf.set_xy(130, y_emitente + 15)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(70, 3, txt="CHAVE DE ACESSO", align="C", ln=1)
+    
+    pdf.set_xy(130, y_emitente + 18)
+    pdf.set_font("Helvetica", size=7.5)
+    pdf.cell(70, 3, txt=chave_limpa, align="C", ln=1)
+
+    # 4. Texto de Consulta (Centralizado no Rodapé)
+    pdf.set_xy(132, y_emitente + 22)
+    pdf.set_font("Helvetica", size=5.5) 
+    texto_consulta = "Consulta de autenticidade no portal nacional da NF-e www.nfe.fazenda.gov.br/portal ou no site da Sefaz Autorizada."
+    pdf.multi_cell(66, 2.5, txt=texto_consulta, align="C")
+
+# --- 2. NATUREZA DA OPERAÇÃO / PROTOCOLO ---
+    y_natureza = 60 # Posição logo abaixo do quadro do emitente
+    
+    # Lógica para determinar a descrição da Natureza da Operação
+    # Buscamos o primeiro item da nota para determinar o CFOP predominante
+    first_item = invoice.items[0] if invoice.items else None
+    cfop_value = first_item.cfop if first_item else ""
+    
+    if cfop_value.startswith('5'):
+        natureza_texto = "VENDA DENTRO DO ESTADO"
+    elif cfop_value.startswith('6'):
+        natureza_texto = "VENDA FORA DO ESTADO"
+    else:
+        natureza_texto = "VENDA DE MERCADORIA" # Fallback
+
+    # Bloco Natureza da Operação
+    pdf.rect(10, y_natureza, 120, 10)
+    pdf.set_xy(11, y_natureza + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(118, 3, txt="NATUREZA DA OPERAÇÃO", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(11)
+    pdf.cell(118, 5, txt=natureza_texto) 
+
+    # Bloco Protocolo de Autorização de Uso
+    # Conforme solicitado, utiliza o nprot (ou protocol_number) da tabela invoice
+    pdf.rect(130, y_natureza, 70, 10)
+    pdf.set_xy(131, y_natureza + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(68, 3, txt="PROTOCOLO DE AUTORIZAÇÃO DE USO", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(131)
+    
+    # Busca o dado dinâmico do seu modelo atualizado
+    protocolo_final = str(invoice.nprot) if hasattr(invoice, 'nprot') and invoice.nprot else ""
+    
+    pdf.cell(68, 5, txt=protocolo_final)
+
+        # --- 3. INSCRIÇÃO ESTADUAL E CNPJ ---
+    y_id = 70  # Posicionamento abaixo da Natureza da Operação
+    store_data = session.get('Store', {})
+
+    # Função interna para formatar CNPJ (Máscara)
+    def format_cnpj(doc):
+        d = ''.join(filter(str.isdigit, str(doc)))
+        if len(d) == 14:
+            return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}"
+        return d
+
+    # Campo: INSCRIÇÃO ESTADUAL
+    pdf.rect(10, y_id, 65, 10)
+    pdf.set_xy(11, y_id + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(63, 3, txt="INSCRIÇÃO ESTADUAL", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(11)
+    # Busca 'State_Registration' da sessão conforme sua nova função parametrosloja()
+    ie = store_data.get('State_Registration', '')
+    pdf.cell(63, 5, txt=str(ie))
+
+    # Campo: INSC. ESTADUAL DO SUBST. TRIB. (Vazio conforme solicitado)
+    pdf.rect(75, y_id, 55, 10)
+    pdf.set_xy(76, y_id + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(53, 3, txt="INSC. ESTADUAL DO SUBST. TRIB.", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(76)
+    pdf.cell(53, 5, txt="")
+
+    # Campo: CNPJ
+    pdf.rect(130, y_id, 70, 10)
+    pdf.set_xy(131, y_id + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(68, 3, txt="CNPJ", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(131)
+    # Busca 'Code' (CNPJ) da sessão e aplica a máscara
+    cnpj_raw = store_data.get('Code', '')
+    pdf.cell(68, 5, txt=format_cnpj(cnpj_raw))
+
+    # --- TÍTULO DA SECÇÃO: DESTINATÁRIO / REMETENTE ---
+    # Posicionado entre a linha da IE/CNPJ (y=70) e o início dos dados do cliente (y=82)
+    pdf.set_xy(10, 80)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 3, txt="DESTINATÁRIO/REMETENTE", ln=1)
+
+    # --- 4. BLOCO DESTINATÁRIO / REMETENTE ---
+    y_dest = 83 # Início do bloco do destinatário
+    client = invoice.client # Objeto Client vindo do seu models.py
+
+    # --- FUNÇÕES DE FORMATAÇÃO (MÁSCARAS) ---
+    def format_document(doc, type_code):
+        d = ''.join(filter(str.isdigit, str(doc)))
+        if type_code == 'F' and len(d) == 11:
+            return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
+        elif type_code == 'J' and len(d) == 14:
+            return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}"
+        return d
+
+    def format_cep(cep):
+        c = ''.join(filter(str.isdigit, str(cep)))
+        if len(c) == 8:
+            return f"{c[:5]}-{c[5:]}"
+        return c
+
+    def format_phone(phone):
+        p = ''.join(filter(str.isdigit, str(phone)))
+        if len(p) == 10:
+            return f"({p[:2]}) {p[2:6]}-{p[6:]}"
+        elif len(p) == 11:
+            return f"({p[:2]}) {p[2:7]}-{p[7:]}"
+        return p
+
+    # --- PRIMEIRA LINHA DO DESTINATÁRIO ---
+    # NOME/RAZÃO SOCIAL
+    pdf.rect(10, y_dest, 120, 10)
+    pdf.set_xy(11, y_dest + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(118, 3, txt="NOME/RAZÃO SOCIAL", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(11)
+    pdf.cell(118, 5, txt=str(client.name).upper())
+
+    # CNPJ/CPF
+    pdf.rect(130, y_dest, 45, 10)
+    pdf.set_xy(131, y_dest + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(43, 3, txt="CNPJ/CPF", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(131)
+    pdf.cell(43, 5, txt=format_document(client.code, client.type))
+
+    # DATA DE EMISSÃO
+    pdf.rect(175, y_dest, 25, 10)
+    pdf.set_xy(176, y_dest + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(23, 3, txt="DATA DE EMISSÃO", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(176)
+    pdf.cell(23, 5, txt=invoice.issue_date.strftime('%d/%m/%Y'))
+
+    # --- SEGUNDA LINHA DO DESTINATÁRIO ---
+    y_dest2 = y_dest + 10
+    
+    # ENDEREÇO (Logradouro + Número)
+    pdf.rect(10, y_dest2, 95, 10)
+    pdf.set_xy(11, y_dest2 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(93, 3, txt="ENDEREÇO", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(11)
+    endereco_completo = f"{client.address}, {client.number}"
+    pdf.cell(93, 5, txt=endereco_completo.upper())
+
+    # BAIRRO/DISTRITO
+    pdf.rect(105, y_dest2, 45, 10)
+    pdf.set_xy(106, y_dest2 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(43, 3, txt="BAIRRO/DISTRITO", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(106)
+    pdf.cell(43, 5, txt=str(client.neighborhood).upper())
+
+    # CEP
+    pdf.rect(150, y_dest2, 25, 10)
+    pdf.set_xy(151, y_dest2 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(23, 3, txt="CEP", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(151)
+    pdf.cell(23, 5, txt=format_cep(client.zipcode))
+
+    # DATA DE ENTRADA/SAÍDA
+    pdf.rect(175, y_dest2, 25, 10)
+    pdf.set_xy(176, y_dest2 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(23, 3, txt="DATA ENTR./SAÍDA", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(176)
+    pdf.cell(23, 5, txt=invoice.issue_date.strftime('%d/%m/%Y'))
+
+    # --- TERCEIRA LINHA DO DESTINATÁRIO ---
+    y_dest3 = y_dest2 + 10
+
+    # MUNICÍPIO
+    pdf.rect(10, y_dest3, 75, 10)
+    pdf.set_xy(11, y_dest3 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(73, 3, txt="MUNICÍPIO", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(11)
+    pdf.cell(73, 5, txt=str(client.city).upper())
+
+    # FONE/FAX
+    pdf.rect(85, y_dest3, 40, 10)
+    pdf.set_xy(86, y_dest3 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(38, 3, txt="FONE/FAX", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(86)
+    pdf.cell(38, 5, txt=format_phone(client.contact))
+
+    # UF
+    pdf.rect(125, y_dest3, 10, 10)
+    pdf.set_xy(126, y_dest3 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(8, 3, txt="UF", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(126)
+    pdf.cell(8, 5, txt=str(client.region).upper())
+
+    # INSCRIÇÃO ESTADUAL (Vazio conforme solicitado)
+    pdf.rect(135, y_dest3, 40, 10)
+    pdf.set_xy(136, y_dest3 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(38, 3, txt="INSCRIÇÃO ESTADUAL", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(136)
+    pdf.cell(38, 5, txt="")
+
+    # HORA DE ENTRADA/SAÍDA
+    pdf.rect(175, y_dest3, 25, 10)
+    pdf.set_xy(176, y_dest3 + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(23, 3, txt="HORA ENTR./SAÍDA", ln=1)
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_x(176)
+    pdf.cell(23, 5, txt=invoice.issue_date.strftime('%H:%M'))
+
+    # --- 5. QUADRO FATURA ---
+    y_fatura = 113 # Posicionado após o bloco do destinatário
+    pdf.set_xy(10, y_fatura)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 4, txt="FATURA", ln=1)
+    
+    # Linha em branco (conforme solicitado)
+    y_imposto_titulo = y_fatura + 8
+    
+    # --- 6. CÁLCULO DO IMPOSTO ---
+    pdf.set_xy(10, y_imposto_titulo)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 4, txt="CÁLCULO DO IMPOSTO", ln=1)
+    
+    y_grid = y_imposto_titulo + 4
+    
+    # Valores para o cálculo
+    total_prod = float(invoice.total_value or 0)
+    desconto = float(invoice.discount or 0)
+    total_nota = total_prod - desconto
+
+    # --- PRIMEIRA LINHA DA BORDA (IMPOSTOS ZERADOS + TOTAL PRODUTOS) ---
+    # Larguras das colunas para totalizar 190mm
+    w_col = 190 / 9 # Divisão aproximada para as 9 colunas da primeira linha
+    
+    pdf.set_font("Helvetica", "B", 5)
+    
+    # Headers e Células da Primeira Linha
+    colunas1 = [
+        ("BASE DE CÁLC. ICMS", "0,00"),
+        ("VALOR DO ICMS", "0,00"),
+        ("B. CÁLC. ICMS ST", "0,00"),
+        ("VALOR ICMS ST", "0,00"),
+        ("V. IMP. IMPORT.", "0,00"),
+        ("V. ICMS UF REMET.", "0,00"),
+        ("VALOR DO FCP", "0,00"),
+        ("VALOR DO PIS", "0,00"),
+        ("V. TOTAL PROD.", f"{total_prod:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.'))
+    ]
+
+    curr_x = 10
+    for header, valor in colunas1:
+        pdf.rect(curr_x, y_grid, w_col, 10)
+        pdf.set_xy(curr_x + 0.5, y_grid + 1)
+        pdf.set_font("Helvetica", "B", 5)
+        pdf.multi_cell(w_col - 1, 2.5, txt=header, align='L')
+        pdf.set_xy(curr_x, y_grid + 5)
+        pdf.set_font("Helvetica", size=8)
+        pdf.cell(w_col, 5, txt=valor, align='R')
+        curr_x += w_col
+
+    # --- SEGUNDA LINHA DA BORDA (FRETE, SEGURO, DESCONTO, ETC) ---
+    y_grid2 = y_grid + 10
+    w_col2 = 190 / 9 # 9 colunas também na segunda linha
+
+    colunas2 = [
+        ("VALOR DO FRETE", "0,00"),
+        ("VALOR SEGURO", "0,00"),
+        ("DESCONTO", f"{desconto:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')),
+        ("OUTRAS DESP.", "0,00"),
+        ("VALOR DO IPI", "0,00"),
+        ("V. ICMS UF DEST.", "0,00"),
+        ("V. APROX. TRIB.", "0,00"),
+        ("VALOR COFINS", "0,00"),
+        ("V. TOTAL NOTA", f"{total_nota:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.'))
+    ]
+
+    curr_x = 10
+    for header, valor in colunas2:
+        pdf.rect(curr_x, y_grid2, w_col2, 10)
+        pdf.set_xy(curr_x + 0.5, y_grid2 + 1)
+        pdf.set_font("Helvetica", "B", 5)
+        pdf.multi_cell(w_col2 - 1, 2.5, txt=header, align='L')
+        pdf.set_xy(curr_x, y_grid2 + 5)
+        pdf.set_font("Helvetica", size=8)
+        pdf.cell(w_col2, 5, txt=valor, align='R')
+        curr_x += w_col2
+
+    # --- 7. TRANSPORTADOR / VOLUMES TRANSPORTADOS ---
+    y_transp_titulo = y_grid2 + 12 # Espaçamento após o cálculo do imposto
+    
+    pdf.set_xy(10, y_transp_titulo)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 4, txt="TRANSPORTADOR/VOLUMES TRANSPORTADOS", ln=1)
+    
+    y_tgrid = y_transp_titulo + 4
+    
+    # --- PRIMEIRA LINHA DA BORDA (RAZÃO SOCIAL, FRETE, PLACA, ETC) ---
+    # Razão Social
+    pdf.rect(10, y_tgrid, 75, 10)
+    pdf.set_xy(11, y_tgrid + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(73, 3, txt="RAZÃO SOCIAL", ln=1)
+    
+    # Frete por Conta (Com a caixinha e o número 9)
+    pdf.rect(85, y_tgrid, 35, 10)
+    pdf.set_xy(86, y_tgrid + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(33, 2, txt="FRETE POR CONTA", ln=1)
+    pdf.set_font("Helvetica", size=5)
+    pdf.set_x(86)
+    pdf.cell(33, 2, txt="0-Emitente", ln=1)
+    pdf.set_x(86)
+    pdf.cell(33, 2, txt="1-Destinatário", ln=1)
+    pdf.set_x(86)
+    pdf.cell(33, 2, txt="9-Sem Frete", ln=1)
+    
+    # Caixinha do Frete (Valor 9 conforme solicitado)
+    pdf.rect(112, y_tgrid + 3, 5, 5) 
+    pdf.set_xy(112, y_tgrid + 3)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.cell(5, 5, txt="9", align='C')
+    
+    # Código ANTT
+    pdf.rect(120, y_tgrid, 25, 10)
+    pdf.set_xy(121, y_tgrid + 1)
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.cell(23, 3, txt="CÓDIGO ANTT", ln=1)
+    
+    # Placa do Veículo
+    pdf.rect(145, y_tgrid, 20, 10)
+    pdf.set_xy(146, y_tgrid + 1)
+    pdf.cell(18, 3, txt="PLACA", ln=1)
+    
+    # UF Veículo
+    pdf.rect(165, y_tgrid, 10, 10)
+    pdf.set_xy(166, y_tgrid + 1)
+    pdf.cell(8, 3, txt="UF", ln=1)
+    
+    # CNPJ/CPF Transportador
+    pdf.rect(175, y_tgrid, 25, 10)
+    pdf.set_xy(176, y_tgrid + 1)
+    pdf.cell(23, 3, txt="CNPJ/CPF", ln=1)
+
+    # --- SEGUNDA LINHA DA BORDA (ENDEREÇO, MUNICÍPIO, UF, IE) ---
+    y_tgrid2 = y_tgrid + 10
+    
+    pdf.rect(10, y_tgrid2, 75, 10) # Endereço
+    pdf.set_xy(11, y_tgrid2 + 1)
+    pdf.cell(73, 3, txt="ENDEREÇO", ln=1)
+    
+    pdf.rect(85, y_tgrid2, 60, 10) # Município
+    pdf.set_xy(86, y_tgrid2 + 1)
+    pdf.cell(58, 3, txt="MUNICÍPIO", ln=1)
+    
+    pdf.rect(145, y_tgrid2, 10, 10) # UF
+    pdf.set_xy(146, y_tgrid2 + 1)
+    pdf.cell(8, 3, txt="UF", ln=1)
+    
+    pdf.rect(155, y_tgrid2, 45, 10) # Inscrição Estadual
+    pdf.set_xy(156, y_tgrid2 + 1)
+    pdf.cell(43, 3, txt="INSCRIÇÃO ESTADUAL", ln=1)
+
+    # --- TERCEIRA LINHA DA BORDA (VOLUMES) ---
+    y_tgrid3 = y_tgrid2 + 10
+    w_vol = 190 / 6 # Divisão igual para as 6 colunas de volumes
+    
+    titulos_volumes = ["QUANTIDADE", "ESPÉCIE", "MARCA", "NUMERAÇÃO", "PESO BRUTO", "PESO LÍQUIDO"]
+    
+    curr_tx = 10
+    for titulo in titulos_volumes:
+        pdf.rect(curr_tx, y_tgrid3, w_vol, 10)
+        pdf.set_xy(curr_tx + 1, y_tgrid3 + 1)
+        pdf.set_font("Helvetica", "B", 6)
+        pdf.cell(w_vol - 2, 3, txt=titulo, ln=1)
+        curr_tx += w_vol
+
+    # --- 8. DADOS DO PRODUTO / SERVIÇO ---
+    y_prod_titulo = y_tgrid3 + 12
+    pdf.set_xy(10, y_prod_titulo)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 4, txt="DADOS DO PRODUTO/SERVIÇO", ln=1)
+
+    y_pheader = y_prod_titulo + 4
+    # Definição precisa das larguras das colunas (Soma total = 190mm)
+    cols = {
+        'cod': 12, 'desc': 53, 'ncm': 15, 'cst': 8, 'cfop': 10, 
+        'un': 7, 'qtd': 10, 'v_unit': 15, 'v_total': 15, 
+        'bc': 10, 'v_icms': 10, 'v_ipi': 10, 'a_icms': 7, 'a_ipi': 8
+    }
+
+    # --- CABEÇALHO EM DUAS LINHAS ---
+    pdf.set_font("Helvetica", "B", 5)
+    headers = [
+        ('CÓDIGO', '', 'cod'), ('DESCRIÇÃO DO PRODUTO/SERVIÇO', '', 'desc'), 
+        ('NCM/SH', '', 'ncm'), ('CST', '', 'cst'), ('CFOP', '', 'cfop'), 
+        ('UN', '', 'un'), ('QTDE.', '', 'qtd'), ('VLR.', 'UNIT.', 'v_unit'), 
+        ('VLR.', 'TOTAL', 'v_total'), ('BC', 'ICMS', 'bc'), ('VLR.', 'ICMS', 'v_icms'), 
+        ('VLR.', 'IPI', 'v_ipi'), ('ALIQ.', 'ICMS', 'a_icms'), ('ALIQ.', 'IPI', 'a_ipi')
+    ]
+
+    curr_px = 10
+    for h1, h2, key in headers:
+        pdf.rect(curr_px, y_pheader, cols[key], 8)
+        pdf.set_xy(curr_px, y_pheader + 1)
+        pdf.cell(cols[key], 3, txt=h1, align='C')
+        if h2:
+            pdf.set_xy(curr_px, y_pheader + 4)
+            pdf.cell(cols[key], 3, txt=h2, align='C')
+        curr_px += cols[key]
+
+    # --- LOOP NOS ITENS ---
+    y_item = y_pheader + 8
+    pdf.set_font("Helvetica", size=7)
+
+    for item in invoice.items:
+        product = Product.query.get(item.product_id)
+        
+        # 1. Capturar o nome do produto
+        p_name = product.name.upper() if product else "PRODUTO NÃO ENCONTRADO"
+        
+        # 2. Capturar o Serial Number (corrigido para garantir que apareça)
+        # Usamos str() para garantir que números não quebrem a concatenação
+        serial = ""
+        if item.serialnumber:
+            serial = f" S/N: {item.serialnumber}"
+            
+        # 3. Montar a descrição completa
+        full_description = f"{p_name}{serial}"
+        
+        start_y = y_item
+        line_height = 4
+        
+        # 4. Inserir o texto (o multi_cell cuidará da quebra de linha se for longo)
+        pdf.set_xy(10 + cols['cod'], start_y)
+        pdf.multi_cell(cols['desc'], line_height, txt=full_description, border=0, align='L')        
+        # 1. Primeira passada: calcular altura da descrição multiline
+        pdf.set_xy(10 + cols['cod'], start_y)
+        pdf.multi_cell(cols['desc'], line_height, txt=full_description, border=0, align='L')
+        end_y = pdf.get_y()
+        row_height = max(8, end_y - start_y)
+
+        # 2. Desenhar as células garantindo o alinhamento X com o cabeçalho
+        temp_x = 10
+        
+        # Função para desenhar célula e borda sincronizada
+        def draw_aligned_cell(key, text, align='C'):
+            nonlocal temp_x
+            pdf.rect(temp_x, start_y, cols[key], row_height)
+            pdf.set_xy(temp_x, start_y)
+            pdf.cell(cols[key], row_height, txt=str(text), align=align)
+            temp_x += cols[key]
+
+        # Aplicando a todas as colunas na ordem correta
+        v_unit = f"{item.unit_price:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
+        v_total = f"{item.total_price:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
+
+        draw_aligned_cell('cod', item.product_id)
+        
+        # Borda da descrição (o texto já foi inserido pelo multi_cell acima)
+        pdf.rect(temp_x, start_y, cols['desc'], row_height)
+        temp_x += cols['desc']
+        
+        draw_aligned_cell('ncm', getattr(item, 'ncm', '00000000'))
+        draw_aligned_cell('cst', getattr(item, 'csosn', '0102'))
+        draw_aligned_cell('cfop', item.cfop)
+        draw_aligned_cell('un', "UN")
+        draw_aligned_cell('qtd', item.quantity)
+        draw_aligned_cell('v_unit', v_unit, align='R')
+        draw_aligned_cell('v_total', v_total, align='R')
+        
+        # Colunas de impostos que estavam desalinhadas
+        draw_aligned_cell('bc', "0,00", align='R')
+        draw_aligned_cell('v_icms', "0,00", align='R')
+        draw_aligned_cell('v_ipi', "0,00", align='R')
+        draw_aligned_cell('a_icms', "0", align='R')
+        draw_aligned_cell('a_ipi', "0", align='R')
+
+        y_item = start_y + row_height
+        
+        # Quebra de página se necessário
+        if y_item > 270:
+            pdf.add_page()
+            y_item = 20
+
+
+    # --- AJUSTE: ALONGAR BORDAS DOS ITENS ATÉ O RODAPÉ ---
+    # Definimos onde o rodapé deve começar (ex: y=230)
+    y_rodape_inicio = 230
+    
+    # Desenha as linhas verticais para fechar o quadro de itens até o rodapé
+    curr_px = 10
+    for key in cols:
+        pdf.line(curr_px, y_item, curr_px, y_rodape_inicio)
+        curr_px += cols[key]
+    pdf.line(200, y_item, 200, y_rodape_inicio) # Linha final direita
+    pdf.line(10, y_rodape_inicio, 200, y_rodape_inicio) # Linha horizontal de fechamento
+
+    # --- 9. CÁLCULO DO ISSQN ---
+    y_issqn = y_rodape_inicio + 5
+    pdf.set_xy(10, y_issqn)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 4, txt="CÁLCULO DO ISSQN", ln=1)
+
+    y_issqn_grid = y_issqn + 4
+    w_issqn = 190 / 4
+
+    # Linha 1: Cabeçalhos
+    titulos_issqn = ["INSCRIÇÃO MUNICIPAL", "VALOR TOTAL DOS SERVIÇOS", "BASE DE CÁLCULO DO ISSQN", "VALOR DO ISSQN"]
+    curr_ix = 10
+    for titulo in titulos_issqn:
+        pdf.rect(curr_ix, y_issqn_grid, w_issqn, 10)
+        pdf.set_xy(curr_ix + 1, y_issqn_grid + 1)
+        pdf.set_font("Helvetica", "B", 6)
+        pdf.cell(w_issqn - 2, 3, txt=titulo, ln=1)
+        
+        # Linha 2: Valores (Inscrição vazia, demais zerados)
+        pdf.set_xy(curr_ix, y_issqn_grid + 5)
+        pdf.set_font("Helvetica", size=8)
+        valor = "" if "INSCRIÇÃO" in titulo else "0,00"
+        pdf.cell(w_issqn, 5, txt=valor, align='R' if valor else 'L')
+        curr_ix += w_issqn
+
+    # Espaço em branco solicitado
+    y_adicionais = y_issqn_grid + 15
+
+    # --- 10. DADOS ADICIONAIS ---
+    pdf.set_xy(10, y_adicionais)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.cell(190, 4, txt="DADOS ADICIONAIS", ln=1)
+
+    y_adi_grid = y_adicionais + 4
+    
+    # Borda-2: Duas colunas iguais (95mm cada)
+    pdf.rect(10, y_adi_grid, 95, 30)  # Coluna Informações Complementares
+    pdf.rect(105, y_adi_grid, 95, 30) # Coluna Reserva ao Fisco
+
+    # Títulos das Colunas
+    pdf.set_font("Helvetica", "B", 6)
+    pdf.set_xy(11, y_adi_grid + 1)
+    pdf.cell(93, 3, txt="INFORMAÇÕES COMPLEMENTARES")
+    pdf.set_xy(106, y_adi_grid + 1)
+    pdf.cell(93, 3, txt="RESERVA AO FISCO")
+
+    # Conteúdo Informações Complementares (Simples Nacional)
+    pdf.set_font("Helvetica", size=7)
+    texto_simples = (
+        "DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. "
+        "NAO GERA DIREITO A CREDITO FISCAL DE ICMS, ISS E IPI."
+    )
+    pdf.set_xy(11, y_adi_grid + 6)
+    pdf.multi_cell(90, 3.5, txt=texto_simples, align='L')
+    
+    # Se houver informações do pedido/cliente, pode-se concatenar aqui:
+    if invoice.order:
+        pdf.set_x(11)
+        pdf.cell(90, 4, txt=f"PEDIDO: {invoice.order.id}", ln=1)
+
+
+    # --- FINALIZAÇÃO ---
+    pdf_output = pdf.output(dest="S")
+    return send_file(BytesIO(pdf_output), as_attachment=False, download_name=f"DANFE_{invoice.number}.pdf", mimetype="application/pdf")
 
 @nfe_bp.route('/invoice/<int:invoice_id>/pdf', methods=['GET'])
 def generate_invoice_pdf(invoice_id):

@@ -49,9 +49,10 @@ class Store(Base):
     code = db.Column(db.String(14), nullable=False)
     logo_white = db.Column(db.String(150), nullable=False, default='image.jpg')
     home = db.Column(db.String(1), nullable=False, default='N')
+    state_registration = db.Column(db.String(20))
 
     def __init__(self, zipcode, name, address, number, complement, neighborhood,
-                 city, region, freight_rate, phone, pages, logo, url, code, logo_white, home):
+                 city, region, freight_rate, phone, pages, logo, url, code, logo_white, home, state_registration):
         self.zipcode = zipcode
         self.name = name
         self.address = address
@@ -68,6 +69,7 @@ class Store(Base):
         self.code = code
         self.logo_white = logo_white
         self.home = home
+        self.state_registration = state_registration
 
 # tabela Marca
 class Brand(Base):

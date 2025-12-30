@@ -95,7 +95,10 @@
   <div class="text-center mt-3">
     <a href="{{ url_for('nfe_bp.nfe_list') }}" class="btn btn-sm btn-secondary">Voltar</a>
     <a href="{{ url_for('nfe_bp.generate_invoice_pdf', invoice_id=nota.id) }}" class="btn btn-sm btn-secondary">
-      <i class="bi bi-file-earmark-pdf"></i> DANFE PDF
+      <i class="bi bi-file-earmark-pdf"></i> DANFE CUPOM PDF
+    </a>
+    <a href="{{ url_for('nfe_bp.generate_invoice_a4_pdf', invoice_id=nota.id) }}" class="btn btn-sm btn-danger">
+      <i class="bi bi-file-earmark-pdf"></i> DANFE A4 PDF
     </a>
   </div>
 </div>

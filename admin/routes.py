@@ -138,7 +138,8 @@ def parametrosloja():
             'Complement': stores.complement,
             'Code': stores.code,
             'Url logo': urllogo,
-            'Url logo_white': urllogowhite
+            'Url logo_white': urllogowhite,
+            'State_Registration': stores.state_registration
         }
     return stores
 

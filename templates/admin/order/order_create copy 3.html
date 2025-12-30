@@ -67,10 +67,9 @@
                 <div class="row mb-1">
                     <div class="col-md-3"><small class="text-muted fw-bold">Produto</small></div>
                     <div class="col-md-2"><small class="text-muted fw-bold">Nº Série</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Qtde</small></div>
-                    <div class="col-md-2"><small class="text-muted fw-bold">Preço Unit.</small></div>
-                    <div class="col-md-2"><small class="text-muted fw-bold">Total Item</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Desconto</small></div>
+                    <div class="col-md-2"><small class="text-muted fw-bold">Qtde</small></div>
+                    <div class="col-md-2"><small class="text-muted fw-bold">Preço</small></div>
+                    <div class="col-md-2"><small class="text-muted fw-bold">Total</small></div>
                     <div class="col-md-1"><small class="text-muted fw-bold">Ação</small></div>
                 </div>
 
@@ -93,18 +92,14 @@
                         <div class="col-md-2">
                             <input type="text" name="serialnumber[]" class="form-control form-control-sm serialnumber-input" maxlength="15" placeholder="Serial">
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-md-2">
                             <input type="number" name="quantity[]" class="form-control form-control-sm quantity-input" min="1" value="1" required>
                         </div>
                         <div class="col-md-2">
                             <input type="number" step="0.01" min="0" name="price[]" class="form-control form-control-sm price-input" placeholder="0.00" required>
-                            <input type="hidden" class="original-price" value="">
                         </div>
                         <div class="col-md-2">
                             <input type="text" name="item_total[]" class="form-control form-control-sm total-input" readonly placeholder="0.00">
-                        </div>
-                        <div class="col-md-1">
-                            <input type="text" class="form-control form-control-sm discount-input" readonly placeholder="0.00">
                         </div>
                         <div class="col-md-1 text-center">
                             <button type="button" class="btn btn-outline-danger btn-sm remove-item">🗑</button>
@@ -114,26 +109,6 @@
 
                 <div class="text-end mb-3">
                     <button type="button" class="btn btn-outline-primary btn-sm" id="add-item">+ Adicionar Item</button>
-                </div>
-
-                <!-- ✅ RESUMO DO PEDIDO -->
-                <div class="card bg-light mb-3">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Total Bruto:</strong>
-                                <input type="text" id="total-bruto" class="form-control form-control-sm" readonly value="R$ 0.00">
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total Desconto:</strong>
-                                <input type="text" id="total-desconto" class="form-control form-control-sm" readonly value="R$ 0.00">
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total Líquido:</strong>
-                                <input type="text" id="total-liquido" class="form-control form-control-sm fw-bold" readonly value="R$ 0.00">
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="text-end">
@@ -154,65 +129,20 @@ document.addEventListener("DOMContentLoaded", function() {
         const price = selected.getAttribute("data-price") || "";
         const row = selectElement.closest(".item-row");
         const priceInput = row.querySelector(".price-input");
-        const originalPriceInput = row.querySelector(".original-price");
         
         // ✅ Define o preço automaticamente ao selecionar o produto
         if (priceInput && price) {
             priceInput.value = parseFloat(price).toFixed(2);
-            // Guarda o preço original para calcular desconto
-            if (originalPriceInput) {
-                originalPriceInput.value = price;
-            }
         }
         updateRowTotal(row);
     }
 
-    // Atualiza o total do item e calcula desconto
+    // Atualiza o total do item
     function updateRowTotal(row) {
         const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
         const price = parseFloat(row.querySelector(".price-input").value) || 0;
-        const originalPrice = parseFloat(row.querySelector(".original-price").value) || price;
-        
         const total = qty * price;
         row.querySelector(".total-input").value = total.toFixed(2);
-        
-        // ✅ Calcula o desconto (diferença entre preço original e preço com desconto)
-        const discount = (originalPrice - price) * qty;
-        const discountInput = row.querySelector(".discount-input");
-        if (discountInput) {
-            discountInput.value = discount > 0 ? discount.toFixed(2) : "0.00";
-        }
-        
-        // ✅ Atualiza os totais gerais
-        updateTotals();
-    }
-
-    // ✅ Calcula e atualiza os totais do pedido
-    function updateTotals() {
-        let totalBruto = 0;
-        let totalDesconto = 0;
-        let totalLiquido = 0;
-
-        document.querySelectorAll(".item-row").forEach(row => {
-            const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
-            const originalPrice = parseFloat(row.querySelector(".original-price").value) || 0;
-            const price = parseFloat(row.querySelector(".price-input").value) || 0;
-            
-            if (qty > 0 && price > 0) {
-                const itemBruto = qty * (originalPrice || price);
-                const itemLiquido = qty * price;
-                const itemDesconto = itemBruto - itemLiquido;
-                
-                totalBruto += itemBruto;
-                totalLiquido += itemLiquido;
-                totalDesconto += itemDesconto;
-            }
-        });
-
-        // Atualiza os campos de resumo
-        document.getElementById("total-bruto").value = `R$ ${totalBruto.toFixed(2)}`.replace('.', ',');
-        document.getElementById("total-desconto").value = `R$ ${totalDesconto.toFixed(2)}`.replace('.', ',');
-        document.getElementById("total-liquido").value = `R$ ${totalLiquido.toFixed(2)}`.replace('.', ',');
     }
 
     // Valida estoque em tempo real
@@ -257,7 +187,6 @@ document.addEventListener("DOMContentLoaded", function() {
             // Só remove se houver mais de 1 item
             if (document.querySelectorAll(".item-row").length > 1) {
                 row.remove();
-                updateTotals(); // ✅ Atualiza totais após remover
             } else {
                 alert("Deve haver pelo menos um item no pedido!");
             }
@@ -289,17 +218,9 @@ document.addEventListener("DOMContentLoaded", function() {
         const priceInput = clone.querySelector(".price-input");
         if (priceInput) priceInput.value = "";
         
-        // Limpa preço original
-        const originalPriceInput = clone.querySelector(".original-price");
-        if (originalPriceInput) originalPriceInput.value = "";
-        
         // Limpa total
         const totalInput = clone.querySelector(".total-input");
         if (totalInput) totalInput.value = "";
-        
-        // Limpa desconto
-        const discountInput = clone.querySelector(".discount-input");
-        if (discountInput) discountInput.value = "";
 
         container.appendChild(clone);
         applyRowListeners(clone);

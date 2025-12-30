@@ -315,6 +315,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
             db.session.flush()
 
             total_pedido = 0
+            total_desconto = 0
 
             # Itera sobre os índices das listas
             for i in range(len(product_ids)):
@@ -354,6 +355,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                     amount = prc * qty
 
                 total_pedido += amount
+                total_desconto += discount
 
                 # Limita o serial a 15 caracteres e trata string vazia
                 serial_clean = None
@@ -365,7 +367,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                     customer_request_id=order.id,
                     product_id=pid,
                     quantity=qty,
-                    price=prc,
+                    price=preco_original,
                     discount=discount,
                     amount_initial=amount_initial,
                     amount=amount,
@@ -381,6 +383,7 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
                 db.session.add(product)
 
             order.amount = total_pedido
+            order.discount = total_desconto
             db.session.commit()
             flash("✅ Pedido criado com sucesso!", "success")
             return redirect(url_for('order_bp.order_list'))

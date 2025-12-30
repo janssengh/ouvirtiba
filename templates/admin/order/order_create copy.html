@@ -63,21 +63,11 @@
                 <hr>
                 <h5 class="text-secondary mb-2">Itens do Pedido</h5>
 
-                <!-- ✅ CABEÇALHOS FIXOS - APARECEM APENAS UMA VEZ -->
-                <div class="row mb-1">
-                    <div class="col-md-3"><small class="text-muted fw-bold">Produto</small></div>
-                    <div class="col-md-2"><small class="text-muted fw-bold">Nº Série</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Qtde</small></div>
-                    <div class="col-md-2"><small class="text-muted fw-bold">Preço Unit.</small></div>
-                    <div class="col-md-2"><small class="text-muted fw-bold">Total Item</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Desconto</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Ação</small></div>
-                </div>
-
                 <div id="itens-container">
                     <div class="row mb-2 item-row align-items-center">
                         <div class="col-md-3">
-                            <select name="product_id[]" class="form-select form-select-sm product-select" required>
+                            <label class="form-label small">Produto</label>
+                            <select name="product_id[]" class="form-select product-select" required>
                                 <option value="">Produto...</option>
                                 {% for tipo, produtos_tipo in products | groupby('type_name') %}
                                 <optgroup label="{{ tipo }}">
@@ -91,22 +81,23 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <input type="text" name="serialnumber[]" class="form-control form-control-sm serialnumber-input" maxlength="15" placeholder="Serial">
-                        </div>
-                        <div class="col-md-1">
-                            <input type="number" name="quantity[]" class="form-control form-control-sm quantity-input" min="1" value="1" required>
+                            <label class="form-label small">Nº Série</label>
+                            <input type="text" name="serialnumber[]" class="form-control serialnumber-input" maxlength="15" placeholder="Número de série">
                         </div>
                         <div class="col-md-2">
-                            <input type="number" step="0.01" min="0" name="price[]" class="form-control form-control-sm price-input" placeholder="0.00" required>
-                            <input type="hidden" class="original-price" value="">
+                            <label class="form-label small">Qtde</label>
+                            <input type="number" name="quantity[]" class="form-control quantity-input" min="1" value="1" required>
                         </div>
                         <div class="col-md-2">
-                            <input type="text" name="item_total[]" class="form-control form-control-sm total-input" readonly placeholder="0.00">
+                            <label class="form-label small">Preço</label>
+                            <input type="number" step="0.01" min="0" name="price[]" class="form-control price-input" placeholder="Preço" required>
                         </div>
-                        <div class="col-md-1">
-                            <input type="text" class="form-control form-control-sm discount-input" readonly placeholder="0.00">
+                        <div class="col-md-2">
+                            <label class="form-label small">Total</label>
+                            <input type="text" name="item_total[]" class="form-control total-input" readonly placeholder="Total">
                         </div>
                         <div class="col-md-1 text-center">
+                            <label class="form-label small">&nbsp;</label>
                             <button type="button" class="btn btn-outline-danger btn-sm remove-item">🗑</button>
                         </div>
                     </div>
@@ -114,26 +105,6 @@
 
                 <div class="text-end mb-3">
                     <button type="button" class="btn btn-outline-primary btn-sm" id="add-item">+ Adicionar Item</button>
-                </div>
-
-                <!-- ✅ RESUMO DO PEDIDO -->
-                <div class="card bg-light mb-3">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Total Bruto:</strong>
-                                <input type="text" id="total-bruto" class="form-control form-control-sm" readonly value="R$ 0.00">
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total Desconto:</strong>
-                                <input type="text" id="total-desconto" class="form-control form-control-sm" readonly value="R$ 0.00">
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total Líquido:</strong>
-                                <input type="text" id="total-liquido" class="form-control form-control-sm fw-bold" readonly value="R$ 0.00">
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="text-end">
@@ -153,66 +124,16 @@ document.addEventListener("DOMContentLoaded", function() {
         const selected = selectElement.options[selectElement.selectedIndex];
         const price = selected.getAttribute("data-price") || "";
         const row = selectElement.closest(".item-row");
-        const priceInput = row.querySelector(".price-input");
-        const originalPriceInput = row.querySelector(".original-price");
-        
-        // ✅ Define o preço automaticamente ao selecionar o produto
-        if (priceInput && price) {
-            priceInput.value = parseFloat(price).toFixed(2);
-            // Guarda o preço original para calcular desconto
-            if (originalPriceInput) {
-                originalPriceInput.value = price;
-            }
-        }
+        row.querySelector(".price-input").value = price;
         updateRowTotal(row);
     }
 
-    // Atualiza o total do item e calcula desconto
+    // Atualiza o total do item
     function updateRowTotal(row) {
         const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
         const price = parseFloat(row.querySelector(".price-input").value) || 0;
-        const originalPrice = parseFloat(row.querySelector(".original-price").value) || price;
-        
         const total = qty * price;
         row.querySelector(".total-input").value = total.toFixed(2);
-        
-        // ✅ Calcula o desconto (diferença entre preço original e preço com desconto)
-        const discount = (originalPrice - price) * qty;
-        const discountInput = row.querySelector(".discount-input");
-        if (discountInput) {
-            discountInput.value = discount > 0 ? discount.toFixed(2) : "0.00";
-        }
-        
-        // ✅ Atualiza os totais gerais
-        updateTotals();
-    }
-
-    // ✅ Calcula e atualiza os totais do pedido
-    function updateTotals() {
-        let totalBruto = 0;
-        let totalDesconto = 0;
-        let totalLiquido = 0;
-
-        document.querySelectorAll(".item-row").forEach(row => {
-            const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
-            const originalPrice = parseFloat(row.querySelector(".original-price").value) || 0;
-            const price = parseFloat(row.querySelector(".price-input").value) || 0;
-            
-            if (qty > 0 && price > 0) {
-                const itemBruto = qty * (originalPrice || price);
-                const itemLiquido = qty * price;
-                const itemDesconto = itemBruto - itemLiquido;
-                
-                totalBruto += itemBruto;
-                totalLiquido += itemLiquido;
-                totalDesconto += itemDesconto;
-            }
-        });
-
-        // Atualiza os campos de resumo
-        document.getElementById("total-bruto").value = `R$ ${totalBruto.toFixed(2)}`.replace('.', ',');
-        document.getElementById("total-desconto").value = `R$ ${totalDesconto.toFixed(2)}`.replace('.', ',');
-        document.getElementById("total-liquido").value = `R$ ${totalLiquido.toFixed(2)}`.replace('.', ',');
     }
 
     // Valida estoque em tempo real
@@ -248,58 +169,26 @@ document.addEventListener("DOMContentLoaded", function() {
         const removeBtn = row.querySelector(".remove-item");
 
         if (productSelect) productSelect.addEventListener("change", () => updatePrice(productSelect));
+        if (qtyInput) qtyInput.addEventListener("input", () => updateRowTotal(row));
+        if (priceInput) priceInput.addEventListener("input", () => updateRowTotal(row));
+        if (removeBtn) removeBtn.addEventListener("click", () => row.remove());
         if (qtyInput) qtyInput.addEventListener("input", () => {
             updateRowTotal(row);
             checkStock(row);
-        });
-        if (priceInput) priceInput.addEventListener("input", () => updateRowTotal(row));
-        if (removeBtn) removeBtn.addEventListener("click", () => {
-            // Só remove se houver mais de 1 item
-            if (document.querySelectorAll(".item-row").length > 1) {
-                row.remove();
-                updateTotals(); // ✅ Atualiza totais após remover
-            } else {
-                alert("Deve haver pelo menos um item no pedido!");
-            }
         });
     }
 
     // Inicializa linhas existentes
     document.querySelectorAll(".item-row").forEach(row => applyRowListeners(row));
 
-    // ✅ Adiciona novo item SEM LABELS (apenas os campos)
+    // Adiciona novo item
     document.getElementById("add-item").addEventListener("click", () => {
         const container = document.getElementById("itens-container");
         const clone = container.querySelector(".item-row").cloneNode(true);
 
-        // ✅ LIMPA TODOS OS CAMPOS DO ITEM CLONADO
-        // Limpa o select de produto
-        const selectProduct = clone.querySelector(".product-select");
-        if (selectProduct) selectProduct.selectedIndex = 0;
-        
-        // Limpa o serial number
-        const serialInput = clone.querySelector(".serialnumber-input");
-        if (serialInput) serialInput.value = "";
-        
-        // Reseta quantidade para 1
-        const qtyInput = clone.querySelector(".quantity-input");
-        if (qtyInput) qtyInput.value = "1";
-        
-        // Limpa preço
-        const priceInput = clone.querySelector(".price-input");
-        if (priceInput) priceInput.value = "";
-        
-        // Limpa preço original
-        const originalPriceInput = clone.querySelector(".original-price");
-        if (originalPriceInput) originalPriceInput.value = "";
-        
-        // Limpa total
-        const totalInput = clone.querySelector(".total-input");
-        if (totalInput) totalInput.value = "";
-        
-        // Limpa desconto
-        const discountInput = clone.querySelector(".discount-input");
-        if (discountInput) discountInput.value = "";
+        // limpa campos
+        clone.querySelectorAll("input").forEach(i => i.value = "");
+        clone.querySelector("select").selectedIndex = 0;
 
         container.appendChild(clone);
         applyRowListeners(clone);
@@ -342,4 +231,4 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-{% endblock content %}
+{% endblock content %}  

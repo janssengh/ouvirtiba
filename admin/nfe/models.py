@@ -27,6 +27,8 @@ class Invoice(Base):
     series = db.Column(db.Integer, default=1)
     nrec = db.Column(db.String(15))  # deve existir após o ALTER TABLE   
     xml_path = db.Column(db.String(255)) 
+    nprot = db.Column(db.Text)
+    discount = db.Column(db.Float)
 
     client = db.relationship('Client', backref='invoices')
     order = db.relationship('Customer_request', backref='invoices')
@@ -51,6 +53,8 @@ class InvoiceItem(Base):
     ncm = db.Column(db.String(8), nullable=False)
     cfop = db.Column(db.String(4), nullable=False)
     csosn = db.Column(db.String(3), nullable=False)
+    discount = db.Column(db.Float)
+    serialnumber = db.Column(db.String(15))
 
     invoice = db.relationship('Invoice', backref='items')
     product = db.relationship('Product', backref='invoice_items')

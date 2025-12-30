@@ -22,6 +22,8 @@ class Customer_request(Base):
     amount = db.Column(db.Numeric(15,2), nullable=False)
     observation = db.Column(db.String(510), nullable=True)
     status = db.Column(db.String(2), default='N', nullable=True)
+    is_invoiced = db.Column(db.String(1), default='N')
+    discount = db.Column(db.Numeric(15,2), nullable=True)
 
     # relacionamento com Client
     client = db.relationship('Client', backref='orders', lazy=True)
