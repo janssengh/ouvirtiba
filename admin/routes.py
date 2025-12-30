@@ -1020,7 +1020,8 @@ def store_ins():
 
     form = StoreForm()
 
-    if request.method == 'POST' :
+    if form.validate_on_submit():
+            
         print('request.method: {request.method}')
         try:
             # === 1. Função auxiliar para salvar imagens ===
@@ -1070,7 +1071,8 @@ def store_ins():
                 url=form.url.data,
                 code=form.code.data,
                 logo_white=logo_white_name if logo_white_name else 'default_logo_white.png',
-                home=home_status
+                home=home_status,
+                state_registration=form.state_registration.data
             )
 
             db.session.add(nova_loja)
@@ -1083,8 +1085,12 @@ def store_ins():
             print(f'Erro ao cadastrar loja: {e}')
             flash(f'Erro ao cadastrar loja: {e}', 'danger')
 
+
+
     else:
-        print('request.method: {request.method}')
+        if request.method == 'POST' :
+            print('FORM ERRORS:', form.errors)
+            flash(f'Erro no formulário: {form.errors}', 'danger')
 
     return render_template('admin/store_ins.html', form=form, titulo='Nova Loja')
 
@@ -1118,6 +1124,7 @@ def store_upd(store_id):
         store.freight_rate = form.freight_rate.data
         store.pages = form.pages.data
         store.home = 'S' if form.home.data else 'N'
+        store.state_registration = form.state_registration.data
         campos_alterados = True
 
 

@@ -52,47 +52,43 @@
                     <input type="text" class="form-control" id="complement" name="complement" value="{{ store.complement or '' }}">
                 </div>
 
-                <div class="row g-3 mt-1">
-                    <div class="col-md-3">
-                        <label for="neighborhood" class="form-label">Bairro *</label>
-                        <input type="text" class="form-control" id="neighborhood" name="neighborhood" value="{{ store.neighborhood }}" required>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label for="city" class="form-label">Cidade *</label>
-                        <input type="text" class="form-control" id="city" name="city" value="{{ store.city }}" required>
-                    </div>
-
-                    <div class="col-md-1">
-                        <label for="region" class="form-label">UF *</label>
-                        <input type="text" class="form-control" id="region" name="region" maxlength="2" value="{{ store.region }}" required>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label for="state_registration" class="form-label">Inscrição Estadual *</label>
-                        <input type="text" class="form-control" id="state_registration" name="state_registration" maxlength="20" value="{{ store.state_registration }}" required>
-                        {% for error in form.state_registration.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
-                    </div>
+                <div class="col-md-4">
+                    <label for="neighborhood" class="form-label">Bairro *</label>
+                    <input type="text" class="form-control" id="neighborhood" name="neighborhood" value="{{ store.neighborhood }}" required>
                 </div>
 
-                <div class="row g-3 mt-1">
-                    <div class="col-md-3">
-                        <label for="freight_rate" class="form-label">Taxa Frete (R$)</label>
-                        <input type="number" step="0.01" class="form-control" id="freight_rate" name="freight_rate" value="{{ store.freight_rate }}">
-                    </div>
+                <div class="col-md-4">
+                    <label for="city" class="form-label">Cidade *</label>
+                    <input type="text" class="form-control" id="city" name="city" value="{{ store.city }}" required>
+                </div>
 
-                    <div class="col-md-3">
-                        <label for="pages" class="form-label">Qtd. Páginas</label>
-                        <input type="number" class="form-control" id="pages" name="pages" value="{{ store.pages }}">
-                    </div>
+                <div class="col-md-4">
+                    <label for="region" class="form-label">UF *</label>
+                    <input type="text" class="form-control" id="region" name="region" maxlength="2" value="{{ store.region }}" required>
+                </div>
 
-                    <div class="col-md-6">
-                        <label for="phone" class="form-label">Telefone *</label>
-                        <input type="text" class="form-control" id="phone" name="phone" value="{{ store.phone or '' }}" placeholder="DDD + 8 dígitos" required>
-                    </div>
-                </div>       
+                <div class="col-md-4">
+                    <label for="state_registraion" class="form-label">IE *</label>
+                    <input type="text" class="form-control" id="state_registration" name="state_registration" maxlength="15" value="{{ store.state_registration }}" required>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="freight_rate" class="form-label">Taxa Frete (R$)</label>
+                    <input type="number" step="0.01" class="form-control" id="freight_rate" name="freight_rate" value="{{ store.freight_rate }}">
+                    <div class="form-text">Se não informado, será considerado 0.</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="pages" class="form-label">Qtd. Páginas</label>
+                    <input type="number" class="form-control" id="pages" name="pages" value="{{ store.pages }}">
+                    <div class="form-text">Se não informado, será considerado 0.</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Telefone *</label>
+                    <input type="text" class="form-control" id="phone" name="phone" value="{{ store.phone or '' }}" placeholder="DDD + 8 dígitos" required>
+                    <div class="form-text">Somente números (10 dígitos: DDD + 8 dígitos).</div>
+                </div>
 
                 <div class="col-md-6">
                     <label for="url" class="form-label">URL *</label>

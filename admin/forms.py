@@ -82,8 +82,8 @@ class StoreForm(FlaskForm):
     # Telefone: obrigatório, 10 dígitos (DDD + 8 dígitos)
     phone = StringField('Telefone (DDD+9 dígitos)', validators=[
         DataRequired('O telefone é obrigatório.'),
-        Length(min=11, max=11, message='O telefone deve ter exatamente 11 dígitos (DDD+9 dígitos).'),
-        Regexp(r'^\d{11}$', message='O telefone deve conter apenas 11 números.')
+        Length(min=10,max=10, message='O telefone deve ter exatamente 10 dígitos (DDD+8 dígitos).'),
+        Regexp(r'^\d{10}$', message='O telefone deve conter apenas 10 números.')
     ])
     
     # URL: obrigatória, iniciando com https://
@@ -107,6 +107,7 @@ class StoreForm(FlaskForm):
     complement = StringField('Complemento (opcional)')
     neighborhood = StringField('Bairro', validators=[DataRequired('O bairro é obrigatório.')])
     city = StringField('Cidade', validators=[DataRequired('A cidade é obrigatória.')])
-    region = StringField('Estado (UF)', validators=[DataRequired('O estado (UF) é obrigatório.'), Length(min=2, max=2)])
+    region = StringField('UF', validators=[DataRequired('O estado (UF) é obrigatório.'), Length(min=2, max=2)])
     home = BooleanField('Destaque na Home')
+    state_registration = StringField('Inscrição Estadual', validators=[DataRequired('A Inscrição Estadual é obrigatória.'), Length(max=20, message='Inscrição Estadual deve ter no máximo 20 caracteres.')])
     #home = StringField('Destaque na Home') # Será tratado no routes.py ('S' ou 'N')

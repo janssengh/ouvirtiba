@@ -31,9 +31,43 @@
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-4">{{ form.neighborhood.label(class="form-label") }} {{ form.neighborhood(class="form-control", id="neighborhood") }}</div>
-            <div class="col-md-4">{{ form.city.label(class="form-label") }} {{ form.city(class="form-control", id="city") }}</div>
-            <div class="col-md-4">{{ form.region.label(class="form-label") }} {{ form.region(class="form-control", id="region") }}</div>
+            <div class="col-md-4">
+                {{ form.neighborhood.label(class="form-label") }}
+                {{ form.neighborhood(class="form-control", id="neighborhood") }}
+            </div>
+
+            <div class="col-md-4">
+                {{ form.city.label(class="form-label") }}
+                {{ form.city(class="form-control", id="city") }}
+            </div>
+
+            <div class="col-md-1">
+                {{ form.region.label(class="form-label") }}
+                {{ form.region(
+                    class="form-control text-uppercase",
+                    id="region",
+                    maxlength="2",
+                    style="text-align:center;",
+                    required=True
+                ) }}
+            </div>
+
+            <div class="col-md-3">
+                {{ form.state_registration.label(class="form-label") }}
+                {{ form.state_registration(
+                    class="form-control",
+                    id="state_registration",
+                    maxlength="20",
+                    required=True
+                ) }}
+
+                {% if form.state_registration.errors %}
+                    <div class="text-danger small">
+                        {{ form.state_registration.errors[0] }}
+                    </div>
+                {% endif %}
+                
+            </div>
         </div>
 
         <div class="row mb-3">
@@ -87,6 +121,7 @@
         const logo1Input = document.getElementById('logotipo_1');
         const logo2Input = document.getElementById('logotipo_2');
         const cancelBtn = document.querySelector('a.btn-secondary');
+        const ieInput = document.getElementById('state_registration');
 
         // === Confirmação ao cancelar ===
         if (cancelBtn) {
@@ -128,7 +163,20 @@
                 }
             }
 
-            // 3. Validação de logotipos
+            // 3. Validação da Inscrição Estadual
+            if (valid && ieInput) {
+                if (ieInput.value.trim() === '') {
+                    showAlert("⚠️ A Inscrição Estadual é obrigatória.");
+                    ieInput.focus();
+                    valid = false;
+                } else if (ieInput.value.length > 20) {
+                    showAlert("⚠️ A Inscrição Estadual deve ter no máximo 20 caracteres.");
+                    ieInput.focus();
+                    valid = false;
+                }
+            }
+
+            // 4. Validação de logotipos
             if (valid && logo1Input && logo1Input.files.length === 0) {
                 showAlert("⚠️ O Logotipo Principal é obrigatório!");
                 logo1Input.focus();
