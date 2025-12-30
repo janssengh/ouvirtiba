@@ -79,11 +79,11 @@ class StoreForm(FlaskForm):
         NumberRange(min=0, message='A quantidade de páginas deve ser maior ou igual a zero.')
     ])
     
-    # Telefone: obrigatório, 10 dígitos (DDD + 8 dígitos)
+    # Telefone: obrigatório, 11 dígitos (DDD + 9 dígitos)
     phone = StringField('Telefone (DDD+9 dígitos)', validators=[
         DataRequired('O telefone é obrigatório.'),
-        Length(min=10,max=10, message='O telefone deve ter exatamente 10 dígitos (DDD+8 dígitos).'),
-        Regexp(r'^\d{10}$', message='O telefone deve conter apenas 10 números.')
+        Length(min=10,max=10, message='O telefone deve ter exatamente 11 dígitos (DDD+9 dígitos).'),
+        Regexp(r'^\d{11}$', message='O telefone deve conter apenas 11 números.')
     ])
     
     # URL: obrigatória, iniciando com https://

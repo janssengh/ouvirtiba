@@ -90,7 +90,7 @@
 
                     <div class="col-md-6">
                         <label for="phone" class="form-label">Telefone *</label>
-                        <input type="text" class="form-control" id="phone" name="phone" value="{{ store.phone or '' }}" placeholder="DDD + 8 dígitos" required>
+                        <input type="text" class="form-control" id="phone" name="phone" value="{{ store.phone or '' }}" placeholder="DDD + 9 dígitos" required>
                     </div>
                 </div>       
 
@@ -221,7 +221,7 @@
       if (phoneInput) {
         const phone = phoneInput.value.replace(/\D/g, '');
         if (!phone) { e.preventDefault(); showAlert('O telefone é obrigatório.'); phoneInput.focus(); return; }
-        if (phone.length !== 10) { e.preventDefault(); showAlert('O telefone deve conter exatamente 10 dígitos numéricos (DDD + 10 dígitos).'); phoneInput.focus(); return; }
+        if (phone.length !== 11) { e.preventDefault(); showAlert('O telefone deve conter exatamente 10 dígitos numéricos (DDD + 9 dígitos).'); phoneInput.focus(); return; }
       }
 
       if (!freightInput.value) freightInput.value = 0;

@@ -74,7 +74,7 @@
             <div class="col-md-3">{{ form.freight_rate.label(class="form-label") }} {{ form.freight_rate(class="form-control") }}</div>
             <div class="col-md-3">
                 {{ form.phone.label(class="form-label") }}
-                {{ form.phone(class="form-control", id="phone", placeholder="DDD + 8 dígitos", maxlength="10") }}
+                {{ form.phone(class="form-control", id="phone", placeholder="DDD + 9 dígitos", maxlength="11") }}
             </div>
             <div class="col-md-3">{{ form.pages.label(class="form-label") }} {{ form.pages(class="form-control") }}</div>
             <div class="col-md-3">{{ form.url.label(class="form-label") }} {{ form.url(class="form-control") }}</div>
@@ -156,8 +156,8 @@
                     showAlert("⚠️ O telefone é obrigatório.");
                     phoneInput.focus();
                     valid = false;
-                } else if (phoneInput.value.length !== 10) {
-                    showAlert("⚠️ O telefone deve conter 10 dígitos numéricos (DDD + 8 dígitos).");
+                } else if (phoneInput.value.length !== 11) {
+                    showAlert("⚠️ O telefone deve conter 11 dígitos numéricos (DDD + 9 dígitos).");
                     phoneInput.focus();
                     valid = false;
                 }
