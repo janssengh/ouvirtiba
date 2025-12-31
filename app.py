@@ -3,11 +3,11 @@ from flask import Flask, render_template, request, redirect, flash, send_from_di
 # Inclusão banco de dados POSTGRESQL
 from flask_sqlalchemy import SQLAlchemy 
 
+# Inclusão ENDPOINT para manter ativo o SUPABASE
+from sqlalchemy import text
+
 import smtplib
 import os
-
-# Inclusão ENDPOINT para manter ativo SUPABASE free
-import psycopg2
 
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
@@ -50,13 +50,10 @@ app.register_blueprint(nfe_bp)
 @app.route("/keep-alive")
 def keep_alive():
     try:
-        conn = psycopg2.connect(os.environ["DATABASE_URL"])
-        cur = conn.cursor()
-        cur.execute("SELECT 1;")
-        cur.close()
-        conn.close()
+        db.session.execute(text("SELECT 1"))
         return "OK", 200
     except Exception as e:
+        print("KEEP ALIVE ERROR:", e)
         return "ERROR", 500
 
 @app.route('/hello-world')
