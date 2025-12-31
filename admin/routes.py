@@ -1150,8 +1150,7 @@ def store_upd(store_id):
         # --- Salva no banco ---
         # ==========================================================
 
-        print(f'campos altterados: {campos_alterados}')
-        
+
         if campos_alterados:
             try:
                 db.session.commit()
@@ -1165,9 +1164,9 @@ def store_upd(store_id):
 
     # --- DEBUG: Adicione estas linhas abaixo ---
     if request.method == 'POST' and not form.validate():
-        print("Erros de validação encontrados:")
+        flash(f'Erros de validação encontrados:{form.errors}', 'danger')
         for field, errors in form.errors.items():
-            print(f"Campo: {field} - Erros: {errors}")
+            flash(f'Erros de validação encontrados: Campo: {field} - Erros: {errors}/{form.errors}', 'danger')
     # --- FIM DO DEBUG ---
     # --- GET ou falha na validação ---
 
