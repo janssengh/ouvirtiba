@@ -8,13 +8,17 @@ pip freeze > requirements.txt
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "2ª.Atualização: Correção da validação telefone para minimo e maximo 11 digitos"
+git commit -m "Inclusão do ENDPOINT para manter ativo SUPABASE no app.py"
 git push origin master
 
 Atualizar Render (https://dashboard.render.com/web/srv-d26hb715pdvs73a2ut8g/deploys/dep-d526tge3jp1c73btdm70):
 Entrar o render/github
 ouvirtiba
 manual deploy/deploy latest commit
+
+Para manter ativo o Render Free, foi usado UptimeRobot.
+Para manter ativo o SUPABASE Free, incluso no app.py o ENDPOINT 
+
 
 Atualizar Supabase ():
 github

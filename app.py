@@ -5,6 +5,10 @@ from flask_sqlalchemy import SQLAlchemy
 
 import smtplib
 import os
+
+# Inclusão ENDPOINT para manter ativo SUPABASE free
+import psycopg2
+
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 load_dotenv()
@@ -42,6 +46,18 @@ app.register_blueprint(nfe_bp)
 
 ######################## Término Inclusão com banco de dados #####################
 
+# ENDPOINT para manter ativo o SUPABASE free
+@app.route("/keep-alive")
+def keep_alive():
+    try:
+        conn = psycopg2.connect(os.environ["DATABASE_URL"])
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        cur.close()
+        conn.close()
+        return "OK", 200
+    except Exception as e:
+        return "ERROR", 500
 
 @app.route('/hello-world')
 def redirect_hello():
