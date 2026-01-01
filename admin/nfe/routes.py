@@ -218,7 +218,7 @@ def nfe_create():
             invoice_seq = InvoiceSequence(
                 store_id=store_id,
                 series=series,
-                last_number=invoice_number,
+                last_number=int(invoice_number),
                 updated_at=datetime.now()
             )
             db.session.add(invoice_seq)
@@ -255,7 +255,7 @@ def nfe_create():
         )
 
         new_invoice = Invoice(
-            number=invoice_number,  # Usa o número sequencial 
+            number=int(invoice_number),  # Usa o número sequencial 
             series=series,  # Define a série
             store_id=session['Store']['Id'],
             client_id=client_id,
