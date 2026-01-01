@@ -13,7 +13,7 @@ class Invoice(Base):
     __tablename__ = 'invoice'
 
     id = db.Column(db.Integer, primary_key=True)
-    number = db.Column(db.String(20), nullable=False, unique=True)
+    number = db.Column(db.Integer, nullable=False, unique=True)
     issue_date = db.Column(db.DateTime, default=datetime.utcnow)
     store_id = db.Column(db.Integer, nullable=False)
     client_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.client.id'), nullable=False)
