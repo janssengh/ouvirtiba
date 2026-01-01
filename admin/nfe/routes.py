@@ -255,7 +255,7 @@ def nfe_create():
         )
 
         new_invoice = Invoice(
-            number=str(invoice_number),  # Usa o número sequencial como string
+            number=invoice_number,  # Usa o número sequencial 
             series=series,  # Define a série
             store_id=session['Store']['Id'],
             client_id=client_id,
