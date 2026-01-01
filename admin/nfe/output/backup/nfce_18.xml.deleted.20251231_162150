@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe Id="NFe42251256154376000105650012211739055464204373" versao="4.00">
+    <ide>
+      <cUF>42</cUF>
+      <natOp>Venda</natOp>
+      <mod>65</mod>
+      <serie>1</serie>
+      <nNF>20251221173905</nNF>
+      <tpAmb>2</tpAmb>
+      <tpNF>1</tpNF>
+      <finNFe>1</finNFe>
+      <indFinal>1</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>Ouvirtiba 1.0</verProc>
+      <dhEmi>2025-12-21T20:39:05.696554</dhEmi>
+    </ide>
+    <emit>
+      <CNPJ>56154376000105</CNPJ>
+      <xNome>Janssen Aparelhos Auditivos Ltda</xNome>
+      <IE>263067041</IE>
+      <enderEmit>
+        <UF>SC</UF>
+      </enderEmit>
+    </emit>
+    <det nItem="1">
+      <prod>
+        <cProd>5</cProd>
+        <xProd>Aparelho Auditivo Vista V3-312 c/receptor M 5 2L </xProd>
+        <NCM>90214000</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>2</qCom>
+        <vUnCom>2000.00</vUnCom>
+        <vProd>3600.00</vProd>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS>
+          <ICMSSN102>
+            <orig>0</orig>
+            <CSOSN>102</CSOSN>
+          </ICMSSN102>
+        </ICMS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vProd>3600.00</vProd>
+        <vNF>3600.00</vNF>
+      </ICMSTot>
+    </total>
+    <pag>
+      <detPag>
+        <tPag>01</tPag>
+        <vPag>3600.00</vPag>
+      </detPag>
+    </pag>
+  </infNFe>
+</NFe>

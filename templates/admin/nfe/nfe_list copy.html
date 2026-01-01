@@ -6,14 +6,9 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
     <h3>{{ titulo }}</h3>
-    <div>
-        <a href="{{ url_for('nfe_bp.xml_list') }}" class="btn btn-info me-2">
-            <i class="bi bi-file-earmark-code"></i> Gerenciar XMLs
-        </a>
-        <a href="{{ url_for('nfe_bp.nfe_create') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Nova Nota Fiscal
-        </a>
-    </div>
+    <a href="{{ url_for('nfe_bp.nfe_create') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Nova Nota Fiscal
+    </a>
     </div>
     <hr>
   {% if notas %}

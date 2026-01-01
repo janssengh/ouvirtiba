@@ -61,3 +61,30 @@ class InvoiceItem(Base):
     
     def __repr__(self):
         return f"<InvoiceItem {self.product.name} x {self.quantity}>"
+    
+# ================================================================
+# MODELO PARA CONTROLE DE SEQUÊNCIA DE NOTAS FISCAIS
+# ================================================================
+# Adicione este modelo ao arquivo admin/nfe/models.py
+
+class InvoiceSequence(Base):
+    """
+    Controla a sequência numérica das notas fiscais por loja e série.
+    Garante numeração sequencial e crescente para cada combinação store_id + series.
+    """
+    __tablename__ = 'invoice_sequence'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
+    series = db.Column(db.Integer, nullable=False, default=1)
+    last_number = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Constraint única para garantir um registro por loja + série
+    __table_args__ = (
+        db.UniqueConstraint('store_id', 'series', name='uq_invoice_sequence_store_series'),
+        {'schema': 'ouvirtiba'}
+    )
+    
+    def __repr__(self):
+        return f'<InvoiceSequence store_id={self.store_id} series={self.series} last_number={self.last_number}>'

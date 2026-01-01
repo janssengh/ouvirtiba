@@ -14,11 +14,10 @@ from datetime import datetime
 # Geração XML NFCe
 from decimal import Decimal
 NAMESPACE = "http://www.portalfiscal.inf.br/nfe"
-from config import NFeConfig as CFG
-from admin.nfe.services.qr_code import gerar_qrcode_url
-from lxml import etree
+from config import TP_AMB
 
 from pathlib import Path
+from lxml import etree
 import os
 from random import randint
 from io import BytesIO
@@ -193,39 +192,9 @@ def nfe_create():
         # O .get(order_id, 0) evita o erro KeyError se o ID não existir
         discount = discounts_dict.get(order_id, 0.0)
 
-        # ================================================================
-        # 🔢 GERAÇÃO DO NÚMERO SEQUENCIAL DA NOTA FISCAL
-        # ================================================================
-        from admin.nfe.models import InvoiceSequence
-        
-        store_id = session['Store']['Id']
-        series = 1  # Série padrão da NFC-e
-        
-        # Busca ou cria o registro de sequência para a loja + série
-        invoice_seq = InvoiceSequence.query.filter_by(
-            store_id=store_id,
-            series=series
-        ).first()
-        
-        if invoice_seq:
-            # Incrementa o último número
-            invoice_number = invoice_seq.last_number + 1
-            invoice_seq.last_number = invoice_number
-            invoice_seq.updated_at = datetime.now()
-        else:
-            # Cria o primeiro registro com número inicial 1
-            invoice_number = 1
-            invoice_seq = InvoiceSequence(
-                store_id=store_id,
-                series=series,
-                last_number=invoice_number,
-                updated_at=datetime.now()
-            )
-            db.session.add(invoice_seq)
-
-        # ================================================================
+        # -------------------------
         # 🔹 Geração da chave de acesso dinâmica
-        # ================================================================
+        # -------------------------
         store_data = session.get('Store', {})
         uf_map = {
             'AC': '12', 'AL': '27', 'AP': '16', 'AM': '13', 'BA': '29',
@@ -240,25 +209,26 @@ def nfe_create():
         uf_code = uf_map.get(region.upper(), '42')  # padrão SC
 
         # ⚠️ Certifique-se que o campo correto com CNPJ existe
-        cnpj_loja = store_data.get('Code', '00000000000000')
+        cnpj_loja = store_data.get('Code', '00000000000000')  # substitua por stores.cnpj se existir
         cnpj_numerico = ''.join(filter(str.isdigit, cnpj_loja))[:14].ljust(14, '0')
 
+        number = datetime.now().strftime('%Y%m%d%H%M%S')
         codigo_numerico = randint(100000000, 999999999)
 
         chave = gerar_chave_acesso(
             uf=uf_code,
             cnpj=cnpj_numerico,
             modelo='65',
-            serie=str(series),
-            numero_nfe=str(invoice_number).zfill(9),  # Usa o número sequencial com 9 dígitos
+            serie='1',
+            numero_nfe=number[-9:],
             codigo_numerico=codigo_numerico
         )
 
         new_invoice = Invoice(
-            number=str(invoice_number),  # Usa o número sequencial como string
-            series=series,  # Define a série
+            number=datetime.now().strftime('%Y%m%d%H%M%S'),
             store_id=session['Store']['Id'],
             client_id=client_id,
+            # Se order_id for None, o campo order_id no banco aceitará NULL
             order_id=order_id, 
             total_value=total_value,
             status='N',
@@ -279,8 +249,10 @@ def nfe_create():
                 # Busca os itens do pedido com o ID fornecido
                 order_items = Customer_request_item.query.filter(
                     Customer_request_item.customer_request_id == order_id,
-                    Customer_request_item.price > 0
+                    Customer_request_item.price > 0 # <--- NOVO FILTRO AQUI
                 ).all()
+
+                #order_items = Customer_request_item.query.filter_by(customer_request_id=order_id).all()
 
                 invoice_items = []
                 for item in order_items:
@@ -291,8 +263,9 @@ def nfe_create():
                         quantity=item.quantity,
                         discount=item.discount,
                         serialnumber=item.serialnumber,
+                        # Mapeamento dos campos. unit_price e total_price esperam Float/Numeric
                         unit_price=float(item.price), 
-                        total_price=float(item.amount),
+                        total_price=float(item.amount), # Usa o valor final do item (já com desconto, se houver),
                         ncm="90214000",
                         cfop="5102",
                         csosn="102"
@@ -305,24 +278,24 @@ def nfe_create():
             # Localize o pedido original
             order = Customer_request.query.get(order_id)
             if order:
-                order.is_invoiced = 'S'  # Marca como Nota Gerada
+                order.is_invoiced = 'S' # Marca como Nota Gerada
 
-                # Confirma a transação (criação da Nota, Itens e atualização da Sequência)
+                # Confirma a transação (criação da Nota e de todos os Itens)
                 db.session.commit()
-                flash(f"✅ Nota Fiscal nº {invoice_number} (Série {series}) criada com sucesso!", "success")
+                flash(f"✅ Nota Fiscal {new_invoice.number} criada com sucesso!", "success")
                 return redirect(url_for('nfe_bp.nfe_list'))
             else:
                 db.session.rollback() 
-                print(f"Erro ao criar NFE: Pedido {order_id} não encontrado")
-                flash(f"❌ Erro ao criar Nota Fiscal: Pedido não encontrado.", "danger")
-                return redirect(url_for('nfe_bp.nfe_create'))
+                print(f"Erro ao criar NFE: {e}") # Loga o erro
+                flash(f"❌ Erro ao criar Nota Fiscal. Detalhes: {e}", "danger")
+                return redirect(url_for('nfe_bp.nfe_create'))   
 
 
         except Exception as e:
             # Em caso de qualquer erro (criação da Nota ou dos Itens), 
             # a transação inteira é desfeita.
             db.session.rollback() 
-            print(f"Erro ao criar NFE: {e}")
+            print(f"Erro ao criar NFE: {e}") # Loga o erro
             flash(f"❌ Erro ao criar Nota Fiscal. Detalhes: {e}", "danger")
             return redirect(url_for('nfe_bp.nfe_create'))
 
@@ -1092,9 +1065,9 @@ def generate_invoice_pdf(invoice_id):
     items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
 
     # Gerar URL e imagem do QR Code
-    token_id = CFG.CSC_ID
-    token_value = CFG.CSC_TOKEN
-    ambiente = CFG.AMBIENTE  # 1 = produção, 2 = homologação
+    token_id = '000001'
+    token_value = 'TESTE1234567890'
+    ambiente = 2  # 1 = produção, 2 = homologação
     qrcode_url = generate_qrcode_url(invoice.access_key, ambiente, token_id, token_value)
 
     #qr_img = qrcode.make(qrcode_url)
@@ -1197,10 +1170,9 @@ def generate_invoice_pdf(invoice_id):
         mimetype="application/pdf"
     )
 
-# ----------------------------------------------
-# 🔶 GERA XML BASE E SALVA EM admin/nfe/output/
-# ----------------------------------------------
-#### inicio anterior #######
+# --------------------------------------
+# 🔶 GERA XML BASE E SALVA EM static/xml/
+# --------------------------------------
 @nfe_bp.route('/generate_xml_nfce/<int:id>', methods=['GET'])
 def gerar_xml_nfce(id):
     """
@@ -1228,11 +1200,6 @@ def gerar_xml_nfce(id):
     razao_social = emitente["Name"]
     ie = emitente["State_Registration"]
     uf = emitente["Region"]
-    endereco = emitente["Address"]
-    numero = emitente["Number"]
-    bairro = emitente["Neighborhood"]
-    municipio = emitente["City"]
-    cep = emitente["Cep origem"]
 
     # =========================
     # TAG RAIZ
@@ -1254,42 +1221,29 @@ def gerar_xml_nfce(id):
     # =========================
     ide = etree.SubElement(infNFe, "ide")
     etree.SubElement(ide, "cUF").text = invoice.access_key[:2]
-    etree.SubElement(ide, "natOp").text = CFG.NATOP
-    etree.SubElement(ide, "mod").text = CFG.MOD
+    etree.SubElement(ide, "natOp").text = "Venda"
+    etree.SubElement(ide, "mod").text = "65"
     etree.SubElement(ide, "serie").text = str(invoice.series)
     etree.SubElement(ide, "nNF").text = str(invoice.number)
-    etree.SubElement(ide, "tpAmb").text = CFG.TP_AMB
-    etree.SubElement(ide, "tpNF").text = CFG.TP_NF
-    etree.SubElement(ide, "finNFe").text = CFG.FIN_NFE
-    etree.SubElement(ide, "indFinal").text = CFG.IND_FINAL
-    etree.SubElement(ide, "indPres").text = CFG.IND_PRES
-    etree.SubElement(ide, "procEmi").text = CFG.PROC_EMI
-    etree.SubElement(ide, "verProc").text = CFG.VER_PROC
+    etree.SubElement(ide, "tpAmb").text = TP_AMB
+    etree.SubElement(ide, "tpNF").text = "1"
+    etree.SubElement(ide, "finNFe").text = "1"
+    etree.SubElement(ide, "indFinal").text = "1"
+    etree.SubElement(ide, "indPres").text = "1"
+    etree.SubElement(ide, "procEmi").text = "0"
+    etree.SubElement(ide, "verProc").text = "Ouvirtiba 1.0"
     etree.SubElement(ide, "dhEmi").text = invoice.issue_date.isoformat()
 
     # =========================
-    # Dados Emitente
+    # emit
     # =========================
     emit = etree.SubElement(infNFe, "emit")
-
     etree.SubElement(emit, "CNPJ").text = cnpj
     etree.SubElement(emit, "xNome").text = razao_social
-    etree.SubElement(emit, "xFant").text = CFG.XFANT
+    etree.SubElement(emit, "IE").text = ie
 
     enderEmit = etree.SubElement(emit, "enderEmit")
-    etree.SubElement(enderEmit, "xLgr").text = endereco
-    etree.SubElement(enderEmit, "nro").text = str(numero)
-    etree.SubElement(enderEmit, "xBairro").text = bairro
-    etree.SubElement(enderEmit, "cMun").text = CFG.IBGE_CITY_CODE
-    etree.SubElement(enderEmit, "xMun").text = municipio
     etree.SubElement(enderEmit, "UF").text = uf
-    etree.SubElement(enderEmit, "CEP").text = cep
-    etree.SubElement(enderEmit, "cPais").text = CFG.CPAIS
-    etree.SubElement(enderEmit, "xPais").text = CFG.XPAIS
-
-    etree.SubElement(emit, "IE").text = ie
-    etree.SubElement(emit, "CRT").text = str(CFG.CRT)
-
 
     # =========================
     # Itens
@@ -1305,7 +1259,7 @@ def gerar_xml_nfce(id):
         etree.SubElement(prod, "xProd").text = item.product.name
         etree.SubElement(prod, "NCM").text = item.ncm
         etree.SubElement(prod, "CFOP").text = item.cfop
-        etree.SubElement(prod, "uCom").text = CFG.UCOM
+        etree.SubElement(prod, "uCom").text = "UN"
         etree.SubElement(prod, "qCom").text = str(item.quantity)
         etree.SubElement(prod, "vUnCom").text = f"{item.unit_price:.2f}"
         etree.SubElement(prod, "vProd").text = f"{item.total_price:.2f}"
@@ -1361,7 +1315,42 @@ def gerar_xml_nfce(id):
     # 🔁 volta para lista
     return redirect(url_for('nfe_bp.nfe_list'))
 
-#### fim anterior #########
+
+@nfe_bp.route('/generate_xml_base/<int:id>', methods=['GET'])
+def generate_xml_base(id):
+    invoice = Invoice.query.get_or_404(id)
+    client = Client.query.get(invoice.client_id)
+    items = InvoiceItem.query.filter_by(invoice_id=id).all()
+
+    # URL de consulta fictícia (substituir quando for real)
+    qrcode_url = "https://sat.sef.sc.gov.br/nfce/consulta?p=TESTE"
+    emitente = {
+        "cnpj": "56154376000105",
+        "razao": "JANSSEN APARELHOS AUDITIVOS LTDA"
+    }
+
+    # Gera o XML
+    xml_bytes = gerar_xml_nfce(invoice, client, items, emitente, qrcode_url)
+
+    # Caminho absoluto da pasta static/xml
+    base_dir = Path(os.path.dirname(os.path.abspath(__file__))).parent.parent
+    xml_folder = base_dir / "static" / "xml"
+    xml_folder.mkdir(parents=True, exist_ok=True)
+
+    xml_path = xml_folder / f"NFCe_{invoice.access_key}_base.xml"
+
+    # Salva o arquivo XML
+    with open(xml_path, "wb") as f:
+        f.write(xml_bytes)
+
+    flash(f"XML base salvo em {xml_path}", "success")
+
+    return send_file(
+        xml_path,
+        mimetype="application/xml",
+        as_attachment=True,
+        download_name=f"NFCe_{invoice.access_key}_base.xml"
+    )
 
 
 # --------------------------------------
@@ -1524,201 +1513,3 @@ def consultar_recibo(id):
         response_text=response_text,
         titulo="Consulta de Recibo NFC-e"
     )
-
-# ================================================================
-# 📄 GERENCIAMENTO DE ARQUIVOS XML
-# ================================================================
-
-@nfe_bp.route('/admin/nfe/xml/list')
-def xml_list():
-    """Lista todos os arquivos XML gerados na pasta admin/nfe/output"""
-    if 'email' not in session:
-        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
-        return redirect(url_for('login', origin='admin'))
-    
-    xml_folder = 'admin/nfe/output'
-    xml_files = []
-    
-    # Verifica se a pasta existe
-    if os.path.exists(xml_folder):
-        # Lista todos os arquivos XML
-        for filename in os.listdir(xml_folder):
-            if filename.endswith('.xml'):
-                filepath = os.path.join(xml_folder, filename)
-                
-                # Obtém informações do arquivo
-                file_stats = os.stat(filepath)
-                file_size = file_stats.st_size
-                
-                # Formata o tamanho
-                if file_size < 1024:
-                    size_str = f"{file_size} B"
-                elif file_size < 1024 * 1024:
-                    size_str = f"{file_size / 1024:.1f} KB"
-                else:
-                    size_str = f"{file_size / (1024 * 1024):.1f} MB"
-                
-                # Formata a data de criação
-                created_timestamp = file_stats.st_mtime
-                created_date = datetime.fromtimestamp(created_timestamp)
-                created_str = created_date.strftime('%d/%m/%Y %H:%M')
-                
-                xml_files.append({
-                    'name': filename,
-                    'size': size_str,
-                    'created_at': created_str,
-                    'timestamp': created_timestamp
-                })
-        
-        # Ordena por data de criação (mais recente primeiro)
-        xml_files.sort(key=lambda x: x['timestamp'], reverse=True)
-    else:
-        flash(f"⚠️ Pasta '{xml_folder}' não encontrada.", "warning")
-    
-    return render_template(
-        'admin/nfe/xml_list.html',
-        xml_files=xml_files,
-        titulo="Lista de XMLs Gerados"
-    )
-
-
-@nfe_bp.route('/admin/nfe/xml/edit/<filename>', methods=['GET', 'POST'])
-def xml_edit(filename):
-    """Edita um arquivo XML específico"""
-    if 'email' not in session:
-        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
-        return redirect(url_for('login', origin='admin'))
-    
-    # Valida o nome do arquivo (segurança)
-    if '..' in filename or '/' in filename or '\\' in filename:
-        flash("❌ Nome de arquivo inválido!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    if not filename.endswith('.xml'):
-        flash("❌ Arquivo deve ser do tipo XML!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    xml_folder = 'admin/nfe/output'
-    filepath = os.path.join(xml_folder, filename)
-    
-    # Verifica se o arquivo existe
-    if not os.path.exists(filepath):
-        flash(f"❌ Arquivo '{filename}' não encontrado!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    if request.method == 'POST':
-        try:
-            xml_content = request.form.get('xml_content', '')
-            
-            # Cria backup antes de salvar
-            backup_folder = os.path.join(xml_folder, 'backup')
-            os.makedirs(backup_folder, exist_ok=True)
-            
-            backup_filename = f"{filename}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            backup_path = os.path.join(backup_folder, backup_filename)
-            
-            # Copia o arquivo original para backup
-            import shutil
-            shutil.copy2(filepath, backup_path)
-            
-            # Salva o conteúdo editado
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(xml_content)
-            
-            flash(f"✅ XML '{filename}' salvo com sucesso! Backup criado em: {backup_filename}", "success")
-            return redirect(url_for('nfe_bp.xml_list'))
-            
-        except Exception as e:
-            flash(f"❌ Erro ao salvar XML: {e}", "danger")
-            return redirect(url_for('nfe_bp.xml_edit', filename=filename))
-    
-    # GET - Carrega o conteúdo do arquivo
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            xml_content = f.read()
-    except Exception as e:
-        flash(f"❌ Erro ao ler arquivo: {e}", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    return render_template(
-        'admin/nfe/xml_edit.html',
-        filename=filename,
-        xml_content=xml_content,
-        titulo=f"Editar XML: {filename}"
-    )
-
-
-@nfe_bp.route('/admin/nfe/xml/download/<filename>')
-def xml_download(filename):
-    """Faz download de um arquivo XML específico"""
-    if 'email' not in session:
-        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
-        return redirect(url_for('login', origin='admin'))
-    
-    # Valida o nome do arquivo (segurança)
-    if '..' in filename or '/' in filename or '\\' in filename:
-        flash("❌ Nome de arquivo inválido!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    if not filename.endswith('.xml'):
-        flash("❌ Arquivo deve ser do tipo XML!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    xml_folder = 'admin/nfe/output'
-    filepath = os.path.join(xml_folder, filename)
-    
-    if not os.path.exists(filepath):
-        flash(f"❌ Arquivo '{filename}' não encontrado!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    try:
-        return send_file(
-            filepath,
-            mimetype='application/xml',
-            as_attachment=True,
-            download_name=filename
-        )
-    except Exception as e:
-        flash(f"❌ Erro ao fazer download: {e}", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-
-
-@nfe_bp.route('/admin/nfe/xml/delete/<filename>', methods=['POST'])
-def xml_delete(filename):
-    """Exclui um arquivo XML específico"""
-    if 'email' not in session:
-        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
-        return redirect(url_for('login', origin='admin'))
-    
-    # Valida o nome do arquivo (segurança)
-    if '..' in filename or '/' in filename or '\\' in filename:
-        flash("❌ Nome de arquivo inválido!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    if not filename.endswith('.xml'):
-        flash("❌ Arquivo deve ser do tipo XML!", "danger")
-        return redirect(url_for('nfe_bp.xml_list'))
-    
-    xml_folder = 'admin/nfe/output'
-    filepath = os.path.join(xml_folder, filename)
-    
-    try:
-        if os.path.exists(filepath):
-            # Cria backup antes de excluir
-            backup_folder = os.path.join(xml_folder, 'backup')
-            os.makedirs(backup_folder, exist_ok=True)
-            
-            backup_filename = f"{filename}.deleted.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            backup_path = os.path.join(backup_folder, backup_filename)
-            
-            # Move para backup em vez de excluir permanentemente
-            import shutil
-            shutil.move(filepath, backup_path)
-            
-            flash(f"✅ Arquivo '{filename}' excluído com sucesso! Backup salvo como: {backup_filename}", "success")
-        else:
-            flash(f"❌ Arquivo '{filename}' não encontrado!", "danger")
-    except Exception as e:
-        flash(f"❌ Erro ao excluir arquivo: {e}", "danger")
-    
-    return redirect(url_for('nfe_bp.xml_list'))

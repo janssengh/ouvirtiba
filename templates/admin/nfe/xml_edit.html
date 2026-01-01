@@ -1,0 +1,223 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<style>
+    .xml-editor {
+        font-family: 'Courier New', Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        background-color: #f8f9fa;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+    }
+    .xml-editor:focus {
+        background-color: #ffffff;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .warning-box {
+        border-left: 4px solid #ffc107;
+        background-color: #fff3cd;
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary mb-0">
+            <i class="bi bi-pencil-square"></i> Editar XML
+        </h2>
+        <a href="{{ url_for('nfe_bp.xml_list') }}" class="btn btn-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Voltar para Lista
+        </a>
+    </div>
+
+    <!-- Card de Informações do Arquivo -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-success text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-file-earmark-code fs-5 me-2"></i>
+                    <strong>{{ filename }}</strong>
+                </div>
+                <a href="{{ url_for('nfe_bp.xml_download', filename=filename) }}" 
+                   class="btn btn-light btn-sm">
+                    <i class="bi bi-download"></i> Baixar Original
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário de Edição -->
+    <form method="POST" action="{{ url_for('nfe_bp.xml_edit', filename=filename) }}" id="formEditXML">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light">
+                <strong><i class="bi bi-code-square"></i> Conteúdo do XML</strong>
+            </div>
+            <div class="card-body p-0">
+                <textarea 
+                    class="form-control xml-editor" 
+                    id="xml_content" 
+                    name="xml_content" 
+                    rows="28"
+                    spellcheck="false"
+                    required>{{ xml_content }}</textarea>
+            </div>
+            <div class="card-footer bg-light">
+                <small class="text-muted">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>Dica:</strong> Use Ctrl+F para buscar dentro do XML. 
+                    Mantenha a formatação e indentação para melhor legibilidade.
+                </small>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="d-flex justify-content-between mb-4">
+            <div>
+                <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                    <i class="bi bi-save"></i> Salvar Alterações
+                </button>
+                <a href="{{ url_for('nfe_bp.xml_list') }}" class="btn btn-secondary btn-lg shadow-sm">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+            <button type="button" class="btn btn-info btn-lg shadow-sm" onclick="formatXML()">
+                <i class="bi bi-indent"></i> Formatar XML
+            </button>
+        </div>
+    </form>
+
+    <!-- Avisos de Segurança -->
+    <div class="card border-warning shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="bi bi-shield-exclamation"></i> Avisos Importantes
+            </h5>
+        </div>
+        <div class="card-body warning-box">
+            <ul class="mb-0">
+                <li><strong>Backup Automático:</strong> Um backup será criado automaticamente antes de salvar as alterações.</li>
+                <li><strong>Assinatura Digital:</strong> Alterações em campos críticos podem invalidar a assinatura digital do XML.</li>
+                <li><strong>Validação SEFAZ:</strong> XMLs editados podem ser rejeitados pela SEFAZ se não estiverem em conformidade.</li>
+                <li><strong>Campos Sensíveis:</strong> Evite alterar: chave de acesso, dígito verificador, valores totais e campos fiscais.</li>
+                <li><strong>Codificação:</strong> Mantenha a codificação UTF-8 e não remova a declaração XML no início do arquivo.</li>
+                <li><strong>Use com Cautela:</strong> Esta funcionalidade deve ser usada apenas por usuários experientes ou para correções específicas.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Dicas de Edição -->
+    <div class="card border-info shadow-sm mt-3 mb-4">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0">
+                <i class="bi bi-info-circle"></i> Dicas para Edição Segura
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-success"><i class="bi bi-check-circle"></i> Pode Editar:</h6>
+                    <ul class="small">
+                        <li>Dados complementares (campo <code>infCpl</code>)</li>
+                        <li>Observações adicionais</li>
+                        <li>Informações de transporte (se permitido)</li>
+                        <li>Referências a outros documentos</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger"><i class="bi bi-x-circle"></i> Não Edite:</h6>
+                    <ul class="small">
+                        <li>Chave de acesso (44 dígitos)</li>
+                        <li>Valores de impostos calculados</li>
+                        <li>Tags de assinatura digital</li>
+                        <li>Código de barras e QR Code</li>
+                        <li>Números de protocolo SEFAZ</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para Formatação de XML -->
+<script>
+function formatXML() {
+    const textarea = document.getElementById('xml_content');
+    const xmlString = textarea.value;
+    
+    try {
+        // Remove espaços extras e quebras de linha
+        const cleanXML = xmlString.replace(/>\s+</g, '><').trim();
+        
+        // Parse e formata
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(cleanXML, 'text/xml');
+        
+        // Verifica erro de parse
+        const parserError = xmlDoc.querySelector('parsererror');
+        if (parserError) {
+            alert('⚠️ Erro ao formatar: XML inválido!\n\n' + parserError.textContent);
+            return;
+        }
+        
+        // Serializa com indentação
+        const serializer = new XMLSerializer();
+        let formatted = serializer.serializeToString(xmlDoc);
+        
+        // Adiciona indentação manual
+        formatted = formatted.replace(/></g, '>\n<');
+        const lines = formatted.split('\n');
+        let indent = 0;
+        let formattedLines = [];
+        
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('</')) {
+                indent = Math.max(0, indent - 1);
+            }
+            formattedLines.push('  '.repeat(indent) + trimmed);
+            if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>')) {
+                indent++;
+            }
+        });
+        
+        textarea.value = formattedLines.join('\n');
+        
+        // Feedback visual
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Formatado!';
+        btn.classList.remove('btn-info');
+        btn.classList.add('btn-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-info');
+        }, 2000);
+        
+    } catch (error) {
+        alert('❌ Erro ao formatar XML: ' + error.message);
+    }
+}
+
+// Confirma antes de sair se houver alterações não salvas
+let originalContent = document.getElementById('xml_content').value;
+window.addEventListener('beforeunload', function (e) {
+    const currentContent = document.getElementById('xml_content').value;
+    if (currentContent !== originalContent) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+    }
+});
+
+// Remove aviso após salvar
+document.getElementById('formEditXML').addEventListener('submit', function() {
+    originalContent = document.getElementById('xml_content').value;
+});
+</script>
+
+{% endblock content %}

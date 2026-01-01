@@ -14,11 +14,10 @@ from datetime import datetime
 # Geração XML NFCe
 from decimal import Decimal
 NAMESPACE = "http://www.portalfiscal.inf.br/nfe"
-from config import NFeConfig as CFG
-from admin.nfe.services.qr_code import gerar_qrcode_url
-from lxml import etree
+from config import TP_AMB
 
 from pathlib import Path
+from lxml import etree
 import os
 from random import randint
 from io import BytesIO
@@ -193,39 +192,9 @@ def nfe_create():
         # O .get(order_id, 0) evita o erro KeyError se o ID não existir
         discount = discounts_dict.get(order_id, 0.0)
 
-        # ================================================================
-        # 🔢 GERAÇÃO DO NÚMERO SEQUENCIAL DA NOTA FISCAL
-        # ================================================================
-        from admin.nfe.models import InvoiceSequence
-        
-        store_id = session['Store']['Id']
-        series = 1  # Série padrão da NFC-e
-        
-        # Busca ou cria o registro de sequência para a loja + série
-        invoice_seq = InvoiceSequence.query.filter_by(
-            store_id=store_id,
-            series=series
-        ).first()
-        
-        if invoice_seq:
-            # Incrementa o último número
-            invoice_number = invoice_seq.last_number + 1
-            invoice_seq.last_number = invoice_number
-            invoice_seq.updated_at = datetime.now()
-        else:
-            # Cria o primeiro registro com número inicial 1
-            invoice_number = 1
-            invoice_seq = InvoiceSequence(
-                store_id=store_id,
-                series=series,
-                last_number=invoice_number,
-                updated_at=datetime.now()
-            )
-            db.session.add(invoice_seq)
-
-        # ================================================================
+        # -------------------------
         # 🔹 Geração da chave de acesso dinâmica
-        # ================================================================
+        # -------------------------
         store_data = session.get('Store', {})
         uf_map = {
             'AC': '12', 'AL': '27', 'AP': '16', 'AM': '13', 'BA': '29',
@@ -240,25 +209,26 @@ def nfe_create():
         uf_code = uf_map.get(region.upper(), '42')  # padrão SC
 
         # ⚠️ Certifique-se que o campo correto com CNPJ existe
-        cnpj_loja = store_data.get('Code', '00000000000000')
+        cnpj_loja = store_data.get('Code', '00000000000000')  # substitua por stores.cnpj se existir
         cnpj_numerico = ''.join(filter(str.isdigit, cnpj_loja))[:14].ljust(14, '0')
 
+        number = datetime.now().strftime('%Y%m%d%H%M%S')
         codigo_numerico = randint(100000000, 999999999)
 
         chave = gerar_chave_acesso(
             uf=uf_code,
             cnpj=cnpj_numerico,
             modelo='65',
-            serie=str(series),
-            numero_nfe=str(invoice_number).zfill(9),  # Usa o número sequencial com 9 dígitos
+            serie='1',
+            numero_nfe=number[-9:],
             codigo_numerico=codigo_numerico
         )
 
         new_invoice = Invoice(
-            number=str(invoice_number),  # Usa o número sequencial como string
-            series=series,  # Define a série
+            number=datetime.now().strftime('%Y%m%d%H%M%S'),
             store_id=session['Store']['Id'],
             client_id=client_id,
+            # Se order_id for None, o campo order_id no banco aceitará NULL
             order_id=order_id, 
             total_value=total_value,
             status='N',
@@ -279,8 +249,10 @@ def nfe_create():
                 # Busca os itens do pedido com o ID fornecido
                 order_items = Customer_request_item.query.filter(
                     Customer_request_item.customer_request_id == order_id,
-                    Customer_request_item.price > 0
+                    Customer_request_item.price > 0 # <--- NOVO FILTRO AQUI
                 ).all()
+
+                #order_items = Customer_request_item.query.filter_by(customer_request_id=order_id).all()
 
                 invoice_items = []
                 for item in order_items:
@@ -291,8 +263,9 @@ def nfe_create():
                         quantity=item.quantity,
                         discount=item.discount,
                         serialnumber=item.serialnumber,
+                        # Mapeamento dos campos. unit_price e total_price esperam Float/Numeric
                         unit_price=float(item.price), 
-                        total_price=float(item.amount),
+                        total_price=float(item.amount), # Usa o valor final do item (já com desconto, se houver),
                         ncm="90214000",
                         cfop="5102",
                         csosn="102"
@@ -305,24 +278,24 @@ def nfe_create():
             # Localize o pedido original
             order = Customer_request.query.get(order_id)
             if order:
-                order.is_invoiced = 'S'  # Marca como Nota Gerada
+                order.is_invoiced = 'S' # Marca como Nota Gerada
 
-                # Confirma a transação (criação da Nota, Itens e atualização da Sequência)
+                # Confirma a transação (criação da Nota e de todos os Itens)
                 db.session.commit()
-                flash(f"✅ Nota Fiscal nº {invoice_number} (Série {series}) criada com sucesso!", "success")
+                flash(f"✅ Nota Fiscal {new_invoice.number} criada com sucesso!", "success")
                 return redirect(url_for('nfe_bp.nfe_list'))
             else:
                 db.session.rollback() 
-                print(f"Erro ao criar NFE: Pedido {order_id} não encontrado")
-                flash(f"❌ Erro ao criar Nota Fiscal: Pedido não encontrado.", "danger")
-                return redirect(url_for('nfe_bp.nfe_create'))
+                print(f"Erro ao criar NFE: {e}") # Loga o erro
+                flash(f"❌ Erro ao criar Nota Fiscal. Detalhes: {e}", "danger")
+                return redirect(url_for('nfe_bp.nfe_create'))   
 
 
         except Exception as e:
             # Em caso de qualquer erro (criação da Nota ou dos Itens), 
             # a transação inteira é desfeita.
             db.session.rollback() 
-            print(f"Erro ao criar NFE: {e}")
+            print(f"Erro ao criar NFE: {e}") # Loga o erro
             flash(f"❌ Erro ao criar Nota Fiscal. Detalhes: {e}", "danger")
             return redirect(url_for('nfe_bp.nfe_create'))
 
@@ -1092,9 +1065,9 @@ def generate_invoice_pdf(invoice_id):
     items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
 
     # Gerar URL e imagem do QR Code
-    token_id = CFG.CSC_ID
-    token_value = CFG.CSC_TOKEN
-    ambiente = CFG.AMBIENTE  # 1 = produção, 2 = homologação
+    token_id = '000001'
+    token_value = 'TESTE1234567890'
+    ambiente = 2  # 1 = produção, 2 = homologação
     qrcode_url = generate_qrcode_url(invoice.access_key, ambiente, token_id, token_value)
 
     #qr_img = qrcode.make(qrcode_url)
@@ -1197,10 +1170,9 @@ def generate_invoice_pdf(invoice_id):
         mimetype="application/pdf"
     )
 
-# ----------------------------------------------
-# 🔶 GERA XML BASE E SALVA EM admin/nfe/output/
-# ----------------------------------------------
-#### inicio anterior #######
+# --------------------------------------
+# 🔶 GERA XML BASE E SALVA EM static/xml/
+# --------------------------------------
 @nfe_bp.route('/generate_xml_nfce/<int:id>', methods=['GET'])
 def gerar_xml_nfce(id):
     """
@@ -1228,11 +1200,6 @@ def gerar_xml_nfce(id):
     razao_social = emitente["Name"]
     ie = emitente["State_Registration"]
     uf = emitente["Region"]
-    endereco = emitente["Address"]
-    numero = emitente["Number"]
-    bairro = emitente["Neighborhood"]
-    municipio = emitente["City"]
-    cep = emitente["Cep origem"]
 
     # =========================
     # TAG RAIZ
@@ -1254,42 +1221,29 @@ def gerar_xml_nfce(id):
     # =========================
     ide = etree.SubElement(infNFe, "ide")
     etree.SubElement(ide, "cUF").text = invoice.access_key[:2]
-    etree.SubElement(ide, "natOp").text = CFG.NATOP
-    etree.SubElement(ide, "mod").text = CFG.MOD
+    etree.SubElement(ide, "natOp").text = "Venda"
+    etree.SubElement(ide, "mod").text = "65"
     etree.SubElement(ide, "serie").text = str(invoice.series)
     etree.SubElement(ide, "nNF").text = str(invoice.number)
-    etree.SubElement(ide, "tpAmb").text = CFG.TP_AMB
-    etree.SubElement(ide, "tpNF").text = CFG.TP_NF
-    etree.SubElement(ide, "finNFe").text = CFG.FIN_NFE
-    etree.SubElement(ide, "indFinal").text = CFG.IND_FINAL
-    etree.SubElement(ide, "indPres").text = CFG.IND_PRES
-    etree.SubElement(ide, "procEmi").text = CFG.PROC_EMI
-    etree.SubElement(ide, "verProc").text = CFG.VER_PROC
+    etree.SubElement(ide, "tpAmb").text = TP_AMB
+    etree.SubElement(ide, "tpNF").text = "1"
+    etree.SubElement(ide, "finNFe").text = "1"
+    etree.SubElement(ide, "indFinal").text = "1"
+    etree.SubElement(ide, "indPres").text = "1"
+    etree.SubElement(ide, "procEmi").text = "0"
+    etree.SubElement(ide, "verProc").text = "Ouvirtiba 1.0"
     etree.SubElement(ide, "dhEmi").text = invoice.issue_date.isoformat()
 
     # =========================
-    # Dados Emitente
+    # emit
     # =========================
     emit = etree.SubElement(infNFe, "emit")
-
     etree.SubElement(emit, "CNPJ").text = cnpj
     etree.SubElement(emit, "xNome").text = razao_social
-    etree.SubElement(emit, "xFant").text = CFG.XFANT
+    etree.SubElement(emit, "IE").text = ie
 
     enderEmit = etree.SubElement(emit, "enderEmit")
-    etree.SubElement(enderEmit, "xLgr").text = endereco
-    etree.SubElement(enderEmit, "nro").text = str(numero)
-    etree.SubElement(enderEmit, "xBairro").text = bairro
-    etree.SubElement(enderEmit, "cMun").text = CFG.IBGE_CITY_CODE
-    etree.SubElement(enderEmit, "xMun").text = municipio
     etree.SubElement(enderEmit, "UF").text = uf
-    etree.SubElement(enderEmit, "CEP").text = cep
-    etree.SubElement(enderEmit, "cPais").text = CFG.CPAIS
-    etree.SubElement(enderEmit, "xPais").text = CFG.XPAIS
-
-    etree.SubElement(emit, "IE").text = ie
-    etree.SubElement(emit, "CRT").text = str(CFG.CRT)
-
 
     # =========================
     # Itens
@@ -1305,7 +1259,7 @@ def gerar_xml_nfce(id):
         etree.SubElement(prod, "xProd").text = item.product.name
         etree.SubElement(prod, "NCM").text = item.ncm
         etree.SubElement(prod, "CFOP").text = item.cfop
-        etree.SubElement(prod, "uCom").text = CFG.UCOM
+        etree.SubElement(prod, "uCom").text = "UN"
         etree.SubElement(prod, "qCom").text = str(item.quantity)
         etree.SubElement(prod, "vUnCom").text = f"{item.unit_price:.2f}"
         etree.SubElement(prod, "vProd").text = f"{item.total_price:.2f}"
@@ -1360,8 +1314,6 @@ def gerar_xml_nfce(id):
 
     # 🔁 volta para lista
     return redirect(url_for('nfe_bp.nfe_list'))
-
-#### fim anterior #########
 
 
 # --------------------------------------

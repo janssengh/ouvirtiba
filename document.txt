@@ -192,4 +192,71 @@ def client_register_address():
         number = datetime.now().strftime('%Y%m%d%H%M%S')
         codigo_numerico = randint(100000000, 999999999)  
 
-        
+ @nfe_bp.route('/gerar-xml-nfce/<int:id>')
+def gerar_xml_nfce(id):
+
+    invoice = Invoice.query.get_or_404(id)
+
+
+    if not invoice.number or invoice.number > 999999999:
+        raise Exception("Número da NF inválido (nNF deve ter até 9 dígitos)")
+
+    client = invoice.client
+    items = invoice.items
+
+    # 🔐 Dados do emitente via STORE (sessão)
+    store = session.get("Store")
+    if not store:
+        raise Exception("Dados da loja (STORE) não encontrados na sessão")
+
+    emitente = {
+        "code": store["Code"],
+        "name": store["Name"],
+        "state_registration": store["State_Registration"],
+        "crt": store["CRT"],
+        "address": {
+            "xLgr": store["Address"],
+            "nro": store["Number"],
+            "xBairro": store["Neighborhood"],
+            "cMun": IBGE_CITY_CODE,      # config.py
+            "xMun": store["City"],
+            "UF": store["UF"],
+            "CEP": store["ZipCode"],
+            "cPais": "1058",
+            "xPais": "Brasil"
+        }
+    }
+
+    # 🔗 QRCode (se já existir função)
+    digest_value = ""  # ainda vazio antes da assinatura
+    qrcode_url = gerar_qrcode_url(
+        chave=invoice.access_key,
+        valor_nf=invoice.total_value,
+        digest_value=digest_value
+    )
+
+
+    # 🧾 Geração do XML
+    xml_bytes = gerar_xml_nfce(
+        invoice=invoice,
+        client=client,
+        items=items,
+        emitente=emitente,
+        qrcode_url=qrcode_url,
+        tp_amb=TP_AMB
+    )
+
+    # 💾 Salva XML
+    xml_name = f"NFCe_{invoice.access_key}.xml"
+    xml_path = f"admin/nfe/output/{xml_name}"
+
+    with open(xml_path, "wb") as f:
+        f.write(xml_bytes)
+
+    invoice.xml_path = xml_path
+    invoice.status = "X"
+    db.session.commit()
+
+    flash("Geração do XML NFC-e concluída com sucesso!", "success")
+    return redirect(url_for("nfe_bp.nfe_list"))
+       
