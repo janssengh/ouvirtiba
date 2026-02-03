@@ -1,20 +1,23 @@
-from cryptography.hazmat.primitives.serialization import pkcs12
+# admin/nfe/nfce_sign.py
+# ------------------------------------------------------------
+# Assinatura XML NFC-e com certificado A1 (.pfx) - SHA256
+# Compatível com SEFAZ SVRS (SC)
+# ------------------------------------------------------------
+
+from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
 from signxml import XMLSigner, methods
 from lxml import etree
 
-
 def assinar_xml_nfce(xml_string, pfx_path, pfx_password):
     """
-    Assina digitalmente o XML da NFC-e (tag <infNFe>) usando o certificado A1 (.pfx)
-    Compatível com signxml 3.2.1 e SEFAZ (SHA1)
+    Assina digitalmente o XML da NFC-e (tag <infNFe>) usando certificado A1 (.pfx).
+    - Usa SHA256
+    - Método enveloped
     """
 
-    # 1️⃣ Carrega o certificado digital .pfx
-    try:
-        with open(pfx_path, "rb") as f:
-            pfx_data = f.read()
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Certificado não encontrado em: {pfx_path}")
+    # 1️⃣ Carrega certificado digital .pfx
+    with open(pfx_path, "rb") as f:
+        pfx_data = f.read()
 
     private_key, certificate, _ = pkcs12.load_key_and_certificates(
         pfx_data,
@@ -22,38 +25,46 @@ def assinar_xml_nfce(xml_string, pfx_path, pfx_password):
     )
 
     if not private_key or not certificate:
-        raise ValueError("Erro ao carregar chave privada ou certificado do .pfx")
+        raise ValueError("Erro ao carregar chave privada ou certificado do arquivo .pfx")
 
-    # 2️⃣ Converte o XML para estrutura manipulável
+    # 2️⃣ Converte chave e certificado para PEM
+    key_pem = private_key.private_bytes(
+        Encoding.PEM,
+        PrivateFormat.PKCS8,
+        NoEncryption()
+    )
+    cert_pem = certificate.public_bytes(Encoding.PEM)
+
+    # 3️⃣ Prepara o XML para assinatura
     parser = etree.XMLParser(remove_blank_text=True)
-    xml = etree.fromstring(xml_string, parser)
+    xml_root = etree.fromstring(xml_string, parser)
 
-    # 3️⃣ Localiza o elemento <infNFe>
+    # 4️⃣ Localiza a tag <infNFe>
     ns = {"nfe": "http://www.portalfiscal.inf.br/nfe"}
-    infNFe = xml.find(".//nfe:infNFe", namespaces=ns)
+    infNFe = xml_root.find(".//nfe:infNFe", namespaces=ns)
     if infNFe is None:
-        raise ValueError("Elemento <infNFe> não encontrado no XML!")
+        raise ValueError("Tag <infNFe> não encontrada no XML para assinatura!")
 
-    # 4️⃣ Cria o objeto de assinatura compatível com SHA1 (aceito pela SEFAZ)
+    # 5️⃣ Cria o objeto de assinatura SHA256
     signer = XMLSigner(
         method=methods.enveloped,
-        signature_algorithm="rsa-sha1",
-        digest_algorithm="sha1"
+        digest_algorithm="sha256",
+        c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"
     )
 
-    # 5️⃣ Executa a assinatura
-    signed_inf = signer.sign(
+    # 6️⃣ Executa assinatura no elemento <infNFe>
+    signed_infNFe = signer.sign(
         infNFe,
-        key=private_key,
-        cert=certificate
+        key=key_pem,
+        cert=cert_pem
     )
 
-    # 6️⃣ Substitui a tag <infNFe> original pela assinada
-    xml.replace(infNFe, signed_inf)
+    # 7️⃣ Substitui o nó original pelo assinado
+    xml_root.replace(infNFe, signed_infNFe)
 
-    # 7️⃣ Retorna o XML assinado formatado
+    # 8️⃣ Retorna o XML final assinado
     xml_assinado = etree.tostring(
-        xml,
+        xml_root,
         xml_declaration=True,
         encoding="utf-8",
         pretty_print=True

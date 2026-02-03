@@ -8,7 +8,7 @@ pip freeze > requirements.txt
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Alteração models invoice para number de sting para integer"
+git commit -m "Atualização keep-alive, com tratsmento de erro"
 git push origin master
 
 Atualizar Render (https://dashboard.render.com/web/srv-d26hb715pdvs73a2ut8g/deploys/dep-d526tge3jp1c73btdm70):

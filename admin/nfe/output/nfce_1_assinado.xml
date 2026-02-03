@@ -1,0 +1,139 @@
+<?xml version='1.0' encoding='utf-8'?>
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe Id="NFe42260156154376000105650010000000019934686471" versao="4.00">
+    <ide>
+      <cUF>42</cUF>
+      <cNF>93468647</cNF>
+      <natOp>VENDA DE MERCADORIA</natOp>
+      <mod>65</mod>
+      <serie>1</serie>
+      <nNF>1</nNF>
+      <dhEmi>2026-01-02T19:39:19-03:00</dhEmi>
+      <dhSaiEnt>2026-01-02T19:39:19-03:00</dhSaiEnt>
+      <tpNF>1</tpNF>
+      <idDest>1</idDest>
+      <cMunFG>4209102</cMunFG>
+      <tpImp>4</tpImp>
+      <tpEmis>1</tpEmis>
+      <cDV>1</cDV>
+      <tpAmb>2</tpAmb>
+      <finNFe>1</finNFe>
+      <indFinal>1</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>Ouvirtiba 1.0</verProc>
+    </ide>
+    <emit>
+      <CNPJ>56154376000105</CNPJ>
+      <xNome>Janssen Aparelhos Auditivos Ltda</xNome>
+      <xFant>OUVRTIBA APARELHOS AUDITIVOS</xFant>
+      <enderEmit>
+        <xLgr>Rua Jerônimo Coelho</xLgr>
+        <nro>78</nro>
+        <xBairro>Centro</xBairro>
+        <cMun>4209102</cMun>
+        <xMun>Joinville</xMun>
+        <UF>SC</UF>
+        <CEP>89201050</CEP>
+        <cPais>1058</cPais>
+        <xPais>BRASIL</xPais>
+        <fone>47996576560</fone>
+      </enderEmit>
+      <IE>263067041</IE>
+      <CRT>1</CRT>
+    </emit>
+    <dest>
+      <CPF>07459319872</CPF>
+      <xNome>ANTÔNIO BARBOSA LOPES</xNome>
+      <enderDest>
+        <xLgr>RUA JOSÉ PEREIRA LIBERATO</xLgr>
+        <nro>3170</nro>
+        <xBairro>SÃO JUDAS</xBairro>
+        <cMun>4209102</cMun>
+        <xMun>ITAJAÍ</xMun>
+        <UF>SC</UF>
+        <CEP>88303400</CEP>
+        <cPais>1058</cPais>
+        <xPais>BRASIL</xPais>
+      </enderDest>
+      <indIEDest>9</indIEDest>
+    </dest>
+    <det nItem="1">
+      <prod>
+        <cProd>5</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>APARELHO AUDITIVO VISTA V3-312 C/RECEPTOR M 5 2L  S/N: 2544X1CP0</xProd>
+        <NCM>90214000</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>2.0000</qCom>
+        <vUnCom>2000.0000000000</vUnCom>
+        <vProd>3600.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>2.0000</qTrib>
+        <vUnTrib>2000.0000000000</vUnTrib>
+        <vDesc>400.00</vDesc>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <vTotTrib>540.00</vTotTrib>
+        <ICMS>
+          <ICMSSN102>
+            <orig>0</orig>
+            <CSOSN>102</CSOSN>
+          </ICMSSN102>
+        </ICMS>
+        <PIS>
+          <PISNT>
+            <CST>99</CST>
+          </PISNT>
+        </PIS>
+        <COFINS>
+          <COFINSNT>
+            <CST>99</CST>
+          </COFINSNT>
+        </COFINS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vBC>0.00</vBC>
+        <vICMS>0.00</vICMS>
+        <vICMSDeson>0.00</vICMSDeson>
+        <vFCP>0.00</vFCP>
+        <vBCST>0.00</vBCST>
+        <vST>0.00</vST>
+        <vFCPST>0.00</vFCPST>
+        <vProd>3600.00</vProd>
+        <vFrete>0.00</vFrete>
+        <vSeg>0.00</vSeg>
+        <vDesc>400.00</vDesc>
+        <vII>0.00</vII>
+        <vIPI>0.00</vIPI>
+        <vIPIDevol>0.00</vIPIDevol>
+        <vPIS>0.00</vPIS>
+        <vCOFINS>0.00</vCOFINS>
+        <vOutro>0.00</vOutro>
+        <vNF>3200.00</vNF>
+      </ICMSTot>
+    </total>
+    <transp>
+      <modFrete>9</modFrete>
+    </transp>
+    <pag>
+      <detPag>
+        <indPag>0</indPag>
+        <tPag>01</tPag>
+        <vPag>3200.00</vPag>
+      </detPag>
+    </pag>
+    <infAdic>
+      <infCpl>DOCUMENTO EMITIDO POR ME OU EPP OPTANTE PELO SIMPLES NACIONAL. NAO GERA DIREITO A CREDITO FISCAL DE ICMS, ISS E IPI.</infCpl>
+    </infAdic>
+  </infNFe>
+  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><ds:Reference URI="#NFe42260156154376000105650010000000019934686471"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>HI90KkB2XAVMFJGTyH7z12W6tcw=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>NDJHNKaDcHFXdRa9ASh+Vqe9h/Ol1uN1IO+5w1RMdWYyRDQswDnZdSnRMjWaMQxg/tjEDlfpvYZc/Nfh16qKsvyFwCl9MPXd2Awn5bCR4NTbAA4Vov0781Wcc2U3HS2iwbJcYnTp7o8l5hbN4dQDzWj6LQFahLCkpqNpA+1otLYTkkROoe8heRkk2UFgDklEnUC4ewf5scA8aaQlea2WQtZKt4/CB/yskr3FqkENgXRng6KJhdZlhJg58mbBlPVvtubXww5pXYd9kswlgLTqoW2rfPSGQOdWKxsclEuVMaV8SYD99V52A76/SMSaHT8m5ZDsAXRSkn/OiUYq7AWVGw==</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>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</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature><infNFeSupl>
+    <qrCode><![CDATA[https://hom.sat.sef.sc.gov.br/nfce/consulta?p=42260156154376000105650010000000019934686471|2|2|000001|B5205DBE68B8E75BFC5462E7C48B1C2F659DF795]]></qrCode>
+    <urlChave>https://hom.sat.sef.sc.gov.br/nfce/consulta</urlChave>
+  </infNFeSupl>
+</NFe>

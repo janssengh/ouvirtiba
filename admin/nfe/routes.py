@@ -497,7 +497,7 @@ def generate_invoice_a4_pdf(invoice_id):
     texto_consulta = "Consulta de autenticidade no portal nacional da NF-e www.nfe.fazenda.gov.br/portal ou no site da Sefaz Autorizada."
     pdf.multi_cell(66, 2.5, txt=texto_consulta, align="C")
 
-# --- 2. NATUREZA DA OPERAÇÃO / PROTOCOLO ---
+    # --- 2. NATUREZA DA OPERAÇÃO / PROTOCOLO ---
     y_natureza = 60 # Posição logo abaixo do quadro do emitente
     
     # Lógica para determinar a descrição da Natureza da Operação
@@ -1200,46 +1200,40 @@ def generate_invoice_pdf(invoice_id):
 # ----------------------------------------------
 # 🔶 GERA XML BASE E SALVA EM admin/nfe/output/
 # ----------------------------------------------
-#### inicio anterior #######
+
+# ================================================================
+# ATUALIZAÇÃO DA ROTA: GERA XML + ASSINA AUTOMATICAMENTE
+# ================================================================
+
 @nfe_bp.route('/generate_xml_nfce/<int:id>', methods=['GET'])
 def gerar_xml_nfce(id):
     """
-    Gera o XML da NFC-e (modelo 65) usando:
-    - access_key da invoice
-    - dados do emitente vindos da sessão
-    - NCM, CFOP e CSOSN vindos do invoice_item
+    Gera o XML da NFC-e (modelo 65) E ASSINA AUTOMATICAMENTE
     """
-
-    invoice: Invoice = Invoice.query.get(id)
+    from datetime import datetime
+    from decimal import Decimal
+    
+    invoice = Invoice.query.get(id)
     if not invoice:
-        raise Exception("Invoice não encontrada")
+        flash("❌ Invoice não encontrada", "danger")
+        return redirect(url_for('nfe_bp.nfe_list'))
 
     if not invoice.access_key or len(invoice.access_key) != 44:
-        raise Exception("Chave de acesso inválida ou não informada na invoice")
+        flash("❌ Chave de acesso inválida", "danger")
+        return redirect(url_for('nfe_bp.nfe_list'))
 
-    # =========================
-    # Emitente (via sessão)
-    # =========================
+    # Dados do emitente
     emitente = session.get("Store")
     if not emitente:
-        raise Exception("Dados do emitente não encontrados na sessão")
+        flash("❌ Dados do emitente não encontrados", "danger")
+        return redirect(url_for('nfe_bp.nfe_list'))
 
-    cnpj = emitente["Code"]
-    razao_social = emitente["Name"]
-    ie = emitente["State_Registration"]
-    uf = emitente["Region"]
-    endereco = emitente["Address"]
-    numero = emitente["Number"]
-    bairro = emitente["Neighborhood"]
-    municipio = emitente["City"]
-    cep = emitente["Cep origem"]
-
-    # =========================
-    # TAG RAIZ
-    # =========================
+    # ============================================================
+    # 1. GERAÇÃO DO XML (código existente mantido)
+    # ============================================================
     nfe = etree.Element(
-        "{%s}NFe" % NAMESPACE,
-        nsmap={None: NAMESPACE}
+        "{%s}NFe" % CFG.NAMESPACE,
+        nsmap={None: CFG.NAMESPACE}
     )
 
     infNFe = etree.SubElement(
@@ -1249,97 +1243,200 @@ def gerar_xml_nfce(id):
         versao="4.00"
     )
 
-    # =========================
-    # ide
-    # =========================
+    # TAG IDE
     ide = etree.SubElement(infNFe, "ide")
     etree.SubElement(ide, "cUF").text = invoice.access_key[:2]
+    codigo_numerico = invoice.access_key[35:43]
+    etree.SubElement(ide, "cNF").text = codigo_numerico
     etree.SubElement(ide, "natOp").text = CFG.NATOP
     etree.SubElement(ide, "mod").text = CFG.MOD
     etree.SubElement(ide, "serie").text = str(invoice.series)
     etree.SubElement(ide, "nNF").text = str(invoice.number)
-    etree.SubElement(ide, "tpAmb").text = CFG.TP_AMB
+    dh_emi = invoice.issue_date.strftime('%Y-%m-%dT%H:%M:%S-03:00')
+    etree.SubElement(ide, "dhEmi").text = dh_emi
+    etree.SubElement(ide, "dhSaiEnt").text = dh_emi
     etree.SubElement(ide, "tpNF").text = CFG.TP_NF
+    etree.SubElement(ide, "idDest").text = CFG.ID_DEST
+    etree.SubElement(ide, "cMunFG").text = CFG.IBGE_CITY_CODE
+    etree.SubElement(ide, "tpImp").text = CFG.TP_IMP
+    etree.SubElement(ide, "tpEmis").text = CFG.TP_EMIS
+    etree.SubElement(ide, "cDV").text = invoice.access_key[-1]
+    etree.SubElement(ide, "tpAmb").text = CFG.TP_AMB
     etree.SubElement(ide, "finNFe").text = CFG.FIN_NFE
     etree.SubElement(ide, "indFinal").text = CFG.IND_FINAL
     etree.SubElement(ide, "indPres").text = CFG.IND_PRES
     etree.SubElement(ide, "procEmi").text = CFG.PROC_EMI
     etree.SubElement(ide, "verProc").text = CFG.VER_PROC
-    etree.SubElement(ide, "dhEmi").text = invoice.issue_date.isoformat()
 
-    # =========================
-    # Dados Emitente
-    # =========================
+    # TAG EMIT
     emit = etree.SubElement(infNFe, "emit")
-
+    cnpj = ''.join(filter(str.isdigit, emitente["Code"]))
     etree.SubElement(emit, "CNPJ").text = cnpj
-    etree.SubElement(emit, "xNome").text = razao_social
+    etree.SubElement(emit, "xNome").text = emitente["Name"]
     etree.SubElement(emit, "xFant").text = CFG.XFANT
 
     enderEmit = etree.SubElement(emit, "enderEmit")
-    etree.SubElement(enderEmit, "xLgr").text = endereco
-    etree.SubElement(enderEmit, "nro").text = str(numero)
-    etree.SubElement(enderEmit, "xBairro").text = bairro
+    etree.SubElement(enderEmit, "xLgr").text = emitente["Address"]
+    etree.SubElement(enderEmit, "nro").text = str(emitente["Number"])
+    etree.SubElement(enderEmit, "xBairro").text = emitente["Neighborhood"]
     etree.SubElement(enderEmit, "cMun").text = CFG.IBGE_CITY_CODE
-    etree.SubElement(enderEmit, "xMun").text = municipio
-    etree.SubElement(enderEmit, "UF").text = uf
-    etree.SubElement(enderEmit, "CEP").text = cep
-    etree.SubElement(enderEmit, "cPais").text = CFG.CPAIS
-    etree.SubElement(enderEmit, "xPais").text = CFG.XPAIS
+    etree.SubElement(enderEmit, "xMun").text = emitente["City"]
+    etree.SubElement(enderEmit, "UF").text = emitente["Region"]
+    cep_limpo = ''.join(filter(str.isdigit, emitente["Cep origem"]))
+    etree.SubElement(enderEmit, "CEP").text = cep_limpo
+    etree.SubElement(enderEmit, "cPais").text = "1058"
+    etree.SubElement(enderEmit, "xPais").text = "BRASIL"
+    if emitente.get("Phone"):
+        fone_limpo = ''.join(filter(str.isdigit, emitente["Phone"]))
+        etree.SubElement(enderEmit, "fone").text = fone_limpo
 
-    etree.SubElement(emit, "IE").text = ie
+    ie_limpa = ''.join(filter(str.isdigit, emitente["State_Registration"]))
+    etree.SubElement(emit, "IE").text = ie_limpa
     etree.SubElement(emit, "CRT").text = str(CFG.CRT)
 
+    # TAG DEST
+    client = Client.query.get(invoice.client_id)
+    if client:
+        dest = etree.SubElement(infNFe, "dest")
+        doc_limpo = ''.join(filter(str.isdigit, str(client.code)))
+        if len(doc_limpo) == 11:
+            etree.SubElement(dest, "CPF").text = doc_limpo
+        elif len(doc_limpo) == 14:
+            etree.SubElement(dest, "CNPJ").text = doc_limpo
+        
+        if not doc_limpo:
+            etree.SubElement(dest, "indIEDest").text = "9"
+        else:
+            etree.SubElement(dest, "xNome").text = client.name.upper()
+            enderDest = etree.SubElement(dest, "enderDest")
+            etree.SubElement(enderDest, "xLgr").text = client.address.upper()
+            etree.SubElement(enderDest, "nro").text = str(client.number)
+            etree.SubElement(enderDest, "xBairro").text = client.neighborhood.upper()
+            etree.SubElement(enderDest, "cMun").text = CFG.IBGE_CITY_CODE_CLI
+            etree.SubElement(enderDest, "xMun").text = client.city.upper()
+            etree.SubElement(enderDest, "UF").text = client.region.upper()
+            cep_dest_limpo = ''.join(filter(str.isdigit, str(client.zipcode)))
+            etree.SubElement(enderDest, "CEP").text = cep_dest_limpo
+            etree.SubElement(enderDest, "cPais").text = CFG.CPAIS
+            etree.SubElement(enderDest, "xPais").text = CFG.XPAIS
+            etree.SubElement(dest, "indIEDest").text = CFG.IND_IE_DEST
 
-    # =========================
-    # Itens
-    # =========================
+    # TAG DET (ITENS)
     total_produtos = Decimal("0.00")
+    total_desconto = Decimal("0.00")
 
     for index, item in enumerate(invoice.items, start=1):
         det = etree.SubElement(infNFe, "det", nItem=str(index))
-
-        # -------- PRODUTO --------
         prod = etree.SubElement(det, "prod")
         etree.SubElement(prod, "cProd").text = str(item.product_id)
-        etree.SubElement(prod, "xProd").text = item.product.name
-        etree.SubElement(prod, "NCM").text = item.ncm
-        etree.SubElement(prod, "CFOP").text = item.cfop
+        etree.SubElement(prod, "cEAN").text = CFG.CEAN
+        desc_produto = item.product.name.upper()
+        if item.serialnumber:
+            desc_produto += f" S/N: {item.serialnumber}"
+        etree.SubElement(prod, "xProd").text = desc_produto
+        etree.SubElement(prod, "NCM").text = item.ncm or "90214000"
+        etree.SubElement(prod, "CFOP").text = item.cfop or "5102"
         etree.SubElement(prod, "uCom").text = CFG.UCOM
-        etree.SubElement(prod, "qCom").text = str(item.quantity)
-        etree.SubElement(prod, "vUnCom").text = f"{item.unit_price:.2f}"
+        etree.SubElement(prod, "qCom").text = f"{item.quantity:.4f}"
+        etree.SubElement(prod, "vUnCom").text = f"{item.unit_price:.10f}"
         etree.SubElement(prod, "vProd").text = f"{item.total_price:.2f}"
-        etree.SubElement(prod, "indTot").text = "1"
-
+        etree.SubElement(prod, "cEANTrib").text = "SEM GTIN"
+        etree.SubElement(prod, "uTrib").text = "UN"
+        etree.SubElement(prod, "qTrib").text = f"{item.quantity:.4f}"
+        etree.SubElement(prod, "vUnTrib").text = f"{item.unit_price:.10f}"
+        
+        if item.discount and item.discount > 0:
+            etree.SubElement(prod, "vDesc").text = f"{item.discount:.2f}"
+            total_desconto += Decimal(str(item.discount))
+        
+        etree.SubElement(prod, "indTot").text = CFG.IND_TOT
         total_produtos += Decimal(str(item.total_price))
 
-        # -------- ICMS (Simples Nacional) --------
         imposto = etree.SubElement(det, "imposto")
+        v_trib = Decimal(str(item.total_price)) * Decimal(CFG.TX_TRIB)
+        etree.SubElement(imposto, "vTotTrib").text = f"{v_trib:.2f}"
+        
         icms = etree.SubElement(imposto, "ICMS")
-
-        icmssn = etree.SubElement(icms, f"ICMSSN{item.csosn}")
+        csosn = item.csosn or "102"
+        icmssn = etree.SubElement(icms, f"ICMSSN{csosn}")
         etree.SubElement(icmssn, "orig").text = "0"
-        etree.SubElement(icmssn, "CSOSN").text = item.csosn
+        etree.SubElement(icmssn, "CSOSN").text = csosn
+        
+        pis = etree.SubElement(imposto, "PIS")
+        pis_nt = etree.SubElement(pis, "PISNT")
+        etree.SubElement(pis_nt, "CST").text = CFG.PIS_CST
+        
+        cofins = etree.SubElement(imposto, "COFINS")
+        cofins_nt = etree.SubElement(cofins, "COFINSNT")
+        etree.SubElement(cofins_nt, "CST").text = CFG.COFINS_CST
 
-    # =========================
-    # Total
-    # =========================
+    # TAG TOTAL
     total = etree.SubElement(infNFe, "total")
     icmsTot = etree.SubElement(total, "ICMSTot")
+    etree.SubElement(icmsTot, "vBC").text = "0.00"
+    etree.SubElement(icmsTot, "vICMS").text = "0.00"
+    etree.SubElement(icmsTot, "vICMSDeson").text = "0.00"
+    etree.SubElement(icmsTot, "vFCP").text = "0.00"
+    etree.SubElement(icmsTot, "vBCST").text = "0.00"
+    etree.SubElement(icmsTot, "vST").text = "0.00"
+    etree.SubElement(icmsTot, "vFCPST").text = "0.00"
     etree.SubElement(icmsTot, "vProd").text = f"{total_produtos:.2f}"
-    etree.SubElement(icmsTot, "vNF").text = f"{invoice.total_value:.2f}"
+    etree.SubElement(icmsTot, "vFrete").text = "0.00"
+    etree.SubElement(icmsTot, "vSeg").text = "0.00"
+    
+    if total_desconto > 0:
+        etree.SubElement(icmsTot, "vDesc").text = f"{total_desconto:.2f}"
+    else:
+        etree.SubElement(icmsTot, "vDesc").text = "0.00"
+    
+    etree.SubElement(icmsTot, "vII").text = "0.00"
+    etree.SubElement(icmsTot, "vIPI").text = "0.00"
+    etree.SubElement(icmsTot, "vIPIDevol").text = "0.00"
+    etree.SubElement(icmsTot, "vPIS").text = "0.00"
+    etree.SubElement(icmsTot, "vCOFINS").text = "0.00"
+    etree.SubElement(icmsTot, "vOutro").text = "0.00"
+    v_total_nf = total_produtos - total_desconto
+    etree.SubElement(icmsTot, "vNF").text = f"{v_total_nf:.2f}"
 
-    # =========================
-    # Pagamento
-    # =========================
+    # TAG TRANSP
+    transp = etree.SubElement(infNFe, "transp")
+    etree.SubElement(transp, "modFrete").text = CFG.MOD_FRETE
+
+    # TAG PAG
     pag = etree.SubElement(infNFe, "pag")
     detPag = etree.SubElement(pag, "detPag")
-    etree.SubElement(detPag, "tPag").text = "01"
-    etree.SubElement(detPag, "vPag").text = f"{invoice.total_value:.2f}"
+    etree.SubElement(detPag, "indPag").text = CFG.IND_PAG
+    etree.SubElement(detPag, "tPag").text = CFG.T_PAG
+    etree.SubElement(detPag, "vPag").text = f"{v_total_nf:.2f}"
 
-    # =========================
-    # Salvar XML
-    # =========================
+    # TAG INFADIC
+    infAdic = etree.SubElement(infNFe, "infAdic")
+    texto_simples = f"{CFG.INF_ADIC_TXT_1}{CFG.INF_ADIC_TXT_2}"
+    etree.SubElement(infAdic, "infCpl").text = texto_simples
+
+    # TAG INFNFESUPL (QR CODE)
+    from admin.nfe.services.qr_code import gerar_qrcode_url
+    
+    qrcode_url = gerar_qrcode_url(
+        chave_acesso=invoice.access_key,
+        ambiente=int(CFG.TP_AMB),
+        id_token=CFG.CSC_ID,
+        csc_token=CFG.CSC_TOKEN
+    )
+    
+    infNFeSupl = etree.SubElement(nfe, "infNFeSupl")
+    qrCode = etree.SubElement(infNFeSupl, "qrCode")
+    qrCode.text = etree.CDATA(qrcode_url)
+    
+    urlChave = etree.SubElement(infNFeSupl, "urlChave")
+    if int(CFG.TP_AMB) == 2:
+        urlChave.text = "https://hom.sat.sef.sc.gov.br/nfce/consulta"
+    else:
+        urlChave.text = "https://sat.sef.sc.gov.br/nfce/consulta"
+
+    # ============================================================
+    # 2. GERA XML (SEM ASSINATURA) - SALVA PRIMEIRO
+    # ============================================================
     xml_bytes = etree.tostring(
         nfe,
         pretty_print=True,
@@ -1347,82 +1444,130 @@ def gerar_xml_nfce(id):
         encoding="utf-8"
     )
 
-    output_path = f"admin/nfe/output/nfce_{invoice.id}.xml"
-    with open(output_path, "wb") as f:
+    # Salva XML sem assinatura (para backup/debug)
+    output_path_sem_assinatura = f"admin/nfe/output/nfce_{invoice.number}.xml"
+    os.makedirs(os.path.dirname(output_path_sem_assinatura), exist_ok=True)
+    
+    with open(output_path_sem_assinatura, "wb") as f:
         f.write(xml_bytes)
 
-    invoice.xml_path = output_path
-    invoice.status = "X"
-    db.session.commit()
-
-    # 🔔 mensagem de sucesso
-    flash("Geração do XML da NFC-e concluída com sucesso!", "success")
-
-    # 🔁 volta para lista
+    # ============================================================
+    # 3. ASSINA O XML AUTOMATICAMENTE
+    # ============================================================
+    try:
+        from admin.nfe.nfce_sign import assinar_xml_nfce
+        
+        pfx_path = CFG.CERT_PFX_PATH
+        pfx_password = CFG.CERT_PFX_PASSWORD
+        
+        # Verifica se certificado existe
+        if not os.path.exists(pfx_path):
+            flash(f"⚠️ Certificado não encontrado em: {pfx_path}. XML gerado sem assinatura.", "warning")
+            invoice.xml_path = output_path_sem_assinatura
+            invoice.status = "XML_Gerado_Sem_Assinatura"
+            db.session.commit()
+            return redirect(url_for('nfe_bp.nfe_list'))
+        
+        # Assina o XML
+        xml_assinado = assinar_xml_nfce(xml_bytes, pfx_path, pfx_password)
+        
+        # Salva XML assinado
+        output_path_assinado = f"admin/nfe/output/nfce_{invoice.number}_assinado.xml"
+        with open(output_path_assinado, "wb") as f:
+            f.write(xml_assinado)
+        
+        # Atualiza banco de dados
+        invoice.xml_path = output_path_assinado
+        invoice.status = "XML_Assinado"
+        db.session.commit()
+        
+        flash(f"✅ XML da NFC-e gerado e assinado com sucesso! Arquivo: {output_path_assinado}", "success")
+        
+    except Exception as e:
+        # Se falhar a assinatura, mantém XML sem assinatura
+        flash(f"⚠️ XML gerado, mas erro na assinatura: {e}. XML salvo sem assinatura.", "warning")
+        invoice.xml_path = output_path_sem_assinatura
+        invoice.status = "XML_Gerado_Erro_Assinatura"
+        db.session.commit()
+    
     return redirect(url_for('nfe_bp.nfe_list'))
 
-#### fim anterior #########
 
+# ================================================================
+# ROTA ADICIONAL: RE-ASSINAR XML (SE NECESSÁRIO)
+# ================================================================
 
-# --------------------------------------
-# 🟢 GERA XML ASSINADO E SALVA EM static/xml/
-# --------------------------------------
 @nfe_bp.route('/generate_xml_signed/<int:id>', methods=['GET'])
 def generate_xml_signed(id):
+    """
+    Re-assina um XML existente (útil se precisar corrigir certificado ou re-assinar)
+    """
     invoice = Invoice.query.get_or_404(id)
-    client = Client.query.get(invoice.client_id)
-    items = InvoiceItem.query.filter_by(invoice_id=id).all()
-
-    qrcode_url = "https://hom.sat.sef.sc.gov.br/nfce/consulta?p=" if AMBIENTE == 2 else "https://sat.sef.sc.gov.br/nfce/consulta?p="
-    emitente = {
-        "cnpj": "56154376000105",
-        "razao": "JANSSEN APARELHOS AUDITIVOS LTDA"
-    }
-
-    # 1) XML base
-    xml_bytes = gerar_xml_nfce(invoice, client, items, emitente, qrcode_url)
-
-    # 2) Certificado A1 (.pfx)
-    base_dir = Path(current_app.root_path)
-    certs_folder = base_dir / "admin" / "nfe" / "certs"
-    pfx_path = certs_folder / "JANSSEN APARELHOS AUDITIVOS LTDA56154376000105.pfx"
-
-    # 3) Assina XML
-    xml_assinado = assinar_xml_nfce(
-        xml_bytes,
-        pfx_path=str(pfx_path),
-        pfx_password="123456"
-    )
-
-    # 4) Salva XML assinado
-    xml_folder = base_dir / "static" / "xml"
-    xml_folder.mkdir(parents=True, exist_ok=True)
-    # Usa a chave de acesso se existir, senão fallback no número
-    nome_arquivo = f"NFCe_{(invoice.access_key or invoice.number)}_assinado.xml"
-    xml_path_abs = xml_folder / nome_arquivo
-
-    with open(xml_path_abs, "wb") as f:
-        f.write(xml_assinado)
-
-    # Salva caminho RELATIVO no banco (portável)
+    
+    # Verifica se já existe XML gerado
+    if not invoice.xml_path or not os.path.exists(invoice.xml_path):
+        flash("❌ XML não encontrado. Gere o XML primeiro.", "danger")
+        return redirect(url_for('nfe_bp.nfe_list'))
+    
     try:
-        rel = xml_path_abs.relative_to(base_dir)
-    except ValueError:
-        rel = xml_path_abs  # fallback, mas em geral não ocorre
+        from admin.nfe.nfce_sign import assinar_xml_nfce
+        
+        # Lê o XML existente (pode ser com ou sem assinatura)
+        with open(invoice.xml_path, 'rb') as f:
+            xml_content = f.read()
+        
+        # Se já tiver assinatura, remove para re-assinar
+        parser = etree.XMLParser(remove_blank_text=False)
+        root = etree.fromstring(xml_content, parser)
+        
+        # Remove assinatura existente se houver
+        ds_namespace = "http://www.w3.org/2000/09/xmldsig#"
+        for sig in root.findall(f'.//{{{ds_namespace}}}Signature'):
+            root.remove(sig)
+        
+        # Reconverte para bytes
+        xml_sem_assinatura = etree.tostring(
+            root,
+            xml_declaration=True,
+            encoding='utf-8',
+            pretty_print=True
+        )
+        
+        # Assina
+        pfx_path = CFG.CERT_PFX_PATH
+        pfx_password = CFG.CERT_PFX_PASSWORD
+        
+        if not os.path.exists(pfx_path):
+            flash(f"❌ Certificado não encontrado em: {pfx_path}", "danger")
+            return redirect(url_for('nfe_bp.nfe_list'))
+        
+        xml_assinado = assinar_xml_nfce(xml_sem_assinatura, pfx_path, pfx_password)
+        
+        # Salva com novo nome
+        output_path = f"admin/nfe/output/nfce_{invoice.number}_assinado.xml"
+        with open(output_path, 'wb') as f:
+            f.write(xml_assinado)
+        
+        # Atualiza banco
+        invoice.xml_path = output_path
+        invoice.status = "XML_Assinado"
+        db.session.commit()
+        
+        flash(f"✅ XML re-assinado com sucesso! Arquivo: {output_path}", "success")
+        
+        # Opção: fazer download automático
+        return send_file(
+            output_path,
+            mimetype="application/xml",
+            as_attachment=True,
+            download_name=f"NFCe_{invoice.number}_assinado.xml"
+        )
+        
+    except Exception as e:
+        flash(f"❌ Erro ao assinar XML: {e}", "danger")
+        return redirect(url_for('nfe_bp.nfe_list'))
 
-    invoice.xml_path = str(rel).replace("\\", "/")
-    invoice.status = "assinado"
-    db.session.commit()
-
-    flash(f"✅ XML assinado salvo em {invoice.xml_path}", "success")
-
-    return send_file(
-        xml_path_abs,
-        mimetype="application/xml",
-        as_attachment=True,
-        download_name=nome_arquivo
-    )
-
+    
 # ================================================================
 # 🛰️ TRANSMISSÃO DA NFC-e (HOMOLOGAÇÃO SC - SVRS)
 # ================================================================

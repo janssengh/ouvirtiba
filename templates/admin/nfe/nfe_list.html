@@ -17,8 +17,8 @@
     </div>
     <hr>
   {% if notas %}
-    <table class="table table-striped">
-      <thead>
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
         <tr>
           <th>#</th>
           <th>Data</th>
@@ -26,7 +26,7 @@
           <th>Cliente</th>
           <th>Valor</th>
           <th>Status</th>
-          <th>Ações</th>
+          <th style="min-width: 400px;">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -37,44 +37,266 @@
           <td>{{ nota.number }}</td>
           <td>{{ nota.client.name }}</td>
           <td>R$ {{ "%.2f"|format(nota.total_value)|replace('.', ',') }}</td>
-          <td>{{ nota.status }}</td>
           <td>
-            <a href="{{ url_for('nfe_bp.nfe_detail', id=nota.id) }}" class="btn btn-sm btn-primary">
-              Espelho NFCe (65)
-            </a>
-
-            <a href="{{ url_for('nfe_bp.gerar_xml_nfce', id=nota.id) }}" class="btn btn-sm btn-warning">
-              XML NFC-e 
-            </a>
-
-            <a href="{{ url_for('nfe_bp.generate_xml_signed', id=nota.id) }}" class="btn btn-sm btn-success">
-              XML Assinado
-            </a>
-
-            <a href="{{ url_for('nfe_bp.transmit_nfe', id=nota.id) }}"
-              class="btn btn-sm btn-primary"
-              onclick="return confirm('Deseja realmente transmitir esta NFC-e para a SEFAZ?');">
-                <i class="fas fa-paper-plane"></i> Transmitir
-            </a>
-
-            {% if nota.nrec %}
-              <a href="{{ url_for('nfe_bp.consultar_recibo', id=nota.id) }}" 
-                class="btn btn-sm btn-info">
-                <i class="bi bi-search"></i> Consultar Recibo
-              </a>
+            {# ========================================
+               BADGES DE STATUS DINÂMICOS
+               ======================================== #}
+            {% if nota.status == 'XML_Assinado' %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle"></i> XML Assinado
+              </span>
+            {% elif nota.status == 'XML_Gerado_Sem_Assinatura' %}
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle"></i> Sem Assinatura
+              </span>
+            {% elif nota.status == 'XML_Gerado_Erro_Assinatura' %}
+              <span class="badge bg-danger">
+                <i class="bi bi-x-circle"></i> Erro Assinatura
+              </span>
+            {% elif nota.status == 'Transmitida' %}
+              <span class="badge bg-info">
+                <i class="bi bi-send-check"></i> Transmitida
+              </span>
+            {% elif nota.status == 'Aprovada' or nota.status == 'Autorizada' %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle-fill"></i> Autorizada
+              </span>
             {% else %}
-              <button class="btn btn-sm btn-secondary" disabled>
-                <i class="bi bi-search"></i> Sem Recibo
-              </button>
+              <span class="badge bg-secondary">
+                <i class="bi bi-file-earmark"></i> {{ nota.status }}
+              </span>
             {% endif %}
+          </td>
+          <td>
+            <div class="btn-group-vertical btn-group-sm" role="group">
+              
+              {# ========================================
+                 LINHA 1: VISUALIZAÇÃO
+                 ======================================== #}
+              <div class="btn-group mb-1" role="group">
+                <a href="{{ url_for('nfe_bp.nfe_detail', id=nota.id) }}" 
+                   class="btn btn-sm btn-outline-primary"
+                   title="Ver detalhes da nota">
+                  <i class="bi bi-eye"></i> Espelho NFCe
+                </a>
+              </div>
 
+              {# ========================================
+                 LINHA 2: GERAÇÃO DE XML
+                 ======================================== #}
+              <div class="btn-group mb-1" role="group">
+                {% if nota.status in ['N', 'Nova', None] %}
+                  {# Nota nova - Botão principal para gerar XML + assinar #}
+                  <a href="{{ url_for('nfe_bp.gerar_xml_nfce', id=nota.id) }}" 
+                     class="btn btn-sm btn-success"
+                     title="Gera XML e assina automaticamente">
+                    <i class="bi bi-file-earmark-check"></i> Gerar XML + Assinar
+                  </a>
+                
+                {% elif nota.status == 'XML_Assinado' %}
+                  {# XML já assinado - Opções de re-assinar e download #}
+                  <a href="{{ url_for('nfe_bp.generate_xml_signed', id=nota.id) }}" 
+                     class="btn btn-sm btn-outline-warning"
+                     title="Re-assina o XML (se necessário corrigir certificado)">
+                    <i class="bi bi-arrow-clockwise"></i> Re-assinar
+                  </a>
+                  
+                  <a href="{{ url_for('nfe_bp.xml_download', filename='nfce_' ~ nota.number ~ '_assinado.xml') }}" 
+                     class="btn btn-sm btn-outline-info"
+                     title="Baixar XML assinado">
+                    <i class="bi bi-download"></i> Download
+                  </a>
+                
+                {% elif nota.status in ['XML_Gerado_Sem_Assinatura', 'XML_Gerado_Erro_Assinatura'] %}
+                  {# Erro na assinatura - Permitir re-tentativa #}
+                  <a href="{{ url_for('nfe_bp.generate_xml_signed', id=nota.id) }}" 
+                     class="btn btn-sm btn-warning"
+                     title="Tentar assinar novamente">
+                    <i class="bi bi-exclamation-circle"></i> Assinar Agora
+                  </a>
+                  
+                  <small class="text-danger d-block mt-1">
+                    <i class="bi bi-info-circle"></i> Verifique o certificado
+                  </small>
+                
+                {% else %}
+                  {# Outros status - Botão genérico #}
+                  <a href="{{ url_for('nfe_bp.gerar_xml_nfce', id=nota.id) }}" 
+                     class="btn btn-sm btn-outline-secondary"
+                     title="Gerar XML">
+                    <i class="bi bi-file-earmark"></i> Gerar XML
+                  </a>
+                {% endif %}
+              </div>
+
+              {# ========================================
+                 LINHA 3: TRANSMISSÃO (só se assinado)
+                 ======================================== #}
+              <div class="btn-group mb-1" role="group">
+                {% if nota.status == 'XML_Assinado' %}
+                  {# XML assinado - Habilita transmissão #}
+                  <a href="{{ url_for('nfe_bp.transmit_nfe', id=nota.id) }}"
+                     class="btn btn-sm btn-primary"
+                     onclick="return confirm('⚠️ Confirma a transmissão desta NFC-e para a SEFAZ?\\n\\nEsta ação não pode ser desfeita!');"
+                     title="Transmitir para SEFAZ">
+                    <i class="bi bi-send"></i> Transmitir
+                  </a>
+                
+                {% elif nota.status in ['Transmitida', 'Aprovada', 'Autorizada'] %}
+                  {# Já transmitida #}
+                  <button class="btn btn-sm btn-outline-success" disabled>
+                    <i class="bi bi-check-circle"></i> Já Transmitida
+                  </button>
+                
+                {% else %}
+                  {# Não pode transmitir ainda #}
+                  <button class="btn btn-sm btn-outline-secondary" 
+                          disabled
+                          title="Gere e assine o XML primeiro">
+                    <i class="bi bi-send"></i> Transmitir
+                  </button>
+                  <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle"></i> Assine o XML primeiro
+                  </small>
+                {% endif %}
+              </div>
+
+              {# ========================================
+                 LINHA 4: CONSULTA DE RECIBO
+                 ======================================== #}
+              <div class="btn-group" role="group">
+                {% if nota.nrec %}
+                  {# Tem recibo - Pode consultar #}
+                  <a href="{{ url_for('nfe_bp.consultar_recibo', id=nota.id) }}" 
+                     class="btn btn-sm btn-info"
+                     title="Consultar status na SEFAZ">
+                    <i class="bi bi-search"></i> Consultar Recibo
+                  </a>
+                {% else %}
+                  {# Sem recibo ainda #}
+                  <button class="btn btn-sm btn-outline-secondary" 
+                          disabled
+                          title="Transmita a nota primeiro">
+                    <i class="bi bi-search"></i> Sem Recibo
+                  </button>
+                {% endif %}
+              </div>
+
+            </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+
+    {# ========================================
+       LEGENDA DE STATUS (OPCIONAL)
+       ======================================== #}
+    <div class="card mt-3">
+      <div class="card-body">
+        <h6 class="card-title">
+          <i class="bi bi-info-circle"></i> Legenda de Status
+        </h6>
+        <div class="row">
+          <div class="col-md-3">
+            <span class="badge bg-secondary">Nova/N</span> - Nota criada, XML não gerado
+          </div>
+          <div class="col-md-3">
+            <span class="badge bg-success">XML Assinado</span> - Pronto para transmitir
+          </div>
+          <div class="col-md-3">
+            <span class="badge bg-warning text-dark">Sem Assinatura</span> - XML gerado mas não assinado
+          </div>
+          <div class="col-md-3">
+            <span class="badge bg-danger">Erro Assinatura</span> - Falha ao assinar, verificar certificado
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-3">
+            <span class="badge bg-info">Transmitida</span> - Enviada para SEFAZ, aguardando retorno
+          </div>
+          <div class="col-md-3">
+            <span class="badge bg-success">Autorizada</span> - Aprovada pela SEFAZ
+          </div>
+        </div>
+      </div>
+    </div>
+
   {% else %}
-    <div class="alert alert-info">Nenhuma nota fiscal emitida ainda.</div>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle"></i> Nenhuma nota fiscal emitida ainda.
+      <a href="{{ url_for('nfe_bp.nfe_create') }}" class="alert-link">Clique aqui para criar a primeira nota.</a>
+    </div>
   {% endif %}
 </div>
+
+{# ========================================
+   SCRIPT PARA CONFIRMAÇÕES DINÂMICAS
+   ======================================== #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Adiciona confirmação visual nos botões de ação crítica
+  const transmitButtons = document.querySelectorAll('a[href*="transmit_nfe"]');
+  
+  transmitButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      if (!confirm('⚠️ ATENÇÃO\\n\\nVocê está prestes a transmitir esta NFC-e para a SEFAZ.\\n\\nEsta ação não pode ser desfeita!\\n\\nDeseja continuar?')) {
+        e.preventDefault();
+      }
+    });
+  });
+});
+</script>
+
+{# ========================================
+   CSS CUSTOMIZADO (OPCIONAL)
+   ======================================== #}
+<style>
+/* Melhora visual dos botões em grupo vertical */
+.btn-group-vertical .btn-group {
+  width: 100%;
+}
+
+.btn-group-vertical .btn-group .btn {
+  border-radius: 0;
+}
+
+.btn-group-vertical .btn-group:first-child .btn {
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+}
+
+.btn-group-vertical .btn-group:last-child .btn {
+  border-bottom-left-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+/* Destaque para status críticos */
+.badge {
+  font-size: 0.85rem;
+  padding: 0.4em 0.6em;
+}
+
+/* Animação nos badges */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.badge.bg-danger,
+.badge.bg-warning {
+  animation: pulse 2s infinite;
+}
+
+/* Tooltips melhorados */
+[title] {
+  position: relative;
+}
+
+/* Espaçamento dos botões */
+.btn-group-sm .btn {
+  margin: 1px;
+}
+</style>
+
 {% endblock %}

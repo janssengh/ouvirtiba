@@ -51,10 +51,13 @@ app.register_blueprint(nfe_bp)
 def keep_alive():
     try:
         db.session.execute(text("SELECT 1"))
+        db.session.commit()
         return "OK", 200
     except Exception as e:
-        print("KEEP ALIVE ERROR:", e)
-        return "ERROR", 500
+        import traceback
+        erro_detalhado = traceback.format_exc()
+        print("KEEP ALIVE ERROR:", erro_detalhado)
+        return f"ERROR: {str(e)}", 500  # Retorna o erro no navegador
 
 @app.route('/hello-world')
 def redirect_hello():
