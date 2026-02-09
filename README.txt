@@ -8,7 +8,7 @@ pip freeze > requirements.txt
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Atualização keep-alive, com tratsmento de erro"
+git commit -m "Add GitHub Actions workflow to keep Render service alive"
 git push origin master
 
 Atualizar Render (https://dashboard.render.com/web/srv-d26hb715pdvs73a2ut8g/deploys/dep-d526tge3jp1c73btdm70):
@@ -17,7 +17,16 @@ ouvirtiba
 manual deploy/deploy latest commit
 
 Para manter ativo o Render Free, foi usado UptimeRobot.
-Para manter ativo o SUPABASE Free, incluso no app.py o ENDPOINT 
+Para manter ativo o SUPABASE Free, incluso no app.py o ENDPOINT, foi usado:
+
+Opção mais recomendada: cron-job.org (gratuito)
+
+Acesse https://cron-job.org e crie uma conta gratuita.
+Crie um novo cron job com as seguintes configurações:
+
+URL: https://seu-site-no-render.onrender.com/keep-alive
+Intervalo: a cada 5 minutos (ou no máximo 10)
+Método: GET
 
 
 Atualizar Supabase ():
