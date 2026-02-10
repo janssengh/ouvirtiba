@@ -1,22 +1,37 @@
+BANCO DE DADOS
 Atualizar Banco de Dados Postgresql:
 PgAdmin 4
 
+BIBLIOTECAS PYTHON:
 Atualizar requirement.txt:
 pip freeze > requirements.txt
 
-
+ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Add GitHub Actions workflow to keep Render service alive"
+git commit -m "Melhorias e Correções Formulário Contato e as suas Validações"
 git push origin master
 
+ATUALIZAR RENDER:
 Atualizar Render (https://dashboard.render.com/web/srv-d26hb715pdvs73a2ut8g/deploys/dep-d526tge3jp1c73btdm70):
 Entrar o render/github
 ouvirtiba
 manual deploy/deploy latest commit
 
-Para manter ativo o Render Free, foi usado UptimeRobot.
+ATIVAR RENDER E SUPBASE (Por ser free, entre em SLEEP)
+Para manter ativo o Render Free, foi usado UptimeRobot e GITHUB Actions:
+  No projeto, foi
+    Criado a pasta .github/workflows
+    Dentro dessa pasta arquivo keep-alive.yml
+  No github do projeto:
+    Actions
+      Keep Render Service Alive
+      Settings:
+        Actions/General
+        Marcar:
+          Allow all actions and reusable workflows
+          Read and write permissions
 Para manter ativo o SUPABASE Free, incluso no app.py o ENDPOINT, foi usado:
 
 Opção mais recomendada: cron-job.org (gratuito)

@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/contato" %}
+
+{% block title %}Fale Conosco | Ouvirtiba Aparelhos Auditivos{% endblock %}
+{% block description %}Entre em contato com a Ouvirtiba para tirar dúvidas ou agendar sua avaliação gratuita de audição em Araquari/SC.{% endblock %}
+
+{% block content %}
+
+<!-- Formulário de Contato -->
+ 
+<div itemscope itemtype="https://schema.org/ContactPage">
+  <div class="container my-5">
+    <div class="row g-4">
+
+      <!-- Formulário de Contato (esquerda) -->
+      <div class="col-md-6">
+        <h1 class="mb-4 text-center text-md-start">Fale Conosco</h1>
+        <p class="text-center text-md-start">
+          Precisa de ajuda com aparelhos auditivos? Entre em contato com a Ouvirtiba para tirar dúvidas, agendar avaliações auditivas ou saber mais sobre nossos serviços.
+          Ver <a href="/politica">Política de Privacidade</a>.
+        </p> 
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div id="mensagem-validacao" class="alert alert-danger d-none" role="alert"></div>
+
+        <form method="POST" action="/contato" novalidate>
+          <div class="mb-3">
+            <label for="nome" class="form-label">Nome completo</label>
+            <input type="text" class="form-control" id="nome" name="nome" value="{{ nome or '' }}" required aria-required="true" autocomplete="name">
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label">E-mail</label>
+            <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" required aria-required="true" autocomplete="email">
+          </div>
+
+          <div class="mb-3">
+            <label for="telefone" class="form-label">Telefone</label>
+            <input type="tel" class="form-control" id="telefone" name="telefone" required aria-required="true" autocomplete="tel" placeholder="(47) 99999-8888">
+          </div>
+
+          <div class="mb-3">
+            <label for="mensagem" class="form-label">Mensagem</label>
+            <textarea class="form-control" id="mensagem" name="mensagem" rows="5" required>{{ mensagem or '' }}</textarea>
+          </div>
+
+          <button type="submit" class="btn custom-btn">Enviar</button>
+        </form>
+
+      </div>
+
+      <!-- Mapa Google (direita) -->
+      <div class="col-md-6">
+        <p  class="mb-3 text-center text-md-start"><strong>Localização Ouvirtiba Aparelhos Auditivos - Joinville / SC</strong></p>
+        
+        <p class="text-center mt-0">
+          <a href="https://www.google.com/maps/place/R.+Geronimo+Coelho,+78+-+Centro,+Joinville+-+SC,+89245-000" target="_blank" rel="noopener noreferrer">
+            Ver localização no Google Maps
+          </a>
+        </p>
+
+
+        <div class="ratio ratio-4x3">
+          <iframe 
+            src="https://www.google.com/maps?q=R.+Geronimo+Coelho,+78+-+Centro,+Joinville+-+SC,+89245-000&output=embed" 
+            width="100%" 
+            height="100%" 
+            style="border:0;" 
+            allowfullscreen="" 
+            loading="lazy" 
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{% endblock content %}

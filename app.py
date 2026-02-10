@@ -8,10 +8,16 @@ from sqlalchemy import text
 
 import smtplib
 import os
+import logging
+import re
 
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 load_dotenv()
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 email = os.getenv('EMAIL')
 senha = os.getenv('SENHA')
@@ -89,31 +95,122 @@ def sobre():
 def produtos():
     return render_template('produtos.html', description="Confira nossos aparelhos auditivos Rexton, fala mais nítida e redução automático de ruídos e conectividade com celular")
 
+def validar_email(email):
+    """Valida formato de email"""
+    padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(padrao, email) is not None
+
+def validar_telefone(telefone):
+    """Valida se tem exatamente 11 dígitos (DDD + 9 dígitos)"""
+    apenas_numeros = re.sub(r'\D', '', telefone)
+    return len(apenas_numeros) == 11
+
 @app.route('/contato', methods=['GET', 'POST'])
 def contato():
     if request.method == 'POST':
+        # Capturar dados do formulário
         nome = request.form.get('nome', '').strip()
         email_form = request.form.get('email', '').strip()
         telefone = request.form.get('telefone', '').strip()
         mensagem = request.form.get('mensagem', '').strip()
 
+        # Validações no backend
+        if not nome or len(nome) < 3:
+            flash('Por favor, informe seu nome completo.', 'erro')
+            return render_template('contato.html', 
+                                 nome=nome, 
+                                 email=email_form, 
+                                 telefone=telefone, 
+                                 mensagem=mensagem,
+                                 description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
+
+        if not email_form or not validar_email(email_form):
+            flash('Por favor, informe um e-mail válido.', 'erro')
+            return render_template('contato.html', 
+                                 nome=nome, 
+                                 email=email_form, 
+                                 telefone=telefone, 
+                                 mensagem=mensagem,
+                                 description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
+
+        if not telefone or not validar_telefone(telefone):
+            flash('Por favor, informe um telefone válido com DDD + 9 dígitos. Exemplo: (47) 99999-8888', 'erro')
+            return render_template('contato.html', 
+                                 nome=nome, 
+                                 email=email_form, 
+                                 telefone=telefone, 
+                                 mensagem=mensagem,
+                                 description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
+
+        if not mensagem or len(mensagem) < 10:
+            flash('Por favor, escreva uma mensagem com pelo menos 10 caracteres.', 'erro')
+            return render_template('contato.html', 
+                                 nome=nome, 
+                                 email=email_form, 
+                                 telefone=telefone, 
+                                 mensagem=mensagem,
+                                 description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
+
+        # Verificar se credenciais do email estão configuradas
+        if not email or not senha:
+            logger.error("❌ ERRO: Variáveis de ambiente EMAIL ou SENHA não configuradas!")
+            flash('Erro de configuração do servidor. Entre em contato pelo WhatsApp.', 'erro')
+            return render_template('contato.html', 
+                                 nome=nome, 
+                                 email=email_form, 
+                                 telefone=telefone, 
+                                 mensagem=mensagem,
+                                 description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
+
         try:
+            # Log de tentativa de envio
+            logger.info(f"📧 Tentando enviar email de: {email_form}")
+            
             corpo_email = f"Nome: {nome}\nE-mail: {email_form}\nTelefone: {telefone}\n\nMensagem:\n{mensagem}"
-            msg = MIMEText(corpo_email)
-            msg['Subject'] = 'Formulário de Contato - Site'
-            msg['From'] = email_form
+            msg = MIMEText(corpo_email, 'plain', 'utf-8')
+            msg['Subject'] = 'Formulário de Contato - Site Ouvirtiba'
+            msg['From'] = email  # Usar o email configurado no .env
             msg['To'] = 'roeland.e.janssen@gmail.com'
+            msg['Reply-To'] = email_form  # Email do usuário para resposta
 
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            # Tentar conectar e enviar
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as smtp:
+                logger.info("🔐 Conectando ao Gmail SMTP...")
                 smtp.login(email, senha)
+                logger.info("✅ Login realizado com sucesso")
                 smtp.send_message(msg)
+                logger.info("✅ Email enviado com sucesso!")
 
-            flash('Mensagem enviada com sucesso, em breve entraremos em contato !', 'sucesso')
+            flash('Mensagem enviada com sucesso! Em breve entraremos em contato.', 'sucesso')
+            
+            # Limpar campos após sucesso
+            return redirect('/contato')
+
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"❌ ERRO DE AUTENTICAÇÃO SMTP: {str(e)}")
+            flash('Erro de autenticação no servidor de email. Contate o administrador.', 'erro')
+        
+        except smtplib.SMTPConnectError as e:
+            logger.error(f"❌ ERRO DE CONEXÃO SMTP: {str(e)}")
+            flash('Não foi possível conectar ao servidor de email. Tente novamente mais tarde.', 'erro')
+        
+        except smtplib.SMTPException as e:
+            logger.error(f"❌ ERRO SMTP: {str(e)}")
+            flash('Erro ao enviar email. Por favor, tente novamente.', 'erro')
+        
         except Exception as e:
-            print(e)
-            flash('Erro ao enviar mensagem. Tente novamente.', 'erro')
+            logger.error(f"❌ ERRO INESPERADO: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            flash('Erro inesperado ao enviar mensagem. Entre em contato pelo WhatsApp.', 'erro')
 
-        return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
+        # Manter dados preenchidos em caso de erro
+        return render_template('contato.html', 
+                             nome=nome, 
+                             email=email_form, 
+                             telefone=telefone, 
+                             mensagem=mensagem,
+                             description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
 
     return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
 

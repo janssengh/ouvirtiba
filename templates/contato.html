@@ -16,7 +16,7 @@
       <div class="col-md-6">
         <h1 class="mb-4 text-center text-md-start">Fale Conosco</h1>
         <p class="text-center text-md-start">
-          Precisa de ajuda com aparelhos auditivos? Entre em contato com a Ouvirtiba para tirar dúvidas, agendar avaliações auditivas ou saber mais sobre nossos serviços em Araquari/SC.
+          Precisa de ajuda com aparelhos auditivos? Entre em contato com a Ouvirtiba para tirar dúvidas, agendar avaliações auditivas ou saber mais sobre nossos serviços.
           Ver <a href="/politica">Política de Privacidade</a>.
         </p> 
 
@@ -31,48 +31,95 @@
           {% endif %}
         {% endwith %}
 
-        <div id="mensagem-validacao" class="alert alert-danger d-none" role="alert"></div>
-
-        <form method="POST" action="/contato" novalidate>
+        <form method="POST" action="/contato" id="form-contato" novalidate>
           <div class="mb-3">
-            <label for="nome" class="form-label">Nome completo</label>
-            <input type="text" class="form-control" id="nome" name="nome" value="{{ nome or '' }}" required aria-required="true" autocomplete="name">
+            <label for="nome" class="form-label">Nome completo <span class="text-danger">*</span></label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="nome" 
+              name="nome" 
+              value="{{ nome or '' }}" 
+              required 
+              aria-required="true" 
+              autocomplete="name"
+              minlength="3">
+            <div class="invalid-feedback">
+              Por favor, informe seu nome completo (mínimo 3 caracteres).
+            </div>
           </div>
 
           <div class="mb-3">
-            <label for="email" class="form-label">E-mail</label>
-            <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" required aria-required="true" autocomplete="email">
+            <label for="email" class="form-label">E-mail <span class="text-danger">*</span></label>
+            <input 
+              type="email" 
+              class="form-control" 
+              id="email" 
+              name="email" 
+              value="{{ email or '' }}" 
+              required 
+              aria-required="true" 
+              autocomplete="email">
+            <div class="invalid-feedback">
+              Por favor, informe um e-mail válido.
+            </div>
           </div>
 
           <div class="mb-3">
-            <label for="telefone" class="form-label">Telefone</label>
-            <input type="tel" class="form-control" id="telefone" name="telefone" required aria-required="true" autocomplete="tel" placeholder="(47) 99999-8888">
+            <label for="telefone" class="form-label">Telefone <span class="text-danger">*</span></label>
+            <input 
+              type="tel" 
+              class="form-control" 
+              id="telefone" 
+              name="telefone" 
+              value="{{ telefone or '' }}"
+              required 
+              aria-required="true" 
+              autocomplete="tel" 
+              placeholder="(47) 99999-8888">
+            <div class="invalid-feedback">
+              Por favor, informe um telefone válido com DDD + 9 dígitos. Exemplo: (47) 99999-8888
+            </div>
           </div>
 
           <div class="mb-3">
-            <label for="mensagem" class="form-label">Mensagem</label>
-            <textarea class="form-control" id="mensagem" name="mensagem" rows="5" required>{{ mensagem or '' }}</textarea>
+            <label for="mensagem" class="form-label">Mensagem <span class="text-danger">*</span></label>
+            <textarea 
+              class="form-control" 
+              id="mensagem" 
+              name="mensagem" 
+              rows="5" 
+              required
+              minlength="10">{{ mensagem or '' }}</textarea>
+            <div class="invalid-feedback">
+              Por favor, escreva uma mensagem com pelo menos 10 caracteres.
+            </div>
           </div>
 
-          <button type="submit" class="btn custom-btn">Enviar</button>
+          <button type="submit" class="btn custom-btn" id="btn-enviar">
+            <span id="btn-texto">Enviar</span>
+            <span id="btn-loading" class="d-none">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Enviando...
+            </span>
+          </button>
         </form>
 
       </div>
 
       <!-- Mapa Google (direita) -->
       <div class="col-md-6">
-        <p  class="mb-3 text-center text-md-start"><strong>Localização Makasi Aparelhos Auditivos - Araquari / SC</strong></p>
+        <p class="mb-3 text-center text-md-start"><strong>Localização Ouvirtiba Aparelhos Auditivos - Joinville / SC</strong></p>
         
         <p class="text-center mt-0">
-          <a href="https://www.google.com/maps/place/R.+Bom+Jesus,+228+-+Centro,+Araquari+-+SC,+89245-000" target="_blank" rel="noopener noreferrer">
+          <a href="https://www.google.com/maps/place/R.+Geronimo+Coelho,+78+-+Centro,+Joinville+-+SC,+89245-000" target="_blank" rel="noopener noreferrer">
             Ver localização no Google Maps
           </a>
         </p>
 
-
         <div class="ratio ratio-4x3">
           <iframe 
-            src="https://www.google.com/maps?q=R.+Bom+Jesus,+228+-+Centro,+Araquari+-+SC,+89245-000&output=embed" 
+            src="https://www.google.com/maps?q=R.+Geronimo+Coelho,+78+-+Centro,+Joinville+-+SC,+89245-000&output=embed" 
             width="100%" 
             height="100%" 
             style="border:0;" 
@@ -87,5 +134,133 @@
   </div>
 </div>
 
+<script>
+// Máscara de telefone
+const telefoneInput = document.getElementById('telefone');
+if (telefoneInput) {
+  telefoneInput.addEventListener('input', function(e) {
+    let valor = e.target.value.replace(/\D/g, '');
+    
+    if (valor.length <= 11) {
+      valor = valor.replace(/^(\d{2})(\d)/g, '($1) $2');
+      valor = valor.replace(/(\d)(\d{4})$/, '$1-$2');
+    }
+    
+    e.target.value = valor;
+  });
+}
+
+// Validação do formulário
+(function() {
+  'use strict';
+  
+  const form = document.getElementById('form-contato');
+  if (!form) return;
+  
+  const btnEnviar = document.getElementById('btn-enviar');
+  const btnTexto = document.getElementById('btn-texto');
+  const btnLoading = document.getElementById('btn-loading');
+  
+  form.addEventListener('submit', function(event) {
+    let isValid = true;
+    let primeiroErro = null;
+    
+    // Validar nome
+    const nome = document.getElementById('nome');
+    if (nome && nome.value.trim().length < 3) {
+      nome.classList.add('is-invalid');
+      isValid = false;
+      if (!primeiroErro) primeiroErro = nome;
+    } else if (nome) {
+      nome.classList.remove('is-invalid');
+      nome.classList.add('is-valid');
+    }
+    
+    // Validar email
+    const email = document.getElementById('email');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email.value.trim())) {
+      email.classList.add('is-invalid');
+      isValid = false;
+      if (!primeiroErro) primeiroErro = email;
+    } else if (email) {
+      email.classList.remove('is-invalid');
+      email.classList.add('is-valid');
+    }
+    
+    // Validar telefone (DDD + 9 dígitos = 11 dígitos obrigatório)
+    const telefone = document.getElementById('telefone');
+    if (telefone) {
+      const apenasNumeros = telefone.value.replace(/\D/g, '');
+      if (apenasNumeros.length !== 11) {
+        telefone.classList.add('is-invalid');
+        isValid = false;
+        if (!primeiroErro) primeiroErro = telefone;
+      } else {
+        telefone.classList.remove('is-invalid');
+        telefone.classList.add('is-valid');
+      }
+    }
+    
+    // Validar mensagem
+    const mensagem = document.getElementById('mensagem');
+    if (mensagem && mensagem.value.trim().length < 10) {
+      mensagem.classList.add('is-invalid');
+      isValid = false;
+      if (!primeiroErro) primeiroErro = mensagem;
+    } else if (mensagem) {
+      mensagem.classList.remove('is-invalid');
+      mensagem.classList.add('is-valid');
+    }
+    
+    // Se houver erro, impedir submit e resetar botão
+    if (!isValid) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      if (primeiroErro) {
+        primeiroErro.focus();
+      }
+      
+      // Resetar botão
+      if (btnTexto) btnTexto.classList.remove('d-none');
+      if (btnLoading) btnLoading.classList.add('d-none');
+      if (btnEnviar) btnEnviar.disabled = false;
+      
+      return false;
+    }
+    
+    // Se validação passou, mostrar loading
+    if (btnTexto) btnTexto.classList.add('d-none');
+    if (btnLoading) btnLoading.classList.remove('d-none');
+    if (btnEnviar) btnEnviar.disabled = true;
+    
+    // IMPORTANTE: NÃO usar event.preventDefault() aqui!
+    // Deixar o formulário submeter normalmente
+  });
+  
+  // Remover mensagens de erro ao digitar
+  const campos = form.querySelectorAll('input, textarea');
+  campos.forEach(campo => {
+    campo.addEventListener('input', function() {
+      this.classList.remove('is-invalid');
+      this.classList.remove('is-valid');
+    });
+  });
+})();
+
+// Auto-dismiss alerts após 5 segundos
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+      if (window.bootstrap && window.bootstrap.Alert) {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }
+    });
+  }, 5000);
+});
+</script>
 
 {% endblock content %}
