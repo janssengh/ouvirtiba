@@ -10,7 +10,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Atualização formulário contato envio de e-mail pelo resend"
+git commit -m "Atualização tela login e nova conta, com visual profissional"
 git push origin master
 
 ATUALIZAR RENDER:

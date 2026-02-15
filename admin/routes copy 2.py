@@ -218,56 +218,17 @@ def login(origin):
                          store_city=store_city)
 
 # ---------------- REGISTRO ----------------
-# ============================================
-# FUNÇÃO REGISTRAR ATUALIZADA
-# ============================================
-# Substitua a função registrar() no seu admin/routes.py por esta versão
-
 @auth_bp.route('/registrar', methods=['GET', 'POST'])
 def registrar():
     form = RegistrationForm(request.form)
-    
-    # ✅ BUSCAR INFORMAÇÕES DA LOJA PADRÃO (store_id = 1)
-    # Mesmo padrão da tela de login
-    default_store = Store.query.filter_by(home="S").first()
-    
-    # Variáveis para passar ao template
-    store_logo = None
-    store_name = None
-    store_city = None
-    
-    if default_store:
-        store_logo = f'img/admin/{default_store.logo}' if default_store.logo else None
-        store_name = default_store.name
-        store_city = f'{default_store.city} / {default_store.region}'
-    
     if request.method == 'POST' and form.validate():
-        
-        # ✅ VALIDAÇÃO HONEYPOT (proteção anti-bot)
-        honeypot = request.form.get('website', '')
-        if honeypot:
-            flash('Erro de validação. Tente novamente.', 'danger')
-            return render_template('admin/registrar.html', 
-                                 form=form, 
-                                 titulo='Registrar',
-                                 store_logo=store_logo,
-                                 store_name=store_name,
-                                 store_city=store_city)
-        
         hash_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(name=form.name.data, username=form.username.data, email=form.email.data, password=hash_password)
         db.session.add(user)
         db.session.commit()
-        flash(f'Obrigado {form.name.data} por registrar! Faça login para continuar.', 'success')
+        flash(f'Obrigado {form.name.data} por registrar!', 'success')
         return redirect(url_for('auth.login', origin='admin'))
-    
-    # Renderizar template com as variáveis da loja
-    return render_template('admin/registrar.html', 
-                         form=form, 
-                         titulo='Registrar',
-                         store_logo=store_logo,
-                         store_name=store_name,
-                         store_city=store_city)
+    return render_template('admin/registrar.html', form=form, titulo='Registrar')
 
 @auth_bp.route('/logout')
 def logout():

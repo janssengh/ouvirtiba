@@ -1,29 +1,532 @@
 {% extends "layout_admin.html" %}
 
 {% block content %}
-<section class="mt-5">
-    <div class="container">
-        <div class="row justify-content-center align-items-center">
-            <div class="col-md-10 mx-auto col-lg-5">
-                {% from "_erroformulario.html" import render_field %}
-                {% include '_mensagem.html' %}
+<style>
+/* ==================== ESTILO ULTRA MODERNO ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-                <form method="post" class="p-4 p-md-5 border rounded-3 bg-light">
-                    <img src="{{url_for('static', filename='img/logo(126x60)transp.png')}}" alt="">
-                    <div class="text-center p-2 data-text">
-                        <h4>Login</h4>
-                    </div>
-                    {{form.csrf_token}}
-                    <div class="form-floating mb-3">
-                        {{ render_field(form.email, class="form-control") }}
-                    </div>
-                    <div class="form-floating mb-3">
-                        {{ render_field(form.password, class="form-control") }}
-                    </div>
-                    <a><input type="submit" value="Login" class="btn btn-sm btn-success float-sm-start mt-2"></a>
-                    <a href="{{url_for('auth.registrar')}}" class="btn btn-sm btn-warning float-end mt-2">Registrar Usuário</a>                </form>
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animação de fundo */
+.login-wrapper::before {
+    content: '';
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    top: -400px;
+    right: -400px;
+    animation: float 6s ease-in-out infinite;
+}
+
+.login-wrapper::after {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    bottom: -300px;
+    left: -300px;
+    animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.login-box {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 24px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    max-width: 480px;
+    width: 100%;
+    margin: 20px;
+    position: relative;
+    z-index: 1;
+    animation: slideIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.login-header-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 50px 40px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-header-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.03) 10px,
+        rgba(255, 255, 255, 0.03) 20px
+    );
+    animation: slide 20s linear infinite;
+}
+
+@keyframes slide {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+.company-logo {
+    max-width: 220px;
+    height: auto;
+    margin-bottom: 25px;
+    filter: brightness(0) invert(1);
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.company-logo:hover {
+    transform: scale(1.05);
+}
+
+.company-info {
+    position: relative;
+    z-index: 1;
+}
+
+.company-name {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.5px;
+}
+
+.company-location {
+    font-size: 16px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.location-icon {
+    width: 16px !important;
+    height: 16px !important;
+    display: inline-block;
+}
+
+.login-content {
+    padding: 45px 40px;
+}
+
+.section-title {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.section-title h2 {
+    color: #2d3748;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.section-title p {
+    color: #718096;
+    font-size: 15px;
+    margin: 0;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+/* ✅ CORRIGIDO: Ícone com tamanho fixo */
+.input-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+    width: 20px !important;
+    height: 20px !important;
+    z-index: 2;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.form-input {
+    width: 100%;
+    padding: 16px 16px 16px 52px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: #f7fafc;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-input::placeholder {
+    color: #a0aec0;
+}
+
+/* Campo honeypot (invisível para usuários reais) */
+.hp-field {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.submit-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.submit-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.submit-button:active {
+    transform: translateY(0);
+}
+
+.divider-line {
+    display: flex;
+    align-items: center;
+    margin: 30px 0;
+}
+
+.divider-line::before,
+.divider-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+}
+
+.divider-text {
+    padding: 0 20px;
+    color: #a0aec0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.register-link {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    background: transparent;
+    color: #667eea;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.register-link:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.security-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 25px;
+    padding: 12px;
+    background: #f0fff4;
+    border-radius: 10px;
+    color: #38a169;
+    font-size: 14px;
+}
+
+.shield-icon {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0;
+}
+
+/* Loading state */
+.loading .submit-button {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Responsivo */
+@media (max-width: 576px) {
+    .login-header-section {
+        padding: 40px 30px 30px;
+    }
+    
+    .login-content {
+        padding: 35px 30px;
+    }
+    
+    .company-logo {
+        max-width: 170px;
+    }
+    
+    .company-name {
+        font-size: 22px;
+    }
+    
+    .company-location {
+        font-size: 14px;
+    }
+}
+
+/* Alerta customizado */
+.custom-alert {
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.custom-alert.alert-danger {
+    background: #fff5f5;
+    border: 1px solid #fc8181;
+    color: #c53030;
+}
+
+.custom-alert.alert-success {
+    background: #f0fff4;
+    border: 1px solid #68d391;
+    color: #2f855a;
+}
+
+.alert-icon {
+    font-size: 20px;
+}
+</style>
+
+<div class="login-wrapper">
+    <div class="login-box">
+        <!-- Cabeçalho -->
+        <div class="login-header-section">
+            <img src="{{ url_for('static', filename=store_logo if store_logo else 'img/logo(126x60)transp.png') }}" 
+                 alt="Ouvirtiba Aparelhos Auditivos" 
+                 class="company-logo">
+            <div class="company-info">
+                <h1 class="company-name">{{ store_name if store_name else 'Ouvirtiba Aparelhos Auditivos' }}</h1>
+                <p class="company-location">
+                    <svg class="location-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    {{ store_city if store_city else 'Joinville / SC' }}
+                </p>
             </div>
         </div>
+
+        <!-- Conteúdo -->
+        <div class="login-content">
+            {% from "_erroformulario.html" import render_field %}
+            
+            <!-- Mensagens -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="custom-alert alert-{{ 'danger' if category == 'danger' else 'success' }}">
+                            <span class="alert-icon">
+                                {% if category == 'danger' %}❌{% else %}✅{% endif %}
+                            </span>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="section-title">
+                <h2>Acesso ao Sistema</h2>
+                <p>Insira suas credenciais para continuar</p>
+            </div>
+
+            <form method="post" id="loginForm" autocomplete="on">
+                {{ form.csrf_token }}
+                
+                <!-- Campo Email -->
+                <div class="input-group">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    {{ form.email(class="form-input", placeholder="seu@email.com", autocomplete="email") }}
+                </div>
+
+                <!-- Campo Senha -->
+                <div class="input-group">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                    </svg>
+                    {{ form.password(class="form-input", placeholder="Sua senha", autocomplete="current-password") }}
+                </div>
+
+                <!-- Campo Honeypot (proteção anti-bot invisível) -->
+                <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off">
+
+                <button type="submit" class="submit-button">
+                    <span id="buttonText">Entrar no Sistema</span>
+                </button>
+
+                <!-- Badge de segurança -->
+                <div class="security-badge">
+                    <svg class="shield-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                    </svg>
+                    Conexão segura e protegida
+                </div>
+
+                <div class="divider-line">
+                    <span class="divider-text">ou</span>
+                </div>
+
+                <a href="{{ url_for('auth.registrar') }}" class="register-link">
+                    Criar Nova Conta
+                </a>
+            </form>
+        </div>
     </div>
-</section>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const email = document.querySelector('input[name="email"]').value;
+    const password = document.querySelector('input[name="password"]').value;
+    const honeypot = document.querySelector('input[name="website"]').value;
+    
+    // Validação honeypot (se preenchido, é bot)
+    if (honeypot) {
+        e.preventDefault();
+        alert('Erro de validação. Tente novamente.');
+        return false;
+    }
+    
+    // Validar campos vazios
+    if (!email || !password) {
+        e.preventDefault();
+        alert('Por favor, preencha todos os campos.');
+        return false;
+    }
+    
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        e.preventDefault();
+        alert('Por favor, insira um email válido.');
+        return false;
+    }
+    
+    // Mostrar loading
+    const button = this.querySelector('.submit-button');
+    const buttonText = document.getElementById('buttonText');
+    buttonText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Entrando...';
+    button.disabled = true;
+    document.body.classList.add('loading');
+});
+
+// Adicionar efeito de foco nos inputs
+document.querySelectorAll('.form-input').forEach(input => {
+    input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'scale(1.02)';
+    });
+    
+    input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'scale(1)';
+    });
+});
+</script>
+
 {% endblock content %}

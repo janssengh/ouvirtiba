@@ -1,33 +1,641 @@
 {% extends "layout_admin.html" %}
 
 {% block content %}
+<style>
+/* ==================== ESTILO REGISTRO MODERNO ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-<section class="mt-5">
-    <div class="container">
-        <div class="row justify-content-center align-items-center">
-            <div class="col-md-10 mx-auto col-lg-5">
-                {% from "_erroformulario.html" import render_field %}
+.register-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+    padding: 20px 0;
+}
 
-                <form method="post" class="p-4 p-md-5 border rounded-3 bg-light">
-                    <img src="{{url_for('static', filename='img/logo(126x60)transp.png')}}" alt="">
-                    <div class="text-center p-2 data-text">
-                        <h4>Registrar Usuário</h4>
-                    </div>
-                    {{form.csrf_token}}
+/* Animação de fundo */
+.register-wrapper::before {
+    content: '';
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    top: -400px;
+    right: -400px;
+    animation: float 6s ease-in-out infinite;
+}
 
-                    <div>
-                        {{ render_field(form.name, class="form-control") }}
-                        {{ render_field(form.username, class="form-control") }}
-                        {{ render_field(form.email, class="form-control") }}
-                        {{ render_field(form.password, class="form-control") }}
-                        {{ render_field(form.confirm, class="form-control") }}
-                        <input type="file" name="Foto">
-                    </div>
-                    <a><input type="submit" value="Registrar" class="btn btn-sm btn-success float-sm-start mt-2"></a>
-                    <a href="{{url_for('admin.product_list')}}" class="btn btn-sm btn-warning float-end mt-2">Retornar Menu</a>
-                </form>
+.register-wrapper::after {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    bottom: -300px;
+    left: -300px;
+    animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.register-box {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 24px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    max-width: 520px;
+    width: 100%;
+    margin: 20px;
+    position: relative;
+    z-index: 1;
+    animation: slideIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.register-header-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px 40px 35px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.register-header-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.03) 10px,
+        rgba(255, 255, 255, 0.03) 20px
+    );
+    animation: slide 20s linear infinite;
+}
+
+@keyframes slide {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+.company-logo {
+    max-width: 200px;
+    height: auto;
+    margin-bottom: 20px;
+    filter: brightness(0) invert(1);
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.company-logo:hover {
+    transform: scale(1.05);
+}
+
+.company-info {
+    position: relative;
+    z-index: 1;
+}
+
+.company-name {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.5px;
+}
+
+.company-location {
+    font-size: 15px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.location-icon {
+    width: 14px !important;
+    height: 14px !important;
+    display: inline-block;
+}
+
+.register-content {
+    padding: 40px 40px;
+}
+
+.section-title {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.section-title h2 {
+    color: #2d3748;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.section-title p {
+    color: #718096;
+    font-size: 14px;
+    margin: 0;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+    width: 18px !important;
+    height: 18px !important;
+    z-index: 2;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 14px 14px 48px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background: #f7fafc;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-input::placeholder {
+    color: #a0aec0;
+}
+
+/* Campo honeypot */
+.hp-field {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.submit-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.submit-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.submit-button:active {
+    transform: translateY(0);
+}
+
+.divider-line {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+}
+
+.divider-line::before,
+.divider-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+}
+
+.divider-text {
+    padding: 0 20px;
+    color: #a0aec0;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.back-link {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    background: transparent;
+    color: #667eea;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.back-link:hover {
+    background: #f8f9ff;
+    color: #667eea;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+}
+
+.password-strength {
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+.strength-bar {
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.strength-bar-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.strength-weak { background: #fc8181; width: 33%; }
+.strength-medium { background: #f6ad55; width: 66%; }
+.strength-strong { background: #68d391; width: 100%; }
+
+/* Loading state */
+.loading .submit-button {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Responsivo */
+@media (max-width: 576px) {
+    .register-header-section {
+        padding: 35px 30px 30px;
+    }
+    
+    .register-content {
+        padding: 35px 30px;
+    }
+    
+    .company-logo {
+        max-width: 160px;
+    }
+    
+    .company-name {
+        font-size: 20px;
+    }
+    
+    .company-location {
+        font-size: 13px;
+    }
+}
+
+/* Alerta customizado */
+.custom-alert {
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.custom-alert.alert-danger {
+    background: #fff5f5;
+    border: 1px solid #fc8181;
+    color: #c53030;
+}
+
+.custom-alert.alert-success {
+    background: #f0fff4;
+    border: 1px solid #68d391;
+    color: #2f855a;
+}
+
+.alert-icon {
+    font-size: 18px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+@media (max-width: 576px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="register-wrapper">
+    <div class="register-box">
+        <!-- Cabeçalho -->
+        <div class="register-header-section">
+            <img src="{{ url_for('static', filename=store_logo if store_logo else 'img/logo(126x60)transp.png') }}" 
+                 alt="Ouvirtiba Aparelhos Auditivos" 
+                 class="company-logo">
+            <div class="company-info">
+                <h1 class="company-name">{{ store_name if store_name else 'Ouvirtiba Aparelhos Auditivos' }}</h1>
+                <p class="company-location">
+                    <svg class="location-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    {{ store_city if store_city else 'Joinville / SC' }}
+                </p>
             </div>
         </div>
+
+        <!-- Conteúdo -->
+        <div class="register-content">
+            {% from "_erroformulario.html" import render_field %}
+            
+            <!-- Mensagens -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="custom-alert alert-{{ 'danger' if category == 'danger' else 'success' }}">
+                            <span class="alert-icon">
+                                {% if category == 'danger' %}❌{% else %}✅{% endif %}
+                            </span>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="section-title">
+                <h2>Criar Nova Conta</h2>
+                <p>Preencha os dados abaixo para se registrar</p>
+            </div>
+
+            <form method="post" id="registerForm" autocomplete="on">
+                {{ form.csrf_token }}
+                
+                <!-- Nome completo -->
+                <div class="input-group">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    {{ form.name(class="form-input", placeholder="Nome completo", autocomplete="name") }}
+                </div>
+
+                <!-- Username e Email em linha -->
+                <div class="form-row">
+                    <div class="input-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        </svg>
+                        {{ form.username(class="form-input", placeholder="Usuário", autocomplete="username") }}
+                    </div>
+                    
+                    <div class="input-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                        {{ form.email(class="form-input", placeholder="seu@email.com", autocomplete="email") }}
+                    </div>
+                </div>
+
+                <!-- Senha e Confirmar em linha -->
+                <div class="form-row">
+                    <div class="input-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                        </svg>
+                        {{ form.password(class="form-input", placeholder="Senha", autocomplete="new-password", id="password") }}
+                    </div>
+                    
+                    <div class="input-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/>
+                        </svg>
+                        {{ form.confirm(class="form-input", placeholder="Confirmar senha", autocomplete="new-password", id="confirm") }}
+                    </div>
+                </div>
+
+                <!-- Indicador de força da senha -->
+                <div class="password-strength" id="passwordStrength" style="display:none;">
+                    <div>Força da senha: <span id="strengthText">-</span></div>
+                    <div class="strength-bar">
+                        <div class="strength-bar-fill" id="strengthBar"></div>
+                    </div>
+                </div>
+
+                <!-- Campo Honeypot -->
+                <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off">
+
+                <button type="submit" class="submit-button">
+                    <span id="buttonText">Criar Conta</span>
+                </button>
+
+                <div class="divider-line">
+                    <span class="divider-text">já tem uma conta?</span>
+                </div>
+
+                <a href="{{ url_for('auth.login', origin='admin') }}" class="back-link">
+                    Voltar para Login
+                </a>
+            </form>
+        </div>
     </div>
-</section>
+</div>
+
+<script>
+// Medidor de força da senha
+const passwordInput = document.getElementById('password');
+const strengthIndicator = document.getElementById('passwordStrength');
+const strengthBar = document.getElementById('strengthBar');
+const strengthText = document.getElementById('strengthText');
+
+if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        
+        if (password.length === 0) {
+            strengthIndicator.style.display = 'none';
+            return;
+        }
+        
+        strengthIndicator.style.display = 'block';
+        
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/\d/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+        
+        strengthBar.className = 'strength-bar-fill';
+        
+        if (strength <= 1) {
+            strengthBar.classList.add('strength-weak');
+            strengthText.textContent = 'Fraca';
+            strengthText.style.color = '#fc8181';
+        } else if (strength === 2 || strength === 3) {
+            strengthBar.classList.add('strength-medium');
+            strengthText.textContent = 'Média';
+            strengthText.style.color = '#f6ad55';
+        } else {
+            strengthBar.classList.add('strength-strong');
+            strengthText.textContent = 'Forte';
+            strengthText.style.color = '#68d391';
+        }
+    });
+}
+
+// Validação do formulário
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const name = document.querySelector('input[name="name"]').value;
+    const username = document.querySelector('input[name="username"]').value;
+    const email = document.querySelector('input[name="email"]').value;
+    const password = document.querySelector('input[name="password"]').value;
+    const confirm = document.querySelector('input[name="confirm"]').value;
+    const honeypot = document.querySelector('input[name="website"]').value;
+    
+    // Validação honeypot
+    if (honeypot) {
+        e.preventDefault();
+        alert('Erro de validação. Tente novamente.');
+        return false;
+    }
+    
+    // Validar campos vazios
+    if (!name || !username || !email || !password || !confirm) {
+        e.preventDefault();
+        alert('Por favor, preencha todos os campos.');
+        return false;
+    }
+    
+    // Validar nome
+    if (name.length < 3) {
+        e.preventDefault();
+        alert('O nome deve ter pelo menos 3 caracteres.');
+        return false;
+    }
+    
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        e.preventDefault();
+        alert('Por favor, insira um email válido.');
+        return false;
+    }
+    
+    // Validar senha
+    if (password.length < 6) {
+        e.preventDefault();
+        alert('A senha deve ter pelo menos 6 caracteres.');
+        return false;
+    }
+    
+    // Validar confirmação de senha
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('As senhas não coincidem.');
+        return false;
+    }
+    
+    // Mostrar loading
+    const button = this.querySelector('.submit-button');
+    const buttonText = document.getElementById('buttonText');
+    buttonText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Criando conta...';
+    button.disabled = true;
+    document.body.classList.add('loading');
+});
+
+// Efeito de foco nos inputs
+document.querySelectorAll('.form-input').forEach(input => {
+    input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'scale(1.02)';
+    });
+    
+    input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'scale(1)';
+    });
+});
+</script>
+
 {% endblock content %}

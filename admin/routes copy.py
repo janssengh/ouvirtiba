@@ -145,56 +145,17 @@ def parametrosloja():
 
 
 # ---------------- LOGIN ----------------
-# ============================================
-# FUNÇÃO LOGIN CORRIGIDA
-# ============================================
-# Substitua a função login() no seu admin/routes.py por esta versão
-
 @auth_bp.route('/login/<origin>', methods=['GET', 'POST'])
 def login(origin):
     form = LoginFormulario(request.form)
-    
-    # ✅ BUSCAR INFORMAÇÕES DA LOJA PADRÃO (store_id = 18)
-    # Isso permite mostrar o logo antes do login
-    default_store = Store.query.filter_by(home="S").first()
-    
-    # Variáveis para passar ao template
-    store_logo = None
-    store_name = None
-    store_city = None
-    
-    if default_store:
-        store_logo = f'img/admin/{default_store.logo}' if default_store.logo else None
-        store_name = default_store.name
-        store_city = f'{default_store.city} / {default_store.region}'
-    
     if request.method == 'POST' and form.validate():
-        
-        # ✅ VALIDAÇÃO HONEYPOT (proteção anti-bot)
-        honeypot = request.form.get('website', '')
-        if honeypot:
-            # Se o campo honeypot foi preenchido, é um bot
-            flash('Erro de validação. Tente novamente.', 'danger')
-            return render_template('admin/login.html', 
-                                 form=form, 
-                                 titulo='Login',
-                                 store_logo=store_logo,
-                                 store_name=store_name,
-                                 store_city=store_city)
-        
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             session['Store'] = {'Id': user.store_id}
-            
             if user.store_id is None and user.email != "roeland.e.janssen@gmail.com":
                 session['Store'] = {'Id': 0}
                 flash(f'Loja não vinculada ao seu login, comunique o administrador!', 'danger')
-                return render_template('admin/login.html', 
-                                     form=form, 
-                                     titulo='Login',
-                                     store_logo=store_logo,
-                                     store_name=store_name,
-                                     store_city=store_city)
+                return render_template('admin/login.html', form=form, titulo='Login')
 
             session['email'] = form.email.data
             session['store_id'] = user.store_id
@@ -207,67 +168,22 @@ def login(origin):
             else:
                 return redirect(request.args.get('next') or url_for('admin.product_list', type_id=1))
         else:
-            flash('Email ou senha incorretos!', 'danger')
-    
-    # Renderizar template com as variáveis da loja
-    return render_template('admin/login.html', 
-                         form=form, 
-                         titulo='Login',
-                         store_logo=store_logo,
-                         store_name=store_name,
-                         store_city=store_city)
+            flash('Não foi possível acessar o sistema!', 'danger')
+    return render_template('admin/login.html', form=form, titulo='Login')
+
 
 # ---------------- REGISTRO ----------------
-# ============================================
-# FUNÇÃO REGISTRAR ATUALIZADA
-# ============================================
-# Substitua a função registrar() no seu admin/routes.py por esta versão
-
 @auth_bp.route('/registrar', methods=['GET', 'POST'])
 def registrar():
     form = RegistrationForm(request.form)
-    
-    # ✅ BUSCAR INFORMAÇÕES DA LOJA PADRÃO (store_id = 1)
-    # Mesmo padrão da tela de login
-    default_store = Store.query.filter_by(home="S").first()
-    
-    # Variáveis para passar ao template
-    store_logo = None
-    store_name = None
-    store_city = None
-    
-    if default_store:
-        store_logo = f'img/admin/{default_store.logo}' if default_store.logo else None
-        store_name = default_store.name
-        store_city = f'{default_store.city} / {default_store.region}'
-    
     if request.method == 'POST' and form.validate():
-        
-        # ✅ VALIDAÇÃO HONEYPOT (proteção anti-bot)
-        honeypot = request.form.get('website', '')
-        if honeypot:
-            flash('Erro de validação. Tente novamente.', 'danger')
-            return render_template('admin/registrar.html', 
-                                 form=form, 
-                                 titulo='Registrar',
-                                 store_logo=store_logo,
-                                 store_name=store_name,
-                                 store_city=store_city)
-        
         hash_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(name=form.name.data, username=form.username.data, email=form.email.data, password=hash_password)
         db.session.add(user)
         db.session.commit()
-        flash(f'Obrigado {form.name.data} por registrar! Faça login para continuar.', 'success')
+        flash(f'Obrigado {form.name.data} por registrar!', 'success')
         return redirect(url_for('auth.login', origin='admin'))
-    
-    # Renderizar template com as variáveis da loja
-    return render_template('admin/registrar.html', 
-                         form=form, 
-                         titulo='Registrar',
-                         store_logo=store_logo,
-                         store_name=store_name,
-                         store_city=store_city)
+    return render_template('admin/registrar.html', form=form, titulo='Registrar')
 
 @auth_bp.route('/logout')
 def logout():
