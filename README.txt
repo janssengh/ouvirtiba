@@ -10,7 +10,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Melhorias e Correções Formulário Contato e as suas Validações"
+git commit -m "Atualização formulário contato envio de e-mail pelo resend"
 git push origin master
 
 ATUALIZAR RENDER:
@@ -18,6 +18,11 @@ Atualizar Render (https://dashboard.render.com/web/srv-d26hb715pdvs73a2ut8g/depl
 Entrar o render/github
 ouvirtiba
 manual deploy/deploy latest commit
+
+RESEND para envio de e-mails:
+  resend.com , entrar com a conta google
+  criado domínio ouvirtiba.com.br e criação do DNS no REGISTRO.BR
+
 
 ATIVAR RENDER E SUPBASE (Por ser free, entre em SLEEP)
 Para manter ativo o Render Free, foi usado UptimeRobot e GITHUB Actions:

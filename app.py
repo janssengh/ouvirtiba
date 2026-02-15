@@ -6,12 +6,11 @@ from flask_sqlalchemy import SQLAlchemy
 # Inclusão ENDPOINT para manter ativo o SUPABASE
 from sqlalchemy import text
 
-import smtplib
+import resend  # ✅ NOVA BIBLIOTECA
 import os
 import logging
 import re
 
-from email.mime.text import MIMEText
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -19,8 +18,17 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-email = os.getenv('EMAIL')
-senha = os.getenv('SENHA')
+# ✅ NOVAS VARIÁVEIS DE AMBIENTE
+resend_api_key = os.getenv('RESEND_API_KEY')
+email_from = os.getenv('EMAIL_FROM', 'contato@ouvirtiba.com.br')
+email_to = os.getenv('EMAIL_TO', 'roeland.e.janssen@gmail.com')
+
+# Configurar Resend
+if resend_api_key:
+    resend.api_key = resend_api_key
+    logger.info("✅ Resend API configurada com sucesso")
+else:
+    logger.warning("⚠️ RESEND_API_KEY não encontrada no .env")
 
 
 app = Flask(__name__)
@@ -151,9 +159,9 @@ def contato():
                                  mensagem=mensagem,
                                  description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
 
-        # Verificar se credenciais do email estão configuradas
-        if not email or not senha:
-            logger.error("❌ ERRO: Variáveis de ambiente EMAIL ou SENHA não configuradas!")
+        # Verificar se API key do Resend está configurada
+        if not resend_api_key:
+            logger.error("❌ ERRO: Variável de ambiente RESEND_API_KEY não configurada!")
             flash('Erro de configuração do servidor. Entre em contato pelo WhatsApp.', 'erro')
             return render_template('contato.html', 
                                  nome=nome, 
@@ -164,45 +172,42 @@ def contato():
 
         try:
             # Log de tentativa de envio
-            logger.info(f"📧 Tentando enviar email de: {email_form}")
+            logger.info(f"📧 Tentando enviar email via Resend de: {email_form}")
             
-            corpo_email = f"Nome: {nome}\nE-mail: {email_form}\nTelefone: {telefone}\n\nMensagem:\n{mensagem}"
-            msg = MIMEText(corpo_email, 'plain', 'utf-8')
-            msg['Subject'] = 'Formulário de Contato - Site Ouvirtiba'
-            msg['From'] = email  # Usar o email configurado no .env
-            msg['To'] = 'roeland.e.janssen@gmail.com'
-            msg['Reply-To'] = email_form  # Email do usuário para resposta
-
-            # Tentar conectar e enviar
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as smtp:
-                logger.info("🔐 Conectando ao Gmail SMTP...")
-                smtp.login(email, senha)
-                logger.info("✅ Login realizado com sucesso")
-                smtp.send_message(msg)
-                logger.info("✅ Email enviado com sucesso!")
+            # ✅ ENVIAR EMAIL COM RESEND
+            corpo_html = f"""
+            <h2>Novo contato do site Ouvirtiba</h2>
+            <p><strong>Nome:</strong> {nome}</p>
+            <p><strong>E-mail:</strong> {email_form}</p>
+            <p><strong>Telefone:</strong> {telefone}</p>
+            <h3>Mensagem:</h3>
+            <p>{mensagem.replace(chr(10), '<br>')}</p>
+            """
+            
+            params = {
+                "from": f"Ouvirtiba <{email_from}>",
+                "to": [email_to],
+                "reply_to": email_form,  # Email do usuário para resposta
+                "subject": "Formulário de Contato - Site Ouvirtiba",
+                "html": corpo_html,
+            }
+            
+            # Enviar email
+            email_response = resend.Emails.send(params)
+            logger.info(f"✅ Email enviado com sucesso! ID: {email_response.get('id', 'N/A')}")
 
             flash('Mensagem enviada com sucesso! Em breve entraremos em contato.', 'sucesso')
             
             # Limpar campos após sucesso
             return redirect('/contato')
 
-        except smtplib.SMTPAuthenticationError as e:
-            logger.error(f"❌ ERRO DE AUTENTICAÇÃO SMTP: {str(e)}")
-            flash('Erro de autenticação no servidor de email. Contate o administrador.', 'erro')
-        
-        except smtplib.SMTPConnectError as e:
-            logger.error(f"❌ ERRO DE CONEXÃO SMTP: {str(e)}")
-            flash('Não foi possível conectar ao servidor de email. Tente novamente mais tarde.', 'erro')
-        
-        except smtplib.SMTPException as e:
-            logger.error(f"❌ ERRO SMTP: {str(e)}")
-            flash('Erro ao enviar email. Por favor, tente novamente.', 'erro')
-        
         except Exception as e:
-            logger.error(f"❌ ERRO INESPERADO: {str(e)}")
+            logger.error(f"❌ ERRO AO ENVIAR EMAIL: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            flash('Erro inesperado ao enviar mensagem. Entre em contato pelo WhatsApp.', 'erro')
+            
+            # Mensagem amigável para o usuário
+            flash('Erro ao enviar mensagem. Por favor, entre em contato pelo WhatsApp.', 'erro')
 
         # Manter dados preenchidos em caso de erro
         return render_template('contato.html', 
