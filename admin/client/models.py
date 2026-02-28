@@ -1,19 +1,10 @@
 from datetime import datetime
 from extension import db
+from sqlalchemy import event # ✅ Importação necessária para os ouvintes de eventos
 
-
-# Define schema padrão
-#metadata = MetaData(schema="ouvirtiba")
-# ✅ REMOVA ESTA LINHA CONFLITANTE:
-#db = SQLAlchemy(metadata=metadata)
-
-# =========================================================
-# 1. CLASSE BASE ABSTRATA (MIXIN)
-# Esta classe define o esquema e é abstrata (não cria uma tabela no banco).
 class Base(db.Model):
     __abstract__ = True
-    __table_args__ = {'schema': 'ouvirtiba'} # ✅ Aplica o esquema em todas as classes herdeiras!
-# =========================================================
+    __table_args__ = {'schema': 'ouvirtiba'}
 
 class Client(Base):
     __tablename__ = 'client'
@@ -38,3 +29,29 @@ class Client(Base):
     created_date = db.Column(db.DateTime, nullable=False, default=datetime.now)
     contact = db.Column(db.String(50), nullable=False)
     administrator = db.Column(db.String(1), nullable=True, default='N')
+
+# ==============================================================================
+# ✅ NORMALIZAÇÃO AUTOMÁTICA: UPPERCASE PARA TUDO, LOWERCASE PARA EMAIL
+# ==============================================================================
+@event.listens_for(Client, 'before_insert')
+@event.listens_for(Client, 'before_update')
+def format_client_strings(mapper, connection, target):
+    """
+    Percorre todas as colunas de texto da classe Client.
+    Transforma email em minúsculo e o restante em maiúsculo.
+    """
+    # Lista de campos sensíveis que NÃO devem ser alterados (como senhas ou caminhos de imagem)
+    ignored_fields = ['password', 'profile'] #
+
+    for column in target.__table__.columns:
+        # Só processa se a coluna for do tipo String e não estiver na lista de ignorados
+        if isinstance(column.type, db.String) and column.name not in ignored_fields:
+            value = getattr(target, column.name)
+            
+            if value and isinstance(value, str):
+                if column.name == 'email':
+                    # Exceção para o e-mail: sempre minúsculo
+                    setattr(target, column.name, value.lower().strip())
+                else:
+                    # Todos os outros campos de texto: sempre maiúsculo
+                    setattr(target, column.name, value.upper().strip())

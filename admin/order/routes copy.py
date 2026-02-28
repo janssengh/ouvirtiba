@@ -9,8 +9,7 @@ order_bp = Blueprint('order_bp', __name__, template_folder='templates')
 
 @order_bp.route('/admin/order/list')
 def order_list():
-    # Adicionado .order_by(Customer_request.created_at.desc())
-    orders = Customer_request.query.order_by(Customer_request.created_at.desc()).all()
+    orders = Customer_request.query.all()
     return render_template('admin/order/order_list.html', orders=orders, titulo="Lista de Pedidos")
 
 @order_bp.route('/admin/order/<int:order_id>/items')

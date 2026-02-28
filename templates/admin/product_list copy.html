@@ -26,13 +26,14 @@
   
   <table class="table table table-sm table-striped">
     <thead>
-      <th>Marca</th>
+      <th>Tipo</th>
       <th>Categoria</th>
       <th>Produto</th>
       <th>Etq</th>
       <th>Preço</th>
       <th>Desc.</th>
       <th>Cor</th>
+      <th>Marca</th>
       <th>Foto</th>
       <th>Editar</th>
       <th>Deletar</th>
@@ -40,13 +41,18 @@
     <tbody>
       {% for produto in produtos %}
       <tr>
-        <td>{{produto.marca.name}}</td>
+        {% if produto.type_id == 1 %}
+        <td>AA</td>
+        {% else %}
+        <td>Ac</td>
+        {% endif %}
         <td>{{produto.categoria.name}}</td>
         <td>{{produto.name}}</td>
         <td>{{produto.stock}}</td>
         <td>{{produto.price}}</td>
         <td>{{produto.discount}} %</td>
         <td>{{produto.colors}}</td>
+        <td>{{produto.marca.name}}</td>
         <td><img src="{{url_for('static',filename='img/admin/' + produto.image_1)}}" width="50" height="40"></td>
         <td><a href="{{ url_for('admin.produto_editar', id=produto.id) }}" class="btn btn-success btn-sm">Editar</a></td>
         <td>

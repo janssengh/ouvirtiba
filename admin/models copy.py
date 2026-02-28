@@ -1,12 +1,19 @@
-from sqlalchemy import MetaData, event # ✅ Importação necessária para os eventos
+
+from sqlalchemy import MetaData
 from datetime import datetime
-from extension import db 
+from extension import db # ✅ ADICIONE: Importa a instância 'db' do extension.py
+
+# Define schema padrão
+#metadata = MetaData(schema="ouvirtiba")
+# ✅ REMOVA ESTA LINHA CONFLITANTE:
+#db = SQLAlchemy(metadata=metadata)
 
 # =========================================================
 # 1. CLASSE BASE ABSTRATA (MIXIN)
+# Esta classe define o esquema e é abstrata (não cria uma tabela no banco).
 class Base(db.Model):
     __abstract__ = True
-    __table_args__ = {'schema': 'ouvirtiba'}
+    __table_args__ = {'schema': 'ouvirtiba'} # ✅ Aplica o esquema em todas as classes herdeiras!
 # =========================================================
 
 class User(Base):
@@ -19,6 +26,11 @@ class User(Base):
     store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
     loja = db.relationship('Store', backref=db.backref('lojas.user', lazy=True))
 
+    def __repr__(self):
+        return '<User %r>' % self.user
+
+
+# tabela loja
 class Store(Base):
     id = db.Column(db.Integer, primary_key=True)
     zipcode = db.Column(db.String(50), unique=True, nullable=False)
@@ -39,29 +51,60 @@ class Store(Base):
     home = db.Column(db.String(1), nullable=False, default='N')
     state_registration = db.Column(db.String(20))
 
+    def __init__(self, zipcode, name, address, number, complement, neighborhood,
+                 city, region, freight_rate, phone, pages, logo, url, code, logo_white, home, state_registration):
+        self.zipcode = zipcode
+        self.name = name
+        self.address = address
+        self.number = number
+        self.complement = complement
+        self.neighborhood = neighborhood
+        self.city = city
+        self.region = region
+        self.freight_rate = freight_rate
+        self.phone = phone
+        self.pages = pages
+        self.logo = logo
+        self.url = url
+        self.code = code
+        self.logo_white = logo_white
+        self.home = home
+        self.state_registration = state_registration
+
+# tabela Marca
 class Brand(Base):
     id = db.Column(db.Integer, primary_key=True)
     store_id = db.Column(db.Integer, nullable=False)
     name = db.Column(db.String(30), unique=True, nullable=False)
 
+# tabela Categoria
 class Category(Base):
     id = db.Column(db.Integer, primary_key=True)
+
     store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
-    name = db.Column(db.String(30), unique=True, nullable=False)
     loja = db.relationship('Store', backref=db.backref('lojas.categ', lazy=True))
 
+    name = db.Column(db.String(30), unique=True, nullable=False)
+
+# tabela cor
 class Color(Base):
     id = db.Column(db.Integer, primary_key=True)
-    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
-    name = db.Column(db.String(20), unique=True, nullable=False)
-    loja = db.relationship('Store', backref=db.backref('lojas.cor', lazy=True))
 
+    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
+    loja = db.relationship('Store', backref=db.backref('lojas.cor', lazy=True))
+    
+    name = db.Column(db.String(20), unique=True, nullable=False)
+
+# tabela tamanho
 class Size(Base):
     id = db.Column(db.Integer, primary_key=True)
-    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
-    name = db.Column(db.String(20), unique=True, nullable=False)   
-    loja = db.relationship('Store', backref=db.backref('lojas.tamanho', lazy=True))
 
+    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
+    loja = db.relationship('Store', backref=db.backref('lojas.tamanho', lazy=True))
+    
+    name = db.Column(db.String(20), unique=True, nullable=False)   
+
+# tabela embalagem
 class Packaging(Base):
     id = db.Column(db.Integer, primary_key=True)
     weight = db.Column(db.String(20), nullable=False)
@@ -79,7 +122,6 @@ class Packaging(Base):
 
 
 class Product(Base):
-
     @property
     def type_name(self):
         """Retorna o nome do tipo de produto."""
@@ -89,8 +131,10 @@ class Product(Base):
             return "Acessórios"
         else:
             return "Outros"
-    
+
+
     __tablename__ = 'product'
+
     id = db.Column(db.Integer, primary_key=True)
     type_id = db.Column(db.Integer, nullable=True)
     name = db.Column(db.String(80), nullable=False)
@@ -100,51 +144,27 @@ class Product(Base):
     colors = db.Column(db.Text, nullable=False)
     discription = db.Column(db.Text, nullable=False)
     pub_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
     brand_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.brand.id'), nullable=False)
+    marca = db.relationship('Brand', backref=db.backref('marcas', lazy=True))
+
     category_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.category.id'), nullable=False)
+    categoria = db.relationship('Category', backref=db.backref('categorias', lazy=True))
+
     image_1 = db.Column(db.String(150), nullable=False, default='image.jpg')
     image_2 = db.Column(db.String(150), nullable=False, default='image.jpg')
     image_3 = db.Column(db.String(150), nullable=False, default='image.jpg')
-    color_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.color.id'), nullable=False)
-    size_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.size.id'), nullable=False)
-    packaging_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.packaging.id'), nullable=False)
-    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
 
-    marca = db.relationship('Brand', backref=db.backref('marcas', lazy=True))
-    categoria = db.relationship('Category', backref=db.backref('categorias', lazy=True))
+    color_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.color.id'), nullable=False)
     cor = db.relationship('Color', backref=db.backref('cores', lazy=True))
+
+    size_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.size.id'), nullable=False)
     nmsize = db.relationship('Size', backref=db.backref('sizes', lazy=True))
     tamanho = db.relationship('Size', backref=db.backref('tamanhos', lazy=True))
+    packaging_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.packaging.id'), nullable=False)
     embalagem = db.relationship('Packaging', backref=db.backref('embalagens', lazy=True))
+
+    store_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.store.id'), nullable=False)
     loja = db.relationship('Store', backref=db.backref('lojas.produto', lazy=True))
 
-# ==============================================================================
-# ✅ LÓGICA DE NORMALIZAÇÃO GLOBAL (UPPERCASE / LOWERCASE)
-# ==============================================================================
 
-def global_auto_format(mapper, connection, target):
-    """
-    Formata strings automaticamente antes de salvar no banco.
-    """
-    # Campos que devem ser preservados (senhas e arquivos)
-    ignored = ['password', 'profile', 'logo', 'logo_white', 'image_1', 'image_2', 'image_3', 'url']
-
-    for column in target.__table__.columns:
-        # Verifica se é coluna de texto (String ou Text)
-        if isinstance(column.type, (db.String, db.Text)) and column.name not in ignored:
-            value = getattr(target, column.name)
-            
-            if value and isinstance(value, str):
-                # E-mail e Usuário ficam em minúsculo
-                if column.name in ['email', 'username']:
-                    setattr(target, column.name, value.lower().strip())
-                # Restante fica em MAIÚSCULO
-                else:
-                    setattr(target, column.name, value.upper().strip())
-
-# Lista de todas as classes para aplicar a regra
-all_models = [User, Store, Brand, Category, Color, Size, Packaging, Product]
-
-for model in all_models:
-    event.listens_for(model, 'before_insert')(global_auto_format)
-    event.listens_for(model, 'before_update')(global_auto_format)

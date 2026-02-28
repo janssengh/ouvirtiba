@@ -6,11 +6,15 @@ BIBLIOTECAS PYTHON:
 Atualizar requirement.txt:
 pip freeze > requirements.txt
 
+EDITOR DE TEXTO PARA MEUS BLOGS:
+https://www.tiny.cloud/
+key api: hmrv54mnh3ve8vnwbkmrljsdxmayiukqutuitg16zkgfqrhd
+
 ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Atualização tela login e nova conta, com visual profissional"
+git commit -m "Gestão de blogs e Uppercase na base de dados"
 git push origin master
 
 ATUALIZAR RENDER:
@@ -62,6 +66,19 @@ SET serialnumber = '2544X1CP1'
 WHERE id = 94;
 Run
 
+---------------------------------------------------------------------------
+ erro KeyboardInterrupt:
+  No terminal Git Bash:
+    # Limpar cache do Python (Git Bash)
+    find . -type d -name "__pycache__" -exec rm -rf {} +
+    find . -type f -name "*.pyc" -delete
+
+    # Depois reinicie o Flask
+    python app.py
+
+Comando que ajusta a sequência client_id_seq para o valor máximo atual de ID na 
+tabela, evitando que ele tente usar um número repetido no próximo INSERT:
+SELECT setval('ouvirtiba.tabela', (SELECT MAX(id) FROM ouvirtiba.tabela));
 
 # Guia de Debug no Render - Erro na Geração de PDF
 

@@ -32,51 +32,69 @@ def client_register_start():
 # Endpoint: client_bp.client_register_proximo_passo
 @client_bp.route('/cliente/proximo_passo', methods=['POST']) 
 def client_register_proximo_passo():
+    """
+    Processa o envio do formulário de dados pessoais, ativando as validações.
+    Resolve o erro 404 que estava ocorrendo no POST.
+    """
     form = FormClientPFJ()
     
+    # ✅ 1. ATIVAÇÃO DA VALIDAÇÃO
     if form.validate_on_submit():
+        # Se a validação for OK.
         try:
-            # 1. Limpeza do código informado
+            # Lógica para determinar o tipo e salvar na sessão
             code_data = ''.join(filter(str.isdigit, form.code.data or ''))
             client_type = 'F' if len(code_data) == 11 else ('J' if len(code_data) == 14 else 'D')
             
-            final_code = code_data
-
-            # ✅ 2. VERIFICAÇÃO DE DUPLICIDADE (Exceto para tipo 'D' que gera código randômico)
-            if client_type in ['F', 'J']:
-                existing_client = Client.query.filter_by(code=final_code).first()
-                if existing_client:
-                    flash(f'Erro: Já existe um cliente cadastrado com o CPF/CNPJ {form.code.data}.', 'danger')
-                    return render_template('client/client_create_personal_data.html', 
-                                         form=form, titulo="Registrar Novo Cliente", stperson="active")
-
-            # 3. Lógica para tipo 'D' (Diversos) - Gera código único
+            ############################################
+            # 1. Finaliza a lógica do campo 'code' (CPF/CNPJ/Diversos)
+            final_code = code_data # Código limpo da sessão
+            
             if client_type == 'D':
-                date_str = datetime.now().strftime('%d%m%y')
+                # ✅ Lógica para gerar DDMMAA inteiro numérico
+                # Formato: DDMMYY (6 dígitos) + um identificador para unicidade
+                
+                # 1. Data DDMMAA
+                date_str = datetime.now().strftime('%d%m%y') # Ex: 161025
+                
+                # 2. Sufixo para garantir Unicidade (ex: 4 dígitos baseados no tempo/milisegundos)
+                # O campo 'code' tem 14 caracteres. 6 (DDMMAA) + 8 de sufixo.
+                # Para maior segurança, usaremos a hora, minuto, segundo e milissegundo.
                 suffix = datetime.now().strftime('%H%M%S%f')[:8]
+                
+                # 3. Código final (DDMMAA + Suffix)
                 final_code = f"{date_str}{suffix}" 
+                # O resultado terá 14 caracteres (6 da data + 8 do timestamp) e será único.
+            
+            # Nota: Se for 'F' ou 'J', 'final_code' já terá o CPF/CNPJ limpo (11 ou 14 dígitos).
+            ############################################
 
-            # 4. Armazenar dados na session
+            # Armazenar dados básicos na session
             session['client_reg_data'] = { 
                 'code': final_code, 
                 'name': form.name.data,
                 'contact': ''.join(filter(str.isdigit, form.contact.data)),
                 'email': form.email.data,
                 'type': client_type,
-                'store_id': session.get('store_id') # Use .get() para evitar KeyError
+                'store_id': session['store_id']
             }
             
-            flash('Dados Pessoais validados com sucesso.', 'info')
+            flash('Dados Pessoais validados com sucesso. Prossiga com o endereço.', 'info')
             return redirect(url_for('client_bp.client_register_address'))
 
         except Exception as e:
             flash(f'Erro interno ao processar dados. {e}', 'danger')
             
+    # ✅ 2. SE A VALIDAÇÃO FALHAR:
     else:
         flash('Por favor, corrija os erros nos campos antes de continuar.', 'warning')
         
+    # Renderiza o template de dados pessoais novamente, agora com os erros
     return render_template('client/client_create_personal_data.html', 
-                           form=form, titulo="Registrar Novo Cliente", stperson="active")
+                           form=form, 
+                           titulo="Registrar Novo Cliente", 
+                           stperson="active")
+
 
 # ROTA 2: CADASTRO DE CLIENTE - ENDEREÇO
 @client_bp.route('/cliente/endereco', methods=['GET'])

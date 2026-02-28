@@ -97,20 +97,25 @@ def product_list(type_id):
     url_logo = session['Store']['Url logo']
 
     # Cria o filtro base (sempre filtra pela loja)
-    query = Product.query.filter(Product.store_id == store_id)
+
+    query = Product.query.filter(
+        Product.store_id == store_id,
+        Product.stock > 0
+    )
+    #query = Product.query.filter(Product.store_id == store_id)
 
     # Se o type_id foi informado (1, 2 etc.), adiciona ao filtro
     if type_id is not None and type_id in [1, 2]: # Garante que só filtra se for 1 ou 2
         query = query.filter(Product.type_id == type_id)
 
     # Ordena os resultados
-    produtos = query.order_by(
-        Product.type_id.asc(),
-        Product.category_id.asc(),
-        Product.name.asc(),
-        Product.stock.desc()
-    ).all()
 
+    # Ordena os resultados por Marca, Categoria e Nome do Produto
+    produtos = query.join(Brand).join(Category).order_by(
+        Brand.name.asc(),
+        Category.name.asc(),
+        Product.name.asc()
+    ).all()
 
     return render_template('admin/product_list.html', produtos=produtos, type_id=type_id)
 

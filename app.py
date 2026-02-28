@@ -46,6 +46,7 @@ from admin import init_app as init_admin
 from admin.client.routes import client_bp
 from admin.order.routes import order_bp
 from admin.nfe.routes import nfe_bp
+from admin.blog_post.routes import blog_bp
 
 db.init_app(app)
 bcrypt.init_app(app)  # ✅ adiciona essa linha
@@ -54,6 +55,7 @@ init_admin(app)
 app.register_blueprint(client_bp)       
 app.register_blueprint(order_bp)
 app.register_blueprint(nfe_bp)
+app.register_blueprint(blog_bp)
 
 
 

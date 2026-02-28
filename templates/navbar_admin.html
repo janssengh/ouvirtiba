@@ -17,49 +17,52 @@
             <a class="nav-link active" aria-current="page" href="{{ url_for('admin.product_list') }}">Home</a>
           </li>
 
-        <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Loja | Usuário</a>
+          <!-- GESTÃO -->
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Gestão</a>
             <ul class="dropdown-menu">
               <li><a href="{{ url_for('admin.store_list') }}" class="dropdown-item">Lojas</a></li> 
-              <li><a href="{{ url_for('admin.user_list') }}" class="dropdown-item">Usuários</a></li> 
+              <li><a href="{{ url_for('admin.user_list') }}" class="dropdown-item">Usuários</a></li>
+              <li><a href="{{ url_for('client_bp.client_list') }}" class="dropdown-item">Clientes</a></li>
             </ul>
-          </li>          
-
-          <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('client_bp.client_list') }}">Clientes</a>
           </li>
 
-          <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('order_bp.order_list') }}">Pedidos</a>
-          </li>
-
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('nfe_bp.nfe_list') }}">Notas Fiscais</a>
-          </li>
-
+          <!-- VENDAS -->
           <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Tipo</a>
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Vendas</a>
             <ul class="dropdown-menu">
+              <li><a href="{{ url_for('order_bp.order_list') }}" class="dropdown-item">Pedidos</a></li>
+              <li><a href="{{ url_for('nfe_bp.nfe_list') }}" class="dropdown-item">Notas Fiscais</a></li>
+            </ul>
+          </li>
+
+          <!-- CATÁLOGO -->
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Catálogo</a>
+            <ul class="dropdown-menu">
+              <li><a href="{{ url_for('admin.product_list') }}" class="dropdown-item">Todos os Produtos</a></li>
+              <li><hr class="dropdown-divider"></li>
               <li><a href="{{ url_for('admin.product_list', type_id=1) }}" class="dropdown-item">AA - Aparelhos Auditivos</a></li>
               <li><a href="{{ url_for('admin.product_list', type_id=2) }}" class="dropdown-item">Ac - Acessórios</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a href="{{ url_for('admin.brand_list') }}" class="dropdown-item">Marcas</a></li>
+              <li><a href="{{ url_for('admin.category_list') }}" class="dropdown-item">Categorias</a></li>
+              <li><a href="{{ url_for('admin.color_list') }}" class="dropdown-item">Cores</a></li>
+              <li><a href="{{ url_for('admin.size_list') }}" class="dropdown-item">Tamanhos</a></li>
+              <li><a href="{{ url_for('admin.packaging_list') }}" class="dropdown-item">Embalagens</a></li>
             </ul>
           </li>
-          
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin.brand_list') }}">Marcas</a>
+
+          <!-- BLOG -->
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Blog</a>
+            <ul class="dropdown-menu">
+              <li><a href="{{ url_for('blog_bp.blog_list') }}" class="dropdown-item">Gerenciar Posts</a></li>
+              <!--<li><a href="" class="dropdown-item">Gerenciar Posts</a></li>-->
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin.category_list') }}">Categorias</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin.color_list') }}">Cores</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin.size_list') }}">Tamanhos</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin.packaging_list') }}">Embalagens</a>
-          </li>
+
+          <!-- SAIR -->
           <li class="nav-item">
             <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
               <i class="bi bi-box-arrow-right"></i> Sair

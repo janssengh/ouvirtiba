@@ -1,0 +1,304 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h2>{{ titulo }}</h2>
+    <hr>
+
+    <form method="POST" action="{{ url_for('blog_bp.blog_create') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+        
+        {{ form.csrf_token }}
+        {{ form.store_id(value=session['store_id']) }}
+
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <div class="form-floating">
+                    {{ form.title(class='form-control', placeholder='Título do Post', required=True) }}
+                    <label for="{{ form.title.id }}">Título do Post *</label>
+                    {% if form.title.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.title.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="form-floating">
+                    {{ form.author(class='form-control', placeholder='Nome do Autor', required=True) }}
+                    <label for="{{ form.author.id }}">Autor *</label>
+                    {% if form.author.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.author.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.summary.id }}" class="form-label">Resumo *</label>
+                {{ form.summary(class='form-control', rows='3', placeholder='Breve resumo do post (máximo 355 caracteres)', required=True) }}
+                <small class="text-muted">Será exibido na lista de posts</small>
+                {% if form.summary.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.summary.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ============================================================ #}
+        {# CAMPO CONTEÚDO COM TINYMCE                                    #}
+        {# ============================================================ #}
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.content.id }}" class="form-label">Conteúdo *</label>
+                {{ form.content(class='form-control', rows='20', id='blog-content') }}
+                {% if form.content.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.content.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="{{ form.image.id }}" class="form-label">Imagem Destacada</label>
+                {{ form.image(class='form-control') }}
+                <small class="text-muted">Formatos aceitos: JPG, PNG, GIF, WEBP</small>
+                {% if form.image.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.image.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating">
+                    {{ form.slug(class='form-control', placeholder='url-amigavel-do-post', id='blog-slug') }}
+                    <label for="{{ form.slug.id }}">Slug (URL amigável)</label>
+                    <small class="text-muted">Deixe em branco para gerar automaticamente</small>
+                    {% if form.slug.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.slug.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="form-check form-switch">
+                    {{ form.active(class='form-check-input', role='switch', checked=True) }}
+                    <label class="form-check-label" for="{{ form.active.id }}">
+                        Publicar post imediatamente
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Criar Post
+                </button>
+                <a href="{{ url_for('blog_bp.blog_list') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+{# ============================================================ #}
+{# TINYMCE - Editor de Texto Rico                               #}
+{# ============================================================ #}
+<script src="https://cdn.tiny.cloud/1/hmrv54mnh3ve8vnwbkmrljsdxmayiukqutuitg16zkgfqrhd/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+
+{# Oculta o botão "Explore trial" do TinyMCE versão 7 #}
+<style>
+    .tox-promotion,
+    .tox-promotion-link,
+    .tox .tox-promotion,
+    button.tox-tbtn[aria-label="Upgrade"],
+    .tox-statusbar__branding {
+        display: none !important;
+        visibility: hidden !important;
+    }
+</style>
+
+<script>
+    tinymce.init({
+        selector: '#blog-content',
+        language: 'pt_BR',
+        language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.10.9/langs6/pt_BR.js',
+        height: 600,
+        menubar: true,
+
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+            'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
+            'fullscreen', 'insertdatetime', 'media', 'table', 'wordcount'
+        ],
+
+        toolbar:
+            'undo redo | blocks fontfamily fontsize | ' +
+            'bold italic underline strikethrough | ' +
+            'alignleft aligncenter alignright alignjustify | ' +
+            'bullist numlist outdent indent | ' +
+            'forecolor backcolor | removeformat | ' +
+            'link image media table | ' +
+            'fullscreen preview code',
+
+        // Fontes disponíveis
+        font_family_formats:
+            'Arial=arial,helvetica,sans-serif;' +
+            'Arial Black=arial black,avant garde;' +
+            'Courier New=courier new,courier;' +
+            'Georgia=georgia,palatino;' +
+            'Helvetica=helvetica;' +
+            'Impact=impact,chicago;' +
+            'Tahoma=tahoma,arial,helvetica,sans-serif;' +
+            'Times New Roman=times new roman,times;' +
+            'Verdana=verdana,geneva;',
+
+        // Tamanhos de fonte
+        font_size_formats: '8pt 9pt 10pt 11pt 12pt 14pt 16pt 18pt 20pt 22pt 24pt 26pt 28pt 36pt 48pt 72pt',
+
+        // Estilos de parágrafo e títulos
+        block_formats: 'Parágrafo=p; Título 1=h1; Título 2=h2; Título 3=h3; Título 4=h4; Título 5=h5; Título 6=h6; Pré-formatado=pre',
+
+        // Colar do Word mantendo formatação
+        paste_data_images: true,
+        paste_as_text: false,
+        smart_paste: true,
+
+        // Upload de imagens dentro do conteúdo
+        images_upload_url: "{{ url_for('blog_bp.upload_image') }}",
+        images_upload_handler: function(blobInfo, progress) {
+            return new Promise(function(resolve, reject) {
+                var formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+                fetch("{{ url_for('blog_bp.upload_image') }}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    }
+                })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.location) {
+                        resolve(data.location);
+                    } else {
+                        reject('Erro ao fazer upload: ' + data.error);
+                    }
+                })
+                .catch(function(err) {
+                    reject('Erro de conexão: ' + err);
+                });
+            });
+        },
+
+        // Links externos
+        link_assume_external_targets: true,
+        link_target_list: [
+            { text: 'Mesma aba', value: '' },
+            { text: 'Nova aba', value: '_blank' }
+        ],
+
+        promotion: false,
+        branding: false,
+        resize: true,
+        statusbar: false,      // ✅ Remove barra inferior (p > strong)
+        elementpath: false,    // ✅ Remove breadcrumb de elementos HTML
+
+        content_style: `
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                color: #333;
+                padding: 10px;
+            }
+            img { max-width: 100%; height: auto; }
+            a { cursor: pointer; text-decoration: underline; color: #0066cc; }
+            a:hover { color: #004499; }
+        `,
+        
+        // ✅ Permite abrir links com duplo clique OU Ctrl+Clique
+        setup: function(editor) {
+            let clickTimeout;
+            let lastClickedElement;
+            
+            // Detecta duplo clique em links
+            editor.on('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    // Se Ctrl está pressionado, deixa o comportamento padrão do TinyMCE
+                    if (e.ctrlKey || e.metaKey) {
+                        return;
+                    }
+                    
+                    // Detecta duplo clique
+                    if (lastClickedElement === e.target && clickTimeout) {
+                        clearTimeout(clickTimeout);
+                        clickTimeout = null;
+                        lastClickedElement = null;
+                        window.open(e.target.href, '_blank');
+                        e.preventDefault();
+                    } else {
+                        lastClickedElement = e.target;
+                        clickTimeout = setTimeout(function() {
+                            lastClickedElement = null;
+                            clickTimeout = null;
+                        }, 300); // 300ms para detectar duplo clique
+                    }
+                }
+            });
+        }
+    });
+
+    // Gera slug automaticamente ao digitar o título
+    document.addEventListener('DOMContentLoaded', function() {
+        const titleInput = document.querySelector('#{{ form.title.id }}');
+        const slugInput = document.querySelector('#blog-slug');
+
+        if (titleInput && slugInput) {
+            titleInput.addEventListener('blur', function() {
+                if (!slugInput.value) {
+                    let slug = titleInput.value.toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9\s-]/g, '')
+                        .replace(/\s+/g, '-')
+                        .replace(/-+/g, '-')
+                        .replace(/^-|-$/g, '');
+                    slugInput.value = slug;
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

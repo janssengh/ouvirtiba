@@ -1,0 +1,112 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Gerenciar Posts do Blog</h2>
+        
+        <a href="{{ url_for('blog_bp.blog_create') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Novo Post
+        </a>
+    </div>
+
+    <hr>
+    
+    <table class="table table-striped table-hover mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Status</th>
+                <th>Data Criação</th>
+                <th>Última Atualização</th>
+                <th>Editar</th>
+                <th>Excluir</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if posts %}
+                {% for post in posts %}
+                <tr>
+                    <td>{{ post.id }}</td>
+                    <td>
+                        <strong>{{ post.title }}</strong>
+                        <br>
+                        <small class="text-muted">{{ post.summary[:80] }}...</small>
+                    </td>
+                    <td>{{ post.author }}</td>
+                    <td>
+                        {% if post.active %}
+                            <span class="badge bg-success">Publicado</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Rascunho</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ post.created_at.strftime('%d/%m/%y %H:%M') }}</td>
+                    <td>
+                        {% if post.updated_at %}
+                            {{ post.updated_at.strftime('%d/%m/%y %H:%M') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    
+                    {# BOTÃO EDITAR #}
+                    <td>
+                        <a href="{{ url_for('blog_bp.blog_update', id=post.id) }}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                    </td>
+                    
+                    {# BOTÃO DELETAR (ABRE O MODAL) #}
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                            data-bs-target="#delModal-{{ post.id }}">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </td>
+                </tr>
+
+                {# MODAL DE CONFIRMAÇÃO DE EXCLUSÃO #}
+                <div class="modal fade" id="delModal-{{ post.id }}" tabindex="-1" aria-labelledby="delModalLabel-{{ post.id }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="delModalLabel-{{ post.id }}">Excluir Post</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <span class="text-danger">
+                                    Deseja realmente excluir o post <strong>"{{ post.title }}"</strong>? 
+                                    Esta ação é irreversível.
+                                </span>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                
+                                <form action="{{ url_for('blog_bp.blog_delete', post_id=post.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-2">Nenhum post encontrado. Crie seu primeiro post!</p>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

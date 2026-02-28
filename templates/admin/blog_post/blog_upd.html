@@ -1,0 +1,315 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h2>Editar Post: {{ post.title }}</h2>
+    <hr>
+
+    <form method="POST" action="{{ url_for('blog_bp.blog_update', id=post.id) }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+        
+        {{ form.csrf_token }}
+
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <div class="form-floating">
+                    {{ form.title(class='form-control', placeholder='Título do Post', required=True) }}
+                    <label for="{{ form.title.id }}">Título do Post *</label>
+                    {% if form.title.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.title.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="form-floating">
+                    {{ form.author(class='form-control', placeholder='Nome do Autor', required=True) }}
+                    <label for="{{ form.author.id }}">Autor *</label>
+                    {% if form.author.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.author.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.summary.id }}" class="form-label">Resumo *</label>
+                {{ form.summary(class='form-control', rows='3', placeholder='Breve resumo do post', required=True) }}
+                <small class="text-muted">Será exibido na lista de posts (máximo 355 caracteres)</small>
+                {% if form.summary.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.summary.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="blog-content" class="form-label">Conteúdo *</label>
+                {{ form.content(class='form-control', rows='15', id='blog-content') }}
+                {% if form.content.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.content.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="{{ form.image.id }}" class="form-label">Imagem Destacada</label>
+                {% if post.image %}
+                    <div class="mb-2">
+                        <img src="{{ url_for('static', filename=post.image) }}" alt="Imagem atual" class="img-thumbnail" style="max-height: 200px;">
+                        <p class="text-muted small">Imagem atual</p>
+                    </div>
+                {% endif %}
+                {{ form.image(class='form-control') }}
+                <small class="text-muted">Formatos aceitos: JPG, PNG, GIF, WEBP. Deixe em branco para manter a imagem atual.</small>
+                {% if form.image.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.image.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating">
+                    {{ form.slug(class='form-control', placeholder='url-amigavel-do-post') }}
+                    <label for="{{ form.slug.id }}">Slug (URL amigável)</label>
+                    <small class="text-muted">Modificar pode quebrar links existentes</small>
+                    {% if form.slug.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.slug.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="form-check form-switch">
+                    {{ form.active(class='form-check-input', role='switch') }}
+                    <label class="form-check-label" for="{{ form.active.id }}">
+                        Post Publicado
+                    </label>
+                    <small class="text-muted d-block">Desmarque para salvar como rascunho</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <p class="text-muted small">
+                    <strong>Criado em:</strong> {{ post.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                </p>
+            </div>
+            <div class="col-md-6">
+                {% if post.updated_at %}
+                <p class="text-muted small">
+                    <strong>Última atualização:</strong> {{ post.updated_at.strftime('%d/%m/%Y às %H:%M') }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Salvar Alterações
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de Confirmação de Cancelamento -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelModalLabel">Cancelar Alterações</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-warning">Tem certeza que deseja cancelar? As alterações não salvas serão perdidas.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="{{ url_for('blog_bp.blog_list') }}" class="btn btn-primary">OK</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ============================================================ #}
+{# TINYMCE - Editor de Texto Rico                               #}
+{# ============================================================ #}
+<script src="https://cdn.tiny.cloud/1/hmrv54mnh3ve8vnwbkmrljsdxmayiukqutuitg16zkgfqrhd/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+
+{# Oculta o botão "Explore trial" do TinyMCE versão 7 #}
+<style>
+    .tox-promotion,
+    .tox-promotion-link,
+    .tox .tox-promotion,
+    button.tox-tbtn[aria-label="Upgrade"],
+    .tox-statusbar__branding {
+        display: none !important;
+        visibility: hidden !important;
+    }
+</style>
+
+<script>
+    tinymce.init({
+        selector: '#blog-content',
+        language: 'pt_BR',
+        language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.10.9/langs6/pt_BR.js',
+        height: 600,
+        menubar: true,
+
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+            'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
+            'fullscreen', 'insertdatetime', 'media', 'table', 'wordcount'
+        ],
+
+        toolbar:
+            'undo redo | blocks fontfamily fontsize | ' +
+            'bold italic underline strikethrough | ' +
+            'alignleft aligncenter alignright alignjustify | ' +
+            'bullist numlist outdent indent | ' +
+            'forecolor backcolor | removeformat | ' +
+            'link image media table | ' +
+            'fullscreen preview code',
+
+        font_family_formats:
+            'Arial=arial,helvetica,sans-serif;' +
+            'Arial Black=arial black,avant garde;' +
+            'Courier New=courier new,courier;' +
+            'Georgia=georgia,palatino;' +
+            'Helvetica=helvetica;' +
+            'Impact=impact,chicago;' +
+            'Tahoma=tahoma,arial,helvetica,sans-serif;' +
+            'Times New Roman=times new roman,times;' +
+            'Verdana=verdana,geneva;',
+
+        font_size_formats: '8pt 9pt 10pt 11pt 12pt 14pt 16pt 18pt 20pt 22pt 24pt 26pt 28pt 36pt 48pt 72pt',
+
+        block_formats: 'Parágrafo=p; Título 1=h1; Título 2=h2; Título 3=h3; Título 4=h4; Título 5=h5; Título 6=h6; Pré-formatado=pre',
+
+        paste_data_images: true,
+        paste_as_text: false,
+        smart_paste: true,
+
+        images_upload_url: "{{ url_for('blog_bp.upload_image') }}",
+        images_upload_handler: function(blobInfo, progress) {
+            return new Promise(function(resolve, reject) {
+                var formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+                fetch("{{ url_for('blog_bp.upload_image') }}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    }
+                })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.location) {
+                        resolve(data.location);
+                    } else {
+                        reject('Erro ao fazer upload: ' + data.error);
+                    }
+                })
+                .catch(function(err) {
+                    reject('Erro de conexão: ' + err);
+                });
+            });
+        },
+
+        link_assume_external_targets: true,
+        link_target_list: [
+            { text: 'Mesma aba', value: '' },
+            { text: 'Nova aba', value: '_blank' }
+        ],
+
+        promotion: false,
+        branding: false,
+        resize: true,
+        statusbar: false,      // ✅ Remove barra inferior (p > strong)
+        elementpath: false,    // ✅ Remove breadcrumb de elementos HTML
+
+        content_style: `
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                color: #333;
+                padding: 10px;
+            }
+            img { max-width: 100%; height: auto; }
+            a { cursor: pointer; text-decoration: underline; color: #0066cc; }
+            a:hover { color: #004499; }
+        `,
+        
+        // ✅ Permite abrir links com duplo clique OU Ctrl+Clique
+        setup: function(editor) {
+            let clickTimeout;
+            let lastClickedElement;
+            
+            // Detecta duplo clique em links
+            editor.on('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    // Se Ctrl está pressionado, deixa o comportamento padrão do TinyMCE
+                    if (e.ctrlKey || e.metaKey) {
+                        return;
+                    }
+                    
+                    // Detecta duplo clique
+                    if (lastClickedElement === e.target && clickTimeout) {
+                        clearTimeout(clickTimeout);
+                        clickTimeout = null;
+                        lastClickedElement = null;
+                        window.open(e.target.href, '_blank');
+                        e.preventDefault();
+                    } else {
+                        lastClickedElement = e.target;
+                        clickTimeout = setTimeout(function() {
+                            lastClickedElement = null;
+                            clickTimeout = null;
+                        }, 300); // 300ms para detectar duplo clique
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

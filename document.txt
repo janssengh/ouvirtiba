@@ -259,4 +259,34 @@ def gerar_xml_nfce(id):
 
     flash("Geração do XML NFC-e concluída com sucesso!", "success")
     return redirect(url_for("nfe_bp.nfe_list"))
+
+Criar tabela para gestão dos blogs no SUPABASE :
+-- Tabela de Posts do Blog
+CREATE TABLE IF NOT EXISTS ouvirtiba.blog_post (
+    id SERIAL PRIMARY KEY,
+    store_id INTEGER NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    summary VARCHAR(355) NOT NULL,
+    content TEXT NOT NULL,
+    author VARCHAR(45) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    image VARCHAR(150),
+    active BOOLEAN DEFAULT TRUE,
+    slug VARCHAR(255) UNIQUE,
+    
+    -- Chave estrangeira (assumindo que existe uma tabela 'store')
+    CONSTRAINT fk_store FOREIGN KEY (store_id) REFERENCES ouvirtiba.store(id) ON DELETE CASCADE
+);
+
+-- Índices para melhorar performance
+CREATE INDEX idx_blog_post_store_id ON ouvirtiba.blog_post(store_id);
+CREATE INDEX idx_blog_post_created_at ON ouvirtiba.blog_post(created_at DESC);
+CREATE INDEX idx_blog_post_active ON ouvirtiba.blog_post(active);
+CREATE INDEX idx_blog_post_slug ON ouvirtiba.blog_post(slug);
+
+-- Comentários para documentação
+COMMENT ON TABLE ouvirtiba.blog_post IS 'Tabela de posts do blog';
+COMMENT ON COLUMN ouvirtiba.blog_post.slug IS 'URL amigável gerada a partir do título';
+COMMENT ON COLUMN ouvirtiba.blog_post.active IS 'Indica se o post está publicado ou rascunho';
        
