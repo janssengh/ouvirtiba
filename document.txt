@@ -290,3 +290,8 @@ COMMENT ON TABLE ouvirtiba.blog_post IS 'Tabela de posts do blog';
 COMMENT ON COLUMN ouvirtiba.blog_post.slug IS 'URL amigável gerada a partir do título';
 COMMENT ON COLUMN ouvirtiba.blog_post.active IS 'Indica se o post está publicado ou rascunho';
        
+
+                            <a href="{{ url_for('purchases_bp.invoice_update', id=inv.id) }}" 
+                               class="btn btn-outline-warning btn-sm btn-compact text-nowrap">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>

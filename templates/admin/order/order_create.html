@@ -145,201 +145,46 @@
     </div>
 </div>
 
+{% block scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    
+    // Captura dos inputs usando os IDs padrão do WTForms
+    const issueInp = document.getElementById('issue_date');
+    const receiptInp = document.getElementById('receipt_date');
+    const entryInp = document.getElementById('entry_exit_date');
 
-    // Atualiza o preço ao selecionar produto
-    function updatePrice(selectElement) {
-        const selected = selectElement.options[selectElement.selectedIndex];
-        const price = selected.getAttribute("data-price") || "";
-        const row = selectElement.closest(".item-row");
-        const priceInput = row.querySelector(".price-input");
-        const originalPriceInput = row.querySelector(".original-price");
-        
-        // ✅ Define o preço automaticamente ao selecionar o produto
-        if (priceInput && price) {
-            priceInput.value = parseFloat(price).toFixed(2);
-            // Guarda o preço original para calcular desconto
-            if (originalPriceInput) {
-                originalPriceInput.value = price;
-            }
+    form.addEventListener('submit', function(event) {
+        // Converte valores para objetos Date (YYYY-MM-DD)
+        // Adicionamos T00:00:00 para evitar problemas de fuso horário no JS
+        const issueDate = new Date(issueInp.value + 'T00:00:00');
+        const receiptDate = new Date(receiptInp.value + 'T00:00:00');
+        const entryDate = new Date(entryInp.value + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let msg = [];
+
+        if (issueDate > today) {
+            msg.push("• A Data de Emissão não pode ser futura.");
         }
-        updateRowTotal(row);
-    }
-
-    // Atualiza o total do item e calcula desconto
-    function updateRowTotal(row) {
-        const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
-        const price = parseFloat(row.querySelector(".price-input").value) || 0;
-        const originalPrice = parseFloat(row.querySelector(".original-price").value) || price;
-        
-        const total = qty * price;
-        row.querySelector(".total-input").value = total.toFixed(2);
-        
-        // ✅ Calcula o desconto (diferença entre preço original e preço com desconto)
-        const discount = (originalPrice - price) * qty;
-        const discountInput = row.querySelector(".discount-input");
-        if (discountInput) {
-            discountInput.value = discount > 0 ? discount.toFixed(2) : "0.00";
+        if (receiptDate < issueDate) {
+            msg.push("• A Data de Recebimento não pode ser anterior à emissão.");
         }
-        
-        // ✅ Atualiza os totais gerais
-        updateTotals();
-    }
+        if (entryDate < issueDate) {
+            msg.push("• A Data de Entrada não pode ser anterior à emissão.");
+        }
 
-    // ✅ Calcula e atualiza os totais do pedido
-    function updateTotals() {
-        let totalBruto = 0;
-        let totalDesconto = 0;
-        let totalLiquido = 0;
-
-        document.querySelectorAll(".item-row").forEach(row => {
-            const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
-            const originalPrice = parseFloat(row.querySelector(".original-price").value) || 0;
-            const price = parseFloat(row.querySelector(".price-input").value) || 0;
+        if (msg.length > 0) {
+            event.preventDefault(); // BLOQUEIA O ENVIO
+            event.stopPropagation();
             
-            if (qty > 0 && price > 0) {
-                const itemBruto = qty * (originalPrice || price);
-                const itemLiquido = qty * price;
-                const itemDesconto = itemBruto - itemLiquido;
-                
-                totalBruto += itemBruto;
-                totalLiquido += itemLiquido;
-                totalDesconto += itemDesconto;
-            }
-        });
-
-        // Atualiza os campos de resumo
-        document.getElementById("total-bruto").value = `R$ ${totalBruto.toFixed(2)}`.replace('.', ',');
-        document.getElementById("total-desconto").value = `R$ ${totalDesconto.toFixed(2)}`.replace('.', ',');
-        document.getElementById("total-liquido").value = `R$ ${totalLiquido.toFixed(2)}`.replace('.', ',');
-    }
-
-    // Valida estoque em tempo real
-    async function checkStock(row) {
-        const select = row.querySelector(".product-select");
-        const qtyInput = row.querySelector(".quantity-input");
-        const productId = select.value;
-
-        if (!productId) return;
-
-        try {
-            const response = await fetch(`/admin/order/check_stock/${productId}`);
-            if (!response.ok) return;
-            const data = await response.json();
-            const stock = data.stock;
-
-            const qty = parseInt(qtyInput.value) || 0;
-            if (qty > stock) {
-                alert(`❌ Estoque insuficiente! Disponível: ${stock}, solicitado: ${qty}.`);
-                qtyInput.value = stock;
-                updateRowTotal(row);
-            }
-        } catch (err) {
-            console.error("Erro ao verificar estoque:", err);
+            alert("Verifique as datas da nota:\n\n" + msg.join("\n"));
         }
-    }
-
-    // Aplica listeners de eventos a uma linha
-    function applyRowListeners(row) {
-        const productSelect = row.querySelector(".product-select");
-        const qtyInput = row.querySelector(".quantity-input");
-        const priceInput = row.querySelector(".price-input");
-        const removeBtn = row.querySelector(".remove-item");
-
-        if (productSelect) productSelect.addEventListener("change", () => updatePrice(productSelect));
-        if (qtyInput) qtyInput.addEventListener("input", () => {
-            updateRowTotal(row);
-            checkStock(row);
-        });
-        if (priceInput) priceInput.addEventListener("input", () => updateRowTotal(row));
-        if (removeBtn) removeBtn.addEventListener("click", () => {
-            // Só remove se houver mais de 1 item
-            if (document.querySelectorAll(".item-row").length > 1) {
-                row.remove();
-                updateTotals(); // ✅ Atualiza totais após remover
-            } else {
-                alert("Deve haver pelo menos um item no pedido!");
-            }
-        });
-    }
-
-    // Inicializa linhas existentes
-    document.querySelectorAll(".item-row").forEach(row => applyRowListeners(row));
-
-    // ✅ Adiciona novo item SEM LABELS (apenas os campos)
-    document.getElementById("add-item").addEventListener("click", () => {
-        const container = document.getElementById("itens-container");
-        const clone = container.querySelector(".item-row").cloneNode(true);
-
-        // ✅ LIMPA TODOS OS CAMPOS DO ITEM CLONADO
-        // Limpa o select de produto
-        const selectProduct = clone.querySelector(".product-select");
-        if (selectProduct) selectProduct.selectedIndex = 0;
-        
-        // Limpa o serial number
-        const serialInput = clone.querySelector(".serialnumber-input");
-        if (serialInput) serialInput.value = "";
-        
-        // Reseta quantidade para 1
-        const qtyInput = clone.querySelector(".quantity-input");
-        if (qtyInput) qtyInput.value = "1";
-        
-        // Limpa preço
-        const priceInput = clone.querySelector(".price-input");
-        if (priceInput) priceInput.value = "";
-        
-        // Limpa preço original
-        const originalPriceInput = clone.querySelector(".original-price");
-        if (originalPriceInput) originalPriceInput.value = "";
-        
-        // Limpa total
-        const totalInput = clone.querySelector(".total-input");
-        if (totalInput) totalInput.value = "";
-        
-        // Limpa desconto
-        const discountInput = clone.querySelector(".discount-input");
-        if (discountInput) discountInput.value = "";
-
-        container.appendChild(clone);
-        applyRowListeners(clone);
     });
-
-    // ----------- PAGAMENTO -----------
-    const paymentFormSelect = document.getElementById("payment_form");
-    const paymentAmountDiv = document.getElementById("payment_amount_div");
-    const paymentConditionDiv = document.getElementById("payment_condition_div");
-    const paymentFormInpDiv = document.getElementById("payment_form_inp_div");
-
-    function updatePaymentFields() {
-        const val = parseInt(paymentFormSelect.value);
-
-        paymentAmountDiv.style.display = "none";
-        paymentConditionDiv.style.display = "none";
-        paymentFormInpDiv.style.display = "none";
-
-        if (val === 4) {
-            paymentConditionDiv.style.display = "block";
-        } else if (val === 5) {
-            paymentAmountDiv.style.display = "block";
-            paymentFormInpDiv.style.display = "block";
-            paymentConditionDiv.style.display = "block";
-        }
-    }
-
-    paymentFormSelect.addEventListener("change", updatePaymentFields);
-
-    // Confirmação ao cancelar o pedido
-    const cancelButton = document.getElementById("cancel-button");
-    if (cancelButton) {
-        cancelButton.addEventListener("click", function() {
-            const confirmCancel = confirm("Tem certeza que deseja cancelar este pedido?\nTodas as informações preenchidas serão perdidas.");
-            if (confirmCancel) {
-                window.location.href = "{{ url_for('order_bp.order_list') }}";
-            }
-        });
-    }
 });
 </script>
+{% endblock %}
 
 {% endblock content %}

@@ -1,0 +1,64 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h2>Editar Fornecedor: {{ supplier.corporate_name }}</h2>
+    <hr>
+
+    <form method="POST" action="{{ url_for('purchases_bp.supplier_update', id=supplier.id) }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+        
+        {{ form.csrf_token }}
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.corporate_name.id }}" class="form-label">Razão Social *</label>
+                {{ form.corporate_name(class='form-control', placeholder='Razão Social', required=True) }}
+                {% if form.corporate_name.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.corporate_name.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Salvar Alterações
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de Confirmação de Cancelamento -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelModalLabel">Cancelar Alterações</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-warning">Tem certeza que deseja cancelar? As alterações não salvas serão perdidas.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="{{ url_for('purchases_bp.supplier_list') }}" class="btn btn-primary">OK</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

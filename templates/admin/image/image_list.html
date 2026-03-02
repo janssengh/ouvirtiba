@@ -1,0 +1,61 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary mb-0">🖼️ {{ titulo }}</h2>  
+        <span class="badge bg-info">{{ images|length }} imagens encontradas</span>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th>Miniatura</th>
+                        <th>Nome do Arquivo</th>
+                        <th>Pasta</th>
+                        <th>Tamanho</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for img in images %}
+                    <tr class="text-center">
+                        <td>
+                            <img src="{{ url_for('static', filename='uploads/blog/' + img.name if img.category == 'blog' else 'img/admin/' + img.name) }}" 
+                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                        </td>
+                        <td class="text-start">{{ img.name }}</td>
+                        <td><span class="badge bg-secondary">{{ img.category }}</span></td>
+                        <td>{{ img.size }} KB</td>
+                        <td>{{ img.date }}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalDelete{{ loop.index }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                            <div class="modal fade" id="modalDelete{{ loop.index }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header"><h5>Confirmar Exclusão</h5></div>
+                                        <div class="modal-body text-start">Deseja apagar a imagem <strong>{{ img.name }}</strong>?</div>
+                                        <div class="modal-footer">
+                                            <form action="{{ url_for('image_bp.image_delete', category=img.category, filename=img.name) }}" method="POST">
+                                                <button type="submit" class="btn btn-danger">Sim, excluir</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

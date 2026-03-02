@@ -1,0 +1,49 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary mb-0">
+            <i class="bi bi-eye"></i> Detalhes da Imagem
+        </h2>
+        <a href="{{ url_for('image_bp.image_list') }}" class="btn btn-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Voltar à Lista
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card shadow-sm text-center p-3 bg-light">
+                <img src="{{ url_for('static', filename='uploads/blog/' + filename if category == 'blog' else 'img/admin/' + filename) }}" 
+                     class="img-fluid rounded shadow" style="max-height: 500px;">
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-bold">Propriedades do Arquivo</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>Nome:</strong> {{ filename }}</li>
+                        <li class="list-group-item"><strong>Categoria:</strong> {{ category|upper }}</li>
+                        <li class="list-group-item"><strong>Caminho:</strong> <code>static/{{ 'uploads/blog' if category == 'blog' else 'img/admin' }}</code></li>
+                    </ul>
+                    
+                    <div class="alert alert-warning mt-4 warning-box">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        A exclusão desta imagem pode quebrar links em posts do blog ou no painel administrativo.
+                    </div>
+                </div>
+                <div class="card-footer bg-white text-end">
+                    <form action="{{ url_for('image_bp.image_delete', category=category, filename=filename) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja apagar permanentemente?')">
+                            <i class="bi bi-trash"></i> Apagar Imagem
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

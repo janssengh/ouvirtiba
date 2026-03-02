@@ -99,8 +99,7 @@ def product_list(type_id):
     # Cria o filtro base (sempre filtra pela loja)
 
     query = Product.query.filter(
-        Product.store_id == store_id,
-        Product.stock > 0
+        Product.store_id == store_id
     )
     #query = Product.query.filter(Product.store_id == store_id)
 
@@ -114,7 +113,8 @@ def product_list(type_id):
     produtos = query.join(Brand).join(Category).order_by(
         Brand.name.asc(),
         Category.name.asc(),
-        Product.name.asc()
+        Product.name.asc(),
+        Product.stock.desc()
     ).all()
 
     return render_template('admin/product_list.html', produtos=produtos, type_id=type_id)

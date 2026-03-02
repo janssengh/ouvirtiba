@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Gestão de blogs e Uppercase na base de dados"
+git commit -m "Gestão de compras e imagens"
 git push origin master
 
 ATUALIZAR RENDER:

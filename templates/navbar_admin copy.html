@@ -36,15 +36,6 @@
             </ul>
           </li>
 
-          <!-- COMPRAS -->
-          <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Compras</a>
-            <ul class="dropdown-menu">
-              <li><a href="{{ url_for('purchases_bp.supplier_list') }}" class="dropdown-item">Fornecedores</a></li>
-              <li><a href="{{ url_for('purchases_bp.invoice_list') }}" class="dropdown-item">Notas de Entrada</a></li>
-            </ul>
-          </li>
-
           <!-- CATÁLOGO -->
           <li class="nav-item dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Catálogo</a>
@@ -69,31 +60,6 @@
               <li><a href="{{ url_for('blog_bp.blog_list') }}" class="dropdown-item">Gerenciar Posts</a></li>
               <!--<li><a href="" class="dropdown-item">Gerenciar Posts</a></li>-->
             </ul>
-          </li>
-
-          <!-- Gestao das imagens -->
-          <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownImagens" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="bi bi-images"></i> Imagens
-              </a>
-              <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownImagens">
-                  <li>
-                      <a class="dropdown-item" href="{{ url_for('image_bp.image_list', folder_filter='admin') }}">
-                          <i class="bi bi-gear me-2"></i> Geral (Admin)
-                      </a>
-                  </li>
-                  <li>
-                      <a class="dropdown-item" href="{{ url_for('image_bp.image_list', folder_filter='blog') }}">
-                          <i class="bi bi-journal-text me-2"></i> Blog
-                      </a>
-                  </li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li>
-                      <a class="dropdown-item text-primary" href="{{ url_for('image_bp.image_list') }}">
-                          <i class="bi bi-list-ul me-2"></i> Todas as Imagens
-                      </a>
-                  </li>
-              </ul>
           </li>
 
           <!-- SAIR -->

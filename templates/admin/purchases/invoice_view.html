@@ -1,0 +1,90 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary mb-0">🔍 Detalhes da Nota de Entrada</h2>
+        <a href="{{ url_for('purchases_bp.invoice_list') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar para a Lista
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4 border-start border-primary border-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <small class="text-muted text-uppercase fw-bold">Número / Série</small>
+                    <p class="fs-5">{{ invoice.invoice_number }} / {{ invoice.series }}</p>
+                </div>
+                <div class="col-md-5">
+                    <small class="text-muted text-uppercase fw-bold">Fornecedor</small>
+                    <p class="fs-5 text-truncate">{{ invoice.supplier.corporate_name }}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <small class="text-muted text-uppercase fw-bold">Valor Total da NF</small>
+                    <p class="fs-4 fw-bold text-primary">R$ {{ ("%0.2f"|format(invoice.total_amount|float)).replace('.',',') }}</p>
+                </div>
+            </div>
+            <hr class="my-2">
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <strong>Data de Emissão:</strong> {{ invoice.issue_date.strftime('%d/%m/%Y') }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Data de Recebimento:</strong> {{ invoice.receipt_date.strftime('%d/%m/%Y') }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Status:</strong> 
+                    <span class="badge bg-success">Finalizada</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2"></i>Produtos da Nota</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">ID Prod.</th>
+                            <th>Descrição do Produto</th>
+                            <th>Código Fornecedor</th>
+                            <th class="text-center">Quantidade</th>
+                            <th class="text-end">Preço Unit.</th>
+                            <th class="text-end pe-3">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in invoice.items %}
+                        <tr>
+                            <td class="ps-3 text-muted">#{{ item.product.id }}</td>
+                            <td class="fw-bold">{{ item.product.name }}</td>
+                            <td class="fw-bold">{{ item.supplier_product_code }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end text-nowrap">R$ {{ ("%0.2f"|format(item.unit_price)).replace('.',',') }}</td>
+                            <td class="text-end pe-3 text-nowrap fw-bold">
+                                R$ {{ ("%0.2f"|format(item.quantity * item.unit_price)).replace('.',',') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">Soma total dos itens:</td>
+                            <td class="text-end pe-3 text-primary">
+                                R$ {{ ("%0.2f"|format(invoice.total_amount)).replace('.',',') }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

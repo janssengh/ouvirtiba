@@ -1,0 +1,61 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    <h2>{{ titulo }}</h2>
+    <hr>
+
+    <form method="POST" action="{{ url_for('purchases_bp.supplier_create') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+        
+        {{ form.csrf_token }}
+        {{ form.store_id(value=session['store_id']) }}
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.tax_id.id }}">CNPJ *</label>
+                {{ form.tax_id(class='form-control', placeholder='Código CNPJ', required=True) }}
+                {% if form.tax_id.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.tax_id.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.corporate_name.id }}" class="form-label">Razão Social *</label>
+                {{ form.corporate_name(class='form-control', placeholder='Razão Social', required=True) }}
+                {% if form.corporate_name.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.corporate_name.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Criar Fornecedor
+                </button>
+                <a href="{{ url_for('purchases_bp.supplier_list') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </div>
+        
+    </form>
+</div>
+
+
+{% endblock %}
