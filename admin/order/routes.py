@@ -260,6 +260,7 @@ def order_create():
             quantities = request.form.getlist('quantity[]')
             prices = request.form.getlist('price[]')
             serialnumbers = request.form.getlist('serialnumber[]')
+            discount_pcts = request.form.getlist('discount_pct[]')
 
             payment_form = int(request.form.get('payment_form', 0))
             payment_amount_inp = 0
@@ -318,12 +319,12 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
             total_pedido = 0
             total_desconto = 0
 
-            # Itera sobre os índices das listas
             for i in range(len(product_ids)):
-                pid = product_ids[i]
-                qty = quantities[i] if i < len(quantities) else None
-                prc = prices[i] if i < len(prices) else None
+                pid    = product_ids[i]
+                qty    = quantities[i] if i < len(quantities) else None
+                prc    = prices[i] if i < len(prices) else None
                 serial = serialnumbers[i] if i < len(serialnumbers) else None
+                pct    = float(discount_pcts[i]) if i < len(discount_pcts) else 0
 
                 if not pid or not qty or not prc:
                     continue
@@ -345,15 +346,12 @@ A garantia não cobre: uso inadequado do aparelho, excesso de umidade, excesso d
 
                 preco_original = float(product.price)
 
-                # Calcular desconto e valores
-                if prc < preco_original:
-                    discount = (preco_original - prc) * qty
-                    amount_initial = preco_original * qty
-                    amount = prc * qty
-                else:
-                    discount = 0
-                    amount_initial = prc * qty
-                    amount = prc * qty
+                # Calcular desconto e valores com base no % informado
+                pct = max(0, min(100, pct))  # garante entre 0 e 100
+                preco_com_desconto = preco_original * (1 - pct / 100)
+                amount_initial     = preco_original * qty
+                discount           = preco_original * qty * (pct / 100)
+                amount             = preco_com_desconto * qty
 
                 total_pedido += amount
                 total_desconto += discount

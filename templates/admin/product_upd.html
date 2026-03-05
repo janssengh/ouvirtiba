@@ -23,12 +23,23 @@
                     {% from '_erroformulario.html' import render_field %}
 
                     <form method="post" enctype="multipart/form-data" class="p-4 p-md-5 border rounded-3 bg-light">
+                        
+                        {{form.csrf_token}}
+                        
                         <div class="text-center p-2 data-text">
                             <h4>Alterar Produtos</h4>
                         </div>
-                        {{form.csrf_token}}
 
-                        <input type="hidden" name="tipoproduto" value="{{ produto.type_id }}">
+                        <div class="mb-3">
+                            <label for="tipoproduto" class="form-label fw-bold">Tipo de Produto</label>
+                            <input type="text" class="form-control" value="{{ tipo_nome }}" readonly disabled>  
+                            
+                            
+                            {# Garante que o ID seja enviado para o formulário validar #}
+                            {{ form.tipoproduto(type="hidden", value=produto.type_id) }}
+
+                        </div>
+
                         {{ render_field(form.name, class="form-control", placeholder="Nome do Produto") }}
                         {{ render_field(form.price, class="form-control", placeholder="Preço do Produto") }}
                         {{ render_field(form.discount, class="form-control", placeholder="Desconto do Produto") }}

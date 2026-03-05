@@ -27,6 +27,16 @@
             </ul>
           </li>
 
+          <!-- PRODUÇÃO -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+              Produção
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{{ url_for('assembly_bp.assembly_list') }}">Histórico de Montagem</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('assembly_bp.assembly_create') }}">Montar Novo Aparelho</a></li>
+            </ul>
+          </li>
           <!-- VENDAS -->
           <li class="nav-item dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Vendas</a>
@@ -53,6 +63,7 @@
               <li><hr class="dropdown-divider"></li>
               <li><a href="{{ url_for('admin.product_list', type_id=1) }}" class="dropdown-item">AA - Aparelhos Auditivos</a></li>
               <li><a href="{{ url_for('admin.product_list', type_id=2) }}" class="dropdown-item">Ac - Acessórios</a></li>
+              <li><a href="{{ url_for('admin.product_list', type_id=3) }}" class="dropdown-item">Pa - Produto Acabado</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a href="{{ url_for('admin.brand_list') }}" class="dropdown-item">Marcas</a></li>
               <li><a href="{{ url_for('admin.category_list') }}" class="dropdown-item">Categorias</a></li>

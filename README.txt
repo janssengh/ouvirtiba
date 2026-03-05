@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Gestão de compras e imagens"
+git commit -m "Gestão da Produção/Montagem,Correções Item Pedido e CSRF"
 git push origin master
 
 ATUALIZAR RENDER:
@@ -75,10 +75,11 @@ Run
 
     # Depois reinicie o Flask
     python app.py
-
+---------------------------------------------------------------------------
 Comando que ajusta a sequência client_id_seq para o valor máximo atual de ID na 
 tabela, evitando que ele tente usar um número repetido no próximo INSERT:
 SELECT setval('ouvirtiba.tabela', (SELECT MAX(id) FROM ouvirtiba.tabela));
+----------------------------------------------------------------------------
 
 # Guia de Debug no Render - Erro na Geração de PDF
 

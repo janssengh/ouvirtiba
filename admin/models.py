@@ -87,6 +87,8 @@ class Product(Base):
             return "Aparelhos Auditivos"
         elif self.type_id == 2:
             return "Acessórios"
+        elif self.type_id == 3:
+            return "Produto Acabado"
         else:
             return "Outros"
     

@@ -64,10 +64,9 @@ def image_delete(category, filename):
     if category not in IMAGE_FOLDERS:
         flash("❌ Categoria inválida!", "danger")
         return redirect(url_for('image_bp.image_list'))
-
-    filepath = os.path.join(IMAGE_FOLDERS[category], filename)
     
     try:
+        filepath = os.path.join(IMAGE_FOLDERS[category], filename)
         if os.path.exists(filepath):
             os.remove(filepath)
             flash(f"✅ Imagem '{filename}' removida com sucesso!", "success")
@@ -76,4 +75,7 @@ def image_delete(category, filename):
     except Exception as e:
         flash(f"❌ Erro ao excluir: {str(e)}", "danger")
 
-    return redirect(url_for('image_bp.image_list'))
+    # REDIRECIONAMENTO INTELIGENTE:
+    # Volta para a lista filtrada pela categoria da imagem excluída
+    return redirect(url_for('image_bp.image_list', folder_filter=category))
+

@@ -296,11 +296,18 @@ def produto_editar(id):
     
     # Em vez de passar request.form manualmente, deixe o Flask-WTF cuidar disso
     if request.method == 'POST':
-        form = ProductForm()
-        # Garante que tipoproduto recebe o valor correto como inteiro
-        form.tipoproduto.data = produto.type_id
+        form = ProductForm(request.form, obj=produto)
     else:
         form = ProductForm(obj=produto)
+
+    # Força o tipoproduto que vem do banco para o form não falhar na validação
+    if request.method == 'POST':
+        form.tipoproduto.data = str(produto.type_id)
+
+    print("Método:", request.method)
+    print("is_submitted:", form.is_submitted())
+    print("validate:", form.validate())
+    print("Errors:", form.errors)
 
     if form.validate_on_submit():
         print('✅ Entrou no form.validate')
@@ -378,7 +385,7 @@ def produto_editar(id):
 
         return redirect(url_for('admin.product_list', type_id=produto.type_id))
 
-    print('⚠️ Validação falhou no POST' if request.method == 'POST' else '')
+    print('⚠️ Não entrou no form.validate')
 
     # --- GET: exibe formulário com dados atuais ---
     marcas = Brand.query.all()

@@ -49,6 +49,7 @@ from admin.nfe.routes import nfe_bp
 from admin.blog_post.routes import blog_bp
 from admin.purchases import purchases_bp
 from admin.image.routes import image_bp
+from admin.assembly.routes import assembly_bp
 
 db.init_app(app)
 bcrypt.init_app(app)  # ✅ adiciona essa linha
@@ -60,6 +61,7 @@ app.register_blueprint(nfe_bp)
 app.register_blueprint(blog_bp)
 app.register_blueprint(purchases_bp)
 app.register_blueprint(image_bp)
+app.register_blueprint(assembly_bp)
 
 ######################## Término Inclusão com banco de dados #####################
 

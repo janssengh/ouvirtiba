@@ -26,6 +26,7 @@
                                 
                                 <option value="1" {% if form.tipoproduto.data == 1 %}selected{% endif %}>Aparelhos Auditivos</option>
                                 <option value="2" {% if form.tipoproduto.data == 2 %}selected{% endif %}>Acessórios</option>
+                                <option value="3" {% if form.tipoproduto.data == 3 %}selected{% endif %}>Produto Acabado</option>
                             </select>
                             
                             <input type="hidden" name="{{ form.tipoproduto.name }}" value="{{ form.tipoproduto.data }}">

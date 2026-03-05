@@ -1,0 +1,72 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+
+<div class="container mt-4">
+    {% include '_mensagem.html' %}
+    <h2 class="fw-bold text-primary">Produção Automática</h2>
+    <hr>
+
+    <form method="POST">
+        {{ form.csrf_token }}
+        
+        <div class="card shadow-sm p-4 mb-4 {% if show_confirmation %}bg-light opacity-75{% endif %}">
+            <h5 class="text-secondary mb-3">1. Selecione os Componentes</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="small fw-bold">Corpo do Aparelho (Base)</label>
+                    {{ form.base_unit_id(class="form-select", readonly=show_confirmation) }}
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Receptor</label>
+                    {{ form.receptor_id(class="form-select", readonly=show_confirmation) }}
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Oliva</label>
+                    {{ form.oliva_id(class="form-select", readonly=show_confirmation) }}
+                </div>
+            </div>
+            {% if not show_confirmation %}
+            <div class="mt-4">
+                <button type="submit" name="btn_gerar" class="btn btn-primary">Gerar Montagem</button>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if show_confirmation %}
+        <div class="card border-primary shadow p-4">
+            <h5 class="text-primary mb-3">2. Confirmar Produto Final de Venda</h5>
+            <input type="hidden" name="parent_product_id" value="{{ parent_product_id }}">
+            
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="fw-bold">Nome do Produto de Venda (Pode editar)</label>
+                    <input type="text" name="final_name" class="form-control form-control-lg" value="{{ suggested_name }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="fw-bold">Quantidade</label>
+                    <input type="number" name="final_qty" class="form-control form-control-lg" value="1" min="1">
+                </div>
+                <div class="col-md-2">
+                    <label class="fw-bold">Preço de Venda (R$)</label>
+                    <input type="text" name="final_price" class="form-control" value="{{ suggested_price }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" name="btn_finalizar" class="btn btn-success btn-lg w-100">Finalizar</button>
+                </div>
+            </div>
+            <div class="mt-3">
+                <small class="text-muted">
+                    {% if parent_product_id %}
+                        <i class="bi bi-info-circle"></i> Esta combinação já existe. O estoque será adicionado ao produto existente.
+                    {% else %}
+                        <i class="bi bi-plus-circle"></i> Novo produto será criado automaticamente no catálogo.
+                    {% endif %}
+                </small>
+                <a href="{{ url_for('assembly_bp.assembly_create') }}" class="btn btn-link btn-sm text-danger float-end">Reiniciar</a>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

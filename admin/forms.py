@@ -35,8 +35,8 @@ class LoginFormulario(Form):
     password = PasswordField('Informe a sua Senha', [validators.DataRequired()])
 
 class ProductForm(FlaskForm):
-    tipoproduto = IntegerField('Tipo Produto',[validators.NumberRange(min=1, max=2, message="Tipo de produto deve ser no mínimo 1 e no máximo 2"),
-                                           validators.InputRequired(message="Faltou digitar o tipo de produto")])
+    tipoproduto = IntegerField('Tipo Produto',
+                                           )
 
     name = StringField('Nome', validators=[validators.Length(min=20, max=80, message="Nome produto deve ter no mínimo 20 e no máximo 80 caracteres"),
                                                   validators.DataRequired('Faltou digitar o nome do produto')

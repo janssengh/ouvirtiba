@@ -295,3 +295,5 @@ COMMENT ON COLUMN ouvirtiba.blog_post.active IS 'Indica se o post está publicad
                                class="btn btn-outline-warning btn-sm btn-compact text-nowrap">
                                 <i class="bi bi-pencil"></i> Editar
                             </a>
+
+                        <input type="hidden" name="tipoproduto" value="{{ produto.type_id }}">
