@@ -39,7 +39,6 @@ app.secret_key = 'roeland'  # Necessária para flash()
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minha_chave_padrao')
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'prepare_threshold': None}}  # Fix psycopg3 DuplicatePreparedStatement em produção
 
 # 🔹 Importar e inicializar banco e módulo admin
 from extension import db, bcrypt         # ✅ adicionado

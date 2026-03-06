@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "elimina completamente o autoflush no meio da transação"
+git commit -m "resolvendo definitivamente o DuplicatePreparedStatement"
 git push origin master
 
 ATUALIZAR RENDER:
