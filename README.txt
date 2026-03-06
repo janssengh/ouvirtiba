@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Melhorias e correções na entrada nota fornecedor"
+git commit -m "Correções na entrada do item da nota fornecedor pelo bruto"
 git push origin master
 
 ATUALIZAR RENDER:

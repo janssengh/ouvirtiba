@@ -378,7 +378,8 @@ def invoice_finalize():
                 supplier_product_code=item['supplier_product_code'],
                 quantity=item['quantity'],
                 unit_price=item['unit_price'],
-                discount=item_discount
+                discount=item_discount,
+                amount=item['amount']   # valor total bruto do item informado na NF
             )
             db.session.add(new_item)
 

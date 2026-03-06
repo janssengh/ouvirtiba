@@ -77,7 +77,7 @@
                     </thead>
                     <tbody>
                         {% for item in invoice.items %}
-                            {% set sub_bruto   = item.amount|float %}
+                            {% set sub_bruto   = item.quantity|float * item.unit_price|float %}
                             {% set desc_item   = item.discount|float if item.discount else 0.0 %}
                             {% set sub_liquido = sub_bruto - desc_item %}
                         <tr>
