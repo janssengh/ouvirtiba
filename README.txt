@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Gestão da Produção/Montagem,Correções Item Pedido e CSRF"
+git commit -m "Melhorias na entrada nota fornecedor"
 git push origin master
 
 ATUALIZAR RENDER:

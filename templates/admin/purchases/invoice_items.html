@@ -13,7 +13,7 @@
 
     <div class="card shadow-sm p-3 mb-4 bg-light">
         <div class="row text-center">
-            <div class="col-md-3 mb-2">
+            <div class="col-md-2 mb-2">
                 <strong>NF / Série</strong><br>
                 <span class="badge bg-secondary">{{ invoice.invoice_number }}/{{ invoice.series }}</span>
             </div>
@@ -21,13 +21,23 @@
                 <strong>Fornecedor</strong><br>
                 {{ invoice.supplier_corporate_name }}
             </div>
-            <div class="col-md-3 mb-2">
+            <div class="col-md-2 mb-2">
                 <strong>Data Emissão</strong><br>
                 {{ invoice.issue_date }}
             </div>
-            <div class="col-md-3 mb-2">
-                <strong>Valor Total da NF</strong><br>
+            <div class="col-md-2 mb-2">
+                <strong>Total Bruto</strong><br>
                 <span class="fw-bold text-primary">R$ {{ ("%0.2f"|format(invoice.total_amount|float)).replace('.',',') }}</span>
+            </div>
+            <div class="col-md-2 mb-2">
+                <strong>Desconto</strong><br>
+                <span class="fw-bold text-danger">R$ {{ ("%0.2f"|format(invoice.total_discount|float if invoice.total_discount else 0)).replace('.',',') }}</span>
+            </div>
+            <div class="col-md-1 mb-2">
+                <strong>Total Líquido</strong><br>
+                <span class="fw-bold text-success">
+                    R$ {{ ("%0.2f"|format((invoice.total_amount|float) - (invoice.total_discount|float if invoice.total_discount else 0))).replace('.',',') }}
+                </span>
             </div>
         </div>
     </div>
@@ -75,25 +85,36 @@
                             <th>Código Fornecedor</th>
                             <th>Qtde</th>
                             <th>Preço Unit.</th>
-                            <th>Subtotal</th>
+                            <th>Subtotal Bruto</th>
+                            <th>Desconto Rateado</th>
+                            <th>Subtotal Líquido</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                     {# {% set total_acumulado = 0.0 %} #}
                     {% for item in items %}
-                        {% set subtotal = (item.quantity|float * item.unit_price|float) %} 
-                        {# {% set total_acumulado = total_acumulado + subtotal %} #}
+                        {% set subtotal_bruto = (item.quantity|float * item.unit_price|float) %}
+                        {% set proporcao = (subtotal_bruto / total_acumulado) if total_acumulado > 0 else 0 %}
+                        {% set desconto_item = (proporcao * total_discount) | round(2) %}
+                        {% set subtotal_liquido = subtotal_bruto - desconto_item %}
                         <tr class="text-center">
                             <td>{{ loop.index }}</td>
                             <td class="text-start">{{ item.product_name }}</td>
                             <td><small class="text-muted">{{ item.supplier_product_code or '-' }}</small></td>
                             <td>{{ "%0.2f"|format(item.quantity|float) }}</td>
                             <td>R$ {{ ("%0.2f"|format(item.unit_price|float)).replace('.',',') }}</td>
-                            <td class="fw-bold">R$ {{ ("%0.2f"|format(subtotal)).replace('.',',') }}</td>
+                            <td class="fw-bold">R$ {{ ("%0.2f"|format(subtotal_bruto)).replace('.',',') }}</td>
+                            <td class="text-danger">
+                                {% if total_discount > 0 %}
+                                    - R$ {{ ("%0.2f"|format(desconto_item)).replace('.',',') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold text-success">R$ {{ ("%0.2f"|format(subtotal_liquido)).replace('.',',') }}</td>
                             <td>
-
-                                <form action="{{ url_for('purchases_bp.invoice_item_delete', item_index=loop.index0) }}" method="POST" style="display:inline;">                                
+                                <form action="{{ url_for('purchases_bp.invoice_item_delete', item_index=loop.index0) }}" method="POST" style="display:inline;">
                                     <button type="submit" class="btn btn-link text-danger p-0" title="Remover item">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -104,12 +125,17 @@
                     </tbody>
                     <tfoot class="table-light">
                         <tr>
-                            <td colspan="5" class="text-end fw-bold text-uppercase">Soma dos Itens:</td>
-                            <td class="text-center fw-bold fs-5">
-                                {% set diff = (total_acumulado - invoice.total_amount|float)|abs %}
+                            <td colspan="5" class="text-end fw-bold text-uppercase">Total Bruto dos Itens:</td>
+                            <td class="text-center fw-bold fs-6">
                                 <span class="{% if diff < 0.01 %}text-success{% else %}text-danger{% endif %}">
                                     R$ {{ ("%0.2f"|format(total_acumulado)).replace('.',',') }}
                                 </span>
+                            </td>
+                            <td class="text-center text-danger fw-bold">
+                                - R$ {{ ("%0.2f"|format(total_discount)).replace('.',',') }}
+                            </td>
+                            <td class="text-center text-success fw-bold fs-6">
+                                R$ {{ ("%0.2f"|format(total_liquido_esperado)).replace('.',',') }}
                             </td>
                             <td></td>
                         </tr>
@@ -135,7 +161,11 @@
             {% else %}
                 <div class="alert alert-warning d-inline-block py-2 mb-0">
                     <i class="bi bi-exclamation-triangle-fill"></i> 
-                    O total dos itens deve ser igual a <strong>R$ {{ ("%0.2f"|format(invoice.total_amount|float)).replace('.',',') }}</strong> para finalizar.
+                    O total bruto dos itens deve ser igual a 
+                    <strong>R$ {{ ("%0.2f"|format(invoice.total_amount|float)).replace('.',',') }}</strong> para finalizar.
+                    {% if total_discount > 0 %}
+                        <br><small>Total líquido após desconto: <strong>R$ {{ ("%0.2f"|format(total_liquido_esperado)).replace('.',',') }}</strong></small>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>

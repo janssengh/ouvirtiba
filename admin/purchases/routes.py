@@ -183,6 +183,14 @@ def invoice_create():
         supplier_corporate_name = choices_dict.get(form.supplier_id.data)
 
         # Guardamos os dados do cabeçalho na sessão, sem salvar no DB ainda
+        total_amount   = float(form.total_amount.data)
+        total_liquid   = float(form.total_liquid.data or total_amount)
+        total_discount = round(total_amount - total_liquid, 2)
+
+        if total_liquid > total_amount:
+            flash("O Total Líquido não pode ser maior que o Total Bruto.", "danger")
+            return render_template('admin/purchases/invoice_create.html', form=form, titulo="Nova Nota de Entrada")
+
         session['temp_invoice'] = {
             'supplier_id': form.supplier_id.data,
             'supplier_corporate_name': supplier_corporate_name,
@@ -191,7 +199,8 @@ def invoice_create():
             'entry_exit_date': form.entry_exit_date.data.strftime('%Y-%m-%d'),
             'invoice_number': form.invoice_number.data,
             'series': form.series.data,
-            'total_amount': float(form.total_amount.data)
+            'total_amount': total_amount,
+            'total_discount': total_discount
         }
 
         session['temp_items'] = [] # Inicia lista de itens vazia
@@ -212,11 +221,17 @@ def invoice_items():
     # Recupera a lista da sessão (se não existir, retorna uma lista vazia [])
     items = session.get('temp_items', [])
 
-    # CÁLCULO DA SOMA
+    # CÁLCULO DA SOMA BRUTA DOS ITENS
     total_acumulado = sum(item['quantity'] * item['unit_price'] for item in items)
 
-    # DIFERENÇA (para validação do botão salvar)
-    diff = abs(float(invoice['total_amount']) - total_acumulado)   
+    # DESCONTO TOTAL DA NOTA (do mestre)
+    total_discount = float(invoice.get('total_discount', 0))
+
+    # TOTAL LÍQUIDO ESPERADO = total bruto - desconto
+    total_liquido_esperado = float(invoice['total_amount']) - total_discount
+
+    # DIFERENÇA entre soma bruta dos itens e total bruto informado
+    diff = abs(float(invoice['total_amount']) - total_acumulado)
 
     # 1. Instancie o formulário que o template está esperando
     form_item = FormPurchaseInvoiceItem()
@@ -232,6 +247,8 @@ def invoice_items():
         invoice=invoice, 
         items=items, 
         total_acumulado=total_acumulado,
+        total_discount=total_discount,
+        total_liquido_esperado=total_liquido_esperado,
         diff=diff,
         form_item=form_item   
     )
@@ -285,22 +302,23 @@ def invoice_finalize():
         flash('A nota deve ter pelo menos um item para ser gravada.', 'warning')
         return redirect(url_for('purchases_bp.invoice_items'))
 
-    # 2. Validação de segurança: Comparar total da NF com a soma dos itens
+    # 2. Validação de segurança: Comparar total bruto da NF com a soma dos itens
     total_itens = sum(item['quantity'] * item['unit_price'] for item in items_data)
+    total_discount = float(invoice_data.get('total_discount', 0))
+
     if abs(total_itens - invoice_data['total_amount']) > 0.01:
-        flash(f'Erro de validação: A soma dos itens (R$ {total_itens:.2f}) não condiz com o total da nota.', 'danger')
+        flash(f'Erro de validação: A soma dos itens (R$ {total_itens:.2f}) não condiz com o total bruto da nota (R$ {invoice_data["total_amount"]:.2f}).', 'danger')
         return redirect(url_for('purchases_bp.invoice_items'))
 
     try:
         # 3. Criar o objeto Mestre (PurchaseInvoice)
-        # Convertemos as strings de data da sessão de volta para objetos datetime
         new_invoice = PurchaseInvoice(
-            store_id=session.get('store_id'), # ID da loja logada
+            store_id=session.get('store_id'),
             supplier_id=invoice_data['supplier_id'],
             invoice_number=invoice_data['invoice_number'],
             series=invoice_data['series'],
             total_amount=invoice_data['total_amount'],
-            # SALVAR NO FORMATO ISO (AAAA-MM-DD)
+            total_discount=total_discount,
             issue_date=datetime.strptime(invoice_data['issue_date'], '%Y-%m-%d'),
             receipt_date=datetime.strptime(invoice_data['receipt_date'], '%Y-%m-%d'),
             entry_exit_date=datetime.strptime(invoice_data.get('entry_exit_date', invoice_data['receipt_date']), '%Y-%m-%d'),
@@ -308,28 +326,42 @@ def invoice_finalize():
         )
 
         db.session.add(new_invoice)
-        
-        # O flush serve para o banco gerar o ID da nota sem commitar a transação ainda
-        db.session.flush() 
+        db.session.flush()
 
-        # 4. Criar os objetos de Itens (PurchaseInvoiceItem)
-        for item in items_data:
+        # 4. Criar os itens com desconto rateado proporcionalmente
+        # Rateio: desconto_item = (subtotal_item / total_bruto) * total_desconto
+        # O último item absorve o centavo de arredondamento
+        desconto_rateado_acumulado = 0.0
+
+        for idx, item in enumerate(items_data):
+            subtotal_item = item['quantity'] * item['unit_price']
+            eh_ultimo = (idx == len(items_data) - 1)
+
+            if total_itens > 0 and total_discount > 0:
+                if eh_ultimo:
+                    # Último item recebe o resto para fechar sem diferença de centavos
+                    item_discount = round(total_discount - desconto_rateado_acumulado, 2)
+                else:
+                    item_discount = round((subtotal_item / total_itens) * total_discount, 2)
+                    desconto_rateado_acumulado += item_discount
+            else:
+                item_discount = 0.0
+
             new_item = PurchaseInvoiceItem(
-                purchase_invoice_id=new_invoice.id, # ID gerado pelo flush acima
+                purchase_invoice_id=new_invoice.id,
                 product_id=item['product_id'],
                 supplier_product_code=item['supplier_product_code'],
                 quantity=item['quantity'],
-                unit_price=item['unit_price']
+                unit_price=item['unit_price'],
+                discount=item_discount
             )
             db.session.add(new_item)
 
             # --- ATUALIZAÇÃO DO ESTOQUE ---
             product = Product.query.get(item['product_id'])
             if product:
-                # Se o campo stock for None, tratamos como 0 para evitar erro de NoneType
                 current_stock = product.stock if product.stock else 0
                 product.stock = current_stock + item['quantity']
-            # ------------------------------            
 
         # 5. Commit Final (Grava tudo ou nada)
         db.session.commit()
@@ -406,5 +438,3 @@ def invoice_delete(invoice_id):
         flash(f'Erro ao excluir nota: {str(e)}', 'danger')
     
     return redirect(url_for('purchases_bp.invoice_list'))
-
-

@@ -49,6 +49,7 @@ class PurchaseInvoice(Base):
     invoice_number = db.Column(db.String(20), nullable=False)
     series = db.Column(db.String(10), nullable=False)
     total_amount = db.Column(db.Numeric(15, 2), nullable=False)
+    total_discount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     status = db.Column(db.String(20), default='Finalizada') # Finalizada
     
@@ -78,6 +79,7 @@ class PurchaseInvoiceItem(Base):
     supplier_product_code = db.Column(db.String(50), nullable=True)
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
     unit_price = db.Column(db.Numeric(15, 2), nullable=False)
+    discount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
     
     # Relacionamentos
     invoice = db.relationship('PurchaseInvoice', back_populates='items')

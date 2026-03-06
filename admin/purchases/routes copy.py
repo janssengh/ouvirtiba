@@ -5,7 +5,7 @@ from datetime import datetime
 import re
 
 from .models import Supplier, PurchaseInvoice, PurchaseInvoiceItem, db
-from .forms import FormSupplier, FormSupplierUpd, FormPurchaseInvoice
+from .forms import FormSupplier, FormSupplierUpd, FormPurchaseInvoice, FormPurchaseInvoiceItem
 from admin.models import Product
 
 purchases_bp = Blueprint('purchases_bp', __name__, template_folder='templates')
@@ -152,116 +152,252 @@ def invoice_list():
 
 @purchases_bp.route('/admin/purchases/invoice/create', methods=['GET', 'POST'])
 def invoice_create():
-    """Cria uma nova nota de entrada."""
     form = FormPurchaseInvoice()
-    
-    # Popula select de fornecedores
-    store_id = session.get('store_id')
-    form.supplier_id.choices = [(0, 'Selecione...')] + [
-        (s.id, f"{s.corporate_name} - {formatar_cnpj(s.tax_id)}")
-        for s in Supplier.query.filter_by(store_id=store_id).order_by(Supplier.corporate_name).all()
-    ]
-    
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            try:
-                # Verifica duplicidade
-                existing = PurchaseInvoice.query.filter_by(
-                    store_id=store_id,
-                    supplier_id=form.supplier_id.data,
-                    invoice_number=form.invoice_number.data,
-                    series=form.series.data
-                ).first()
-                
-                if existing:
-                    flash(f'Já existe uma nota com número {form.invoice_number.data} e série {form.series.data} para este fornecedor.', 'warning')
-                    return render_template('admin/purchases/invoice_create.html', form=form, titulo="Nova Nota de Entrada")
-                
-                new_invoice = PurchaseInvoice(
-                    store_id=store_id,
-                    supplier_id=form.supplier_id.data,
-                    receipt_date=form.receipt_date.data,
-                    issue_date=form.issue_date.data,
-                    entry_exit_date=form.entry_exit_date.data,
-                    invoice_number=form.invoice_number.data,
-                    series=form.series.data,
-                    total_amount=form.total_amount.data,
-                    created_at=datetime.now()
-                )
-                
-                db.session.add(new_invoice)
-                db.session.commit()
-                
-                flash(f'Nota de Entrada NF {new_invoice.invoice_number}/{new_invoice.series} cadastrada com sucesso!', 'success')
-                # Redireciona para adicionar itens
-                return redirect(url_for('purchases_bp.invoice_items', invoice_id=new_invoice.id))
-                
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Erro ao salvar nota: {str(e)}', 'danger')
-        else:
-            exibir_erros_formulario(form)
-    
+    # Carrega fornecedores
+    form.supplier_id.choices = [(s.id, s.corporate_name) for s in Supplier.query.order_by('corporate_name').all()]
+
+    if form.validate_on_submit():
+        # --- VALIDAÇÃO DE DATAS NO BACK-END ---
+        issue_date = form.issue_date.data
+        receipt_date = form.receipt_date.data
+        entry_exit_date = form.entry_exit_date.data
+        today = datetime.now().date()
+
+        errors = False
+        if issue_date > today:
+            flash("A Data de Emissão não pode ser maior que a data de hoje.", "danger")
+            errors = True
+        if receipt_date < issue_date:
+            flash("A Data de Recebimento não pode ser menor que a Data de Emissão.", "danger")
+            errors = True
+        if entry_exit_date < issue_date:
+            flash("A Data de Entrada/Saída não pode ser menor que a Data de Emissão.", "danger")
+            errors = True
+
+        if errors:
+            return render_template('admin/purchases/invoice_create.html', form=form, titulo="Nova Nota de Entrada")
+        # ---------------------------------------
+
+        # Buscamos o nome do fornecedor para salvar no dicionário da sessão
+        choices_dict = dict(form.supplier_id.choices)
+        supplier_corporate_name = choices_dict.get(form.supplier_id.data)
+
+        # Guardamos os dados do cabeçalho na sessão, sem salvar no DB ainda
+        session['temp_invoice'] = {
+            'supplier_id': form.supplier_id.data,
+            'supplier_corporate_name': supplier_corporate_name,
+            'receipt_date': form.receipt_date.data.strftime('%Y-%m-%d'),
+            'issue_date': form.issue_date.data.strftime('%Y-%m-%d'),
+            'entry_exit_date': form.entry_exit_date.data.strftime('%Y-%m-%d'),
+            'invoice_number': form.invoice_number.data,
+            'series': form.series.data,
+            'total_amount': float(form.total_amount.data),
+            'total_discount': float(form.total_discount.data or 0)
+        }
+
+        session['temp_items'] = [] # Inicia lista de itens vazia
+        return redirect(url_for('purchases_bp.invoice_items'))
+            
     return render_template('admin/purchases/invoice_create.html', form=form, titulo="Nova Nota de Entrada")
 
 
-@purchases_bp.route('/admin/purchases/invoice/update/<int:id>', methods=['GET', 'POST'])
-def invoice_update(id):
-    """Atualiza uma nota de entrada existente."""
-    invoice = PurchaseInvoice.query.get_or_404(id)
-    form = FormPurchaseInvoice()
+@purchases_bp.route('/admin/purchases/invoice/items')
+def invoice_items():
+    # O código aqui busca os dados da session['temp_invoice']
+    # e não mais pelo ID do banco de dados.
+    invoice = session.get('temp_invoice')
+    if not invoice:
+        return redirect(url_for('purchases_bp.invoice_create'))
+
     
-    store_id = session.get('store_id')
-    form.supplier_id.choices = [
-        (s.id, f"{s.corporate_name} - {formatar_cnpj(s.tax_id)}")
-        for s in Supplier.query.filter_by(store_id=store_id).order_by(Supplier.corporate_name).all()
+    # Recupera a lista da sessão (se não existir, retorna uma lista vazia [])
+    items = session.get('temp_items', [])
+
+    # CÁLCULO DA SOMA BRUTA DOS ITENS
+    total_acumulado = sum(item['quantity'] * item['unit_price'] for item in items)
+
+    # DESCONTO TOTAL DA NOTA (do mestre)
+    total_discount = float(invoice.get('total_discount', 0))
+
+    # TOTAL LÍQUIDO ESPERADO = total bruto - desconto
+    total_liquido_esperado = float(invoice['total_amount']) - total_discount
+
+    # DIFERENÇA entre soma bruta dos itens e total bruto informado
+    diff = abs(float(invoice['total_amount']) - total_acumulado)
+
+    # 1. Instancie o formulário que o template está esperando
+    form_item = FormPurchaseInvoiceItem()
+    
+    # 2. Popule o campo de seleção de produtos com os dados do banco
+    form_item.product_id.choices = [
+        (p.id, p.name) for p in Product.query.order_by('name').all()
     ]
     
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            try:
-                # Verifica duplicidade excluindo o próprio registro
-                existing = PurchaseInvoice.query.filter(
-                    PurchaseInvoice.store_id == store_id,
-                    PurchaseInvoice.supplier_id == form.supplier_id.data,
-                    PurchaseInvoice.invoice_number == form.invoice_number.data,
-                    PurchaseInvoice.series == form.series.data,
-                    PurchaseInvoice.id != invoice.id
-                ).first()
-                
-                if existing:
-                    flash(f'Já existe outra nota com número {form.invoice_number.data} e série {form.series.data}.', 'warning')
-                    return render_template('admin/purchases/invoice_update.html', form=form, invoice=invoice)
-                
-                invoice.supplier_id = form.supplier_id.data
-                invoice.receipt_date = form.receipt_date.data
-                invoice.issue_date = form.issue_date.data
-                invoice.entry_exit_date = form.entry_exit_date.data
-                invoice.invoice_number = form.invoice_number.data
-                invoice.series = form.series.data
-                invoice.total_amount = form.total_amount.data
-                
-                db.session.commit()
-                flash(f'Nota NF {invoice.invoice_number}/{invoice.series} atualizada com sucesso!', 'success')
-                return redirect(url_for('purchases_bp.invoice_list'))
-                
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Erro ao atualizar nota: {str(e)}', 'danger')
-        else:
-            exibir_erros_formulario(form)
-    
-    elif request.method == 'GET':
-        form.supplier_id.data = invoice.supplier_id
-        form.receipt_date.data = invoice.receipt_date
-        form.issue_date.data = invoice.issue_date
-        form.entry_exit_date.data = invoice.entry_exit_date
-        form.invoice_number.data = invoice.invoice_number
-        form.series.data = invoice.series
-        form.total_amount.data = invoice.total_amount
-    
-    return render_template('admin/purchases/invoice_update.html', form=form, invoice=invoice)
+    # 3. Passe o 'form_item' para o template
+    return render_template(
+        'admin/purchases/invoice_items.html', 
+        invoice=invoice, 
+        items=items, 
+        total_acumulado=total_acumulado,
+        total_discount=total_discount,
+        total_liquido_esperado=total_liquido_esperado,
+        diff=diff,
+        form_item=form_item   
+    )
 
+
+@purchases_bp.route('/admin/purchases/invoice/item/add', methods=['POST'])
+def invoice_item_add():
+    """Adiciona um item à nota fiscal de entrada."""
+    form = FormPurchaseInvoiceItem()
+    # Carrega os produtos para o SelectField
+    form.product_id.choices = [(p.id, p.name) for p in Product.query.order_by('name').all()]
+    
+    # Em vez de buscar no banco por ID, verificamos se existe uma nota na sessão
+    if 'temp_invoice' not in session:
+        flash('Sessão expirada ou nota não encontrada.', 'danger')
+        return redirect(url_for('purchases_bp.invoice_create'))  
+       
+    items = session.get('temp_items', [])
+
+    if form.validate_on_submit():
+      
+        # Adiciona item à lista temporária na sessão
+        product_id = int(request.form.get('product_id'))
+        product = Product.query.get(product_id)
+        
+        new_item = {
+            'product_id': product_id,
+            'product_name': product.name,
+            'supplier_product_code': form.supplier_product_code.data,
+            'quantity': float(form.quantity.data),
+            'unit_price': float(form.unit_price.data)
+        }
+        items.append(new_item)
+        session['temp_items'] = items
+        session.modified = True
+        flash('Item adicionado com sucesso!', 'success')
+            
+    return redirect(url_for('purchases_bp.invoice_items'))
+
+@purchases_bp.route('/admin/purchases/invoice/finalize', methods=['POST'])
+def invoice_finalize():
+    # 1. Recupera os dados das sessões
+    invoice_data = session.get('temp_invoice')
+    items_data = session.get('temp_items', [])
+
+    if not invoice_data:
+        flash('Dados da nota não encontrados na sessão.', 'danger')
+        return redirect(url_for('purchases_bp.invoice_create'))
+
+    if not items_data:
+        flash('A nota deve ter pelo menos um item para ser gravada.', 'warning')
+        return redirect(url_for('purchases_bp.invoice_items'))
+
+    # 2. Validação de segurança: Comparar total bruto da NF com a soma dos itens
+    total_itens = sum(item['quantity'] * item['unit_price'] for item in items_data)
+    total_discount = float(invoice_data.get('total_discount', 0))
+
+    if abs(total_itens - invoice_data['total_amount']) > 0.01:
+        flash(f'Erro de validação: A soma dos itens (R$ {total_itens:.2f}) não condiz com o total bruto da nota (R$ {invoice_data["total_amount"]:.2f}).', 'danger')
+        return redirect(url_for('purchases_bp.invoice_items'))
+
+    try:
+        # 3. Criar o objeto Mestre (PurchaseInvoice)
+        new_invoice = PurchaseInvoice(
+            store_id=session.get('store_id'),
+            supplier_id=invoice_data['supplier_id'],
+            invoice_number=invoice_data['invoice_number'],
+            series=invoice_data['series'],
+            total_amount=invoice_data['total_amount'],
+            total_discount=total_discount,
+            issue_date=datetime.strptime(invoice_data['issue_date'], '%Y-%m-%d'),
+            receipt_date=datetime.strptime(invoice_data['receipt_date'], '%Y-%m-%d'),
+            entry_exit_date=datetime.strptime(invoice_data.get('entry_exit_date', invoice_data['receipt_date']), '%Y-%m-%d'),
+            status='Finalizada'
+        )
+
+        db.session.add(new_invoice)
+        db.session.flush()
+
+        # 4. Criar os itens com desconto rateado proporcionalmente
+        # Rateio: desconto_item = (subtotal_item / total_bruto) * total_desconto
+        # O último item absorve o centavo de arredondamento
+        desconto_rateado_acumulado = 0.0
+
+        for idx, item in enumerate(items_data):
+            subtotal_item = item['quantity'] * item['unit_price']
+            eh_ultimo = (idx == len(items_data) - 1)
+
+            if total_itens > 0 and total_discount > 0:
+                if eh_ultimo:
+                    # Último item recebe o resto para fechar sem diferença de centavos
+                    item_discount = round(total_discount - desconto_rateado_acumulado, 2)
+                else:
+                    item_discount = round((subtotal_item / total_itens) * total_discount, 2)
+                    desconto_rateado_acumulado += item_discount
+            else:
+                item_discount = 0.0
+
+            new_item = PurchaseInvoiceItem(
+                purchase_invoice_id=new_invoice.id,
+                product_id=item['product_id'],
+                supplier_product_code=item['supplier_product_code'],
+                quantity=item['quantity'],
+                unit_price=item['unit_price'],
+                discount=item_discount
+            )
+            db.session.add(new_item)
+
+            # --- ATUALIZAÇÃO DO ESTOQUE ---
+            product = Product.query.get(item['product_id'])
+            if product:
+                current_stock = product.stock if product.stock else 0
+                product.stock = current_stock + item['quantity']
+
+        # 5. Commit Final (Grava tudo ou nada)
+        db.session.commit()
+
+        # 6. Limpa as sessões após o sucesso
+        session.pop('temp_invoice', None)
+        session.pop('temp_items', None)
+
+        flash(f'Nota Fiscal {new_invoice.invoice_number} gravada com sucesso no banco de dados!', 'success')
+        return redirect(url_for('purchases_bp.invoice_list'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro crítico ao gravar no banco de dados: {str(e)}', 'danger')
+        return redirect(url_for('purchases_bp.invoice_items'))
+    
+
+@purchases_bp.route('/admin/purchases/invoice/item/delete/<int:item_index>', methods=['POST'])
+def invoice_item_delete(item_index):
+    # 1. Recupera a lista de itens da sessão
+    items = session.get('temp_items', [])
+    
+    try:
+        # 2. Remove o item da lista pela posição (índice)
+        if 0 <= item_index < len(items):
+            removed_item = items.pop(item_index)
+            session['temp_items'] = items
+            session.modified = True
+            flash(f"Item {removed_item['product_name']} removido.", "info")
+        else:
+            flash("Item não encontrado.", "warning")
+            
+    except Exception as e:
+        flash(f"Erro ao remover item: {str(e)}", "danger")
+        
+    return redirect(url_for('purchases_bp.invoice_items'))
+
+@purchases_bp.route('/admin/purchases/invoice/view/<int:invoice_id>')
+def invoice_view(invoice_id):
+    """Exibe os detalhes de uma nota fiscal já gravada (somente leitura)."""
+    # Busca a nota ou retorna 404 se não existir
+    invoice = PurchaseInvoice.query.get_or_404(invoice_id)
+    
+    return render_template('admin/purchases/invoice_view.html', invoice=invoice)
 
 @purchases_bp.route('/admin/purchases/invoice/delete/<int:invoice_id>', methods=['POST'])
 def invoice_delete(invoice_id):
@@ -270,6 +406,21 @@ def invoice_delete(invoice_id):
     
     try:
         invoice_number = f"{invoice.invoice_number}/{invoice.series}"
+
+        # Estornar o estoque de cada item antes de excluir
+        for item in invoice.items:
+            product = Product.query.get(item.product_id)
+            if product:
+                # Subtraímos a quantidade que havia entrado pela nota
+                # Tratamos None como 0 para evitar erros de cálculo
+                current_stock = product.stock if product.stock else 0
+                product.stock = current_stock - item.quantity
+                
+                # Opcional: Impedir que o estoque fique negativo (regra de negócio)
+                # if product.stock < 0:
+                #     product.stock = 0
+
+
         db.session.delete(invoice)
         db.session.commit()
         flash(f'Nota de Entrada NF {invoice_number} excluída com sucesso!', 'success')
@@ -279,11 +430,3 @@ def invoice_delete(invoice_id):
         flash(f'Erro ao excluir nota: {str(e)}', 'danger')
     
     return redirect(url_for('purchases_bp.invoice_list'))
-
-
-@purchases_bp.route('/admin/purchases/invoice/<int:invoice_id>/items')
-def invoice_items(invoice_id):
-    """Exibe e gerencia os itens de uma nota de entrada."""
-    invoice = PurchaseInvoice.query.get_or_404(invoice_id)
-    items = PurchaseInvoiceItem.query.filter_by(purchase_invoice_id=invoice_id).all()
-    return render_template('admin/purchases/invoice_items.html', invoice=invoice, items=items)

@@ -106,22 +106,21 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-floating">
-                            {{ form.total_liquid(class='form-control', placeholder='0.00', required=True, step='0.01', id='total_liquid') }}
-                            <label for="{{ form.total_liquid.id }}">Total Líquido (R$) *</label>
-                            {% if form.total_liquid.errors %}
+                            {{ form.total_discount(class='form-control', placeholder='0.00', step='0.01', id='total_discount') }}
+                            <label for="{{ form.total_discount.id }}">Total de Desconto (R$)</label>
+                            {% if form.total_discount.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.total_liquid.errors %}{{ error }}{% endfor %}
+                                    {% for error in form.total_discount.errors %}{{ error }}{% endfor %}
                                 </div>
                             {% endif %}
                         </div>
-                        <small class="text-muted">Valor da NF já com desconto aplicado</small>
                     </div>
                     <div class="col-md-4">
                         <div class="form-floating">
-                            <input type="text" class="form-control fw-bold text-danger" id="total_discount_display" placeholder="0.00" readonly>
-                            <label for="total_discount_display">Total de Desconto (R$)</label>
+                            <input type="text" class="form-control fw-bold text-success" id="total_liquido" placeholder="0.00" readonly>
+                            <label for="total_liquido">Total Líquido (R$)</label>
                         </div>
-                        <small class="text-muted">Calculado: Total Bruto − Total Líquido</small>
+                        <small class="text-muted">Total Bruto − Desconto</small>
                     </div>
                 </div>
 
@@ -142,33 +141,34 @@
     </div>
 </div>
 
+{% endblock %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const totalAmountInput     = document.getElementById('total_amount');
-    const totalLiquidInput     = document.getElementById('total_liquid');
-    const totalDiscountDisplay = document.getElementById('total_discount_display');
+    const totalAmountInput   = document.getElementById('total_amount');
+    const totalDiscountInput = document.getElementById('total_discount');
+    const totalLiquidoInput  = document.getElementById('total_liquido');
 
-    function calcularDesconto() {
-        const bruto    = parseFloat(totalAmountInput.value) || 0;
-        const liquido  = parseFloat(totalLiquidInput.value) || 0;
-        const desconto = bruto - liquido;
+    function calcularLiquido() {
+        const bruto    = parseFloat(totalAmountInput.value)   || 0;
+        const desconto = parseFloat(totalDiscountInput.value) || 0;
+        const liquido  = bruto - desconto;
 
-        totalDiscountDisplay.value = desconto.toLocaleString('pt-BR', {
+        totalLiquidoInput.value = liquido.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
 
-        if (liquido > bruto || liquido < 0) {
-            totalLiquidInput.classList.add('is-invalid');
+        // Alerta visual se desconto maior que bruto
+        if (desconto > bruto) {
+            totalDiscountInput.classList.add('is-invalid');
         } else {
-            totalLiquidInput.classList.remove('is-invalid');
+            totalDiscountInput.classList.remove('is-invalid');
         }
     }
 
-    totalAmountInput.addEventListener('input', calcularDesconto);
-    totalLiquidInput.addEventListener('input', calcularDesconto);
-    calcularDesconto();
+    totalAmountInput.addEventListener('input', calcularLiquido);
+    totalDiscountInput.addEventListener('input', calcularLiquido);
+    calcularLiquido(); // executa ao carregar para preencher caso haja valores
 });
 </script>
-
-{% endblock %}

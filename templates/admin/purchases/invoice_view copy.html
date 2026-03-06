@@ -18,27 +18,20 @@
                     <small class="text-muted text-uppercase fw-bold">Número / Série</small>
                     <p class="fs-5">{{ invoice.invoice_number }} / {{ invoice.series }}</p>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-5">
                     <small class="text-muted text-uppercase fw-bold">Fornecedor</small>
                     <p class="fs-5 text-truncate">{{ invoice.supplier.corporate_name }}</p>
                 </div>
-                <div class="col-md-5 text-md-end">
+                <div class="col-md-4 text-md-end">
                     {% set total_bruto    = invoice.total_amount | float %}
-                    {% set total_desconto = invoice.total_discount | float if invoice.total_discount else 0.0 %}
+                    {% set total_desconto = invoice.total_discount | float if invoice.total_discount else 0 %}
                     {% set total_liquido  = total_bruto - total_desconto %}
-                    
-                    <div class="row g-1">
-                        <div class="col-6 text-muted">Total Bruto:</div>
-                        <div class="col-6 fw-bold">R$ {{ ("%0.2f"|format(total_bruto)).replace('.',',') }}</div>
-                        
-                        <div class="col-6 text-danger">(-) Desconto Total:</div>
-                        <div class="col-6 fw-bold text-danger">R$ {{ ("%0.2f"|format(total_desconto)).replace('.',',') }}</div>
-                        
-                        <div class="col-12"><hr class="my-1"></div>
-                        
-                        <div class="col-6 fs-5 fw-bold text-success">Total Líquido:</div>
-                        <div class="col-6 fs-5 fw-bold text-success">R$ {{ ("%0.2f"|format(total_liquido)).replace('.',',') }}</div>
-                    </div>
+                    <small class="text-muted text-uppercase fw-bold">Valor Total Bruto</small>
+                    <p class="fs-5 fw-bold text-primary mb-1">R$ {{ ("%0.2f"|format(total_bruto)).replace('.',',') }}</p>
+                    <small class="text-muted text-uppercase fw-bold">Total de Desconto</small>
+                    <p class="fs-5 fw-bold text-danger mb-1">- R$ {{ ("%0.2f"|format(total_desconto)).replace('.',',') }}</p>
+                    <small class="text-muted text-uppercase fw-bold">Valor Total com Desconto</small>
+                    <p class="fs-4 fw-bold text-success mb-0">R$ {{ ("%0.2f"|format(total_liquido)).replace('.',',') }}</p>
                 </div>
             </div>
             <hr class="my-2">
@@ -51,7 +44,7 @@
                 </div>
                 <div class="col-md-4">
                     <strong>Status:</strong> 
-                    <span class="badge bg-success">{{ invoice.status or 'Finalizada' }}</span>
+                    <span class="badge bg-success">Finalizada</span>
                 </div>
             </div>
         </div>
@@ -66,50 +59,58 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">ID</th>
+                            <th class="ps-3">ID Prod.</th>
                             <th>Descrição do Produto</th>
-                            <th class="text-center">Qtd</th>
+                            <th>Código Fornecedor</th>
+                            <th class="text-center">Quantidade</th>
                             <th class="text-end">Preço Unit.</th>
                             <th class="text-end">Subtotal Bruto</th>
-                            <th class="text-end text-danger">Desc. Item</th>
-                            <th class="text-end pe-3">Subtotal Líquido</th>
+                            <th class="text-end">Vlr. Desc. Item</th>
+                            <th class="text-end pe-3">Vlr. Total c/ Desc.</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% set ns = namespace(soma_bruto=0, soma_desconto=0, soma_liquido=0) %}
                         {% for item in invoice.items %}
-                            {% set sub_bruto   = item.quantity|float * item.unit_price|float %}
-                            {% set desc_item   = item.discount|float if item.discount else 0.0 %}
-                            {% set sub_liquido = sub_bruto - desc_item %}
+                        {% set subtotal_bruto   = item.quantity|float * item.unit_price|float %}
+                        {% set desconto_item    = item.discount|float if item.discount else 0 %}
+                        {% set subtotal_liquido = subtotal_bruto - desconto_item %}
+                        {% set ns.soma_bruto    = ns.soma_bruto    + subtotal_bruto %}
+                        {% set ns.soma_desconto = ns.soma_desconto + desconto_item %}
+                        {% set ns.soma_liquido  = ns.soma_liquido  + subtotal_liquido %}
                         <tr>
                             <td class="ps-3 text-muted">#{{ item.product.id }}</td>
                             <td class="fw-bold">{{ item.product.name }}</td>
+                            <td class="fw-bold">{{ item.supplier_product_code or '-' }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
-                            <td class="text-end">R$ {{ ("%0.2f"|format(item.unit_price|float)).replace('.',',') }}</td>
-                            <td class="text-end">R$ {{ ("%0.2f"|format(sub_bruto)).replace('.',',') }}</td>
-                            <td class="text-end text-danger">
-                                {% if desc_item > 0 %}
-                                    - R$ {{ ("%0.2f"|format(desc_item)).replace('.',',') }}
+                            <td class="text-end text-nowrap">R$ {{ ("%0.2f"|format(item.unit_price|float)).replace('.',',') }}</td>
+                            <td class="text-end text-nowrap fw-bold">
+                                R$ {{ ("%0.2f"|format(subtotal_bruto)).replace('.',',') }}
+                            </td>
+                            <td class="text-end text-nowrap text-danger">
+                                {% if desconto_item > 0 %}
+                                    - R$ {{ ("%0.2f"|format(desconto_item)).replace('.',',') }}
                                 {% else %}
-                                    0,00
+                                    <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end pe-3 fw-bold text-success">
-                                R$ {{ ("%0.2f"|format(sub_liquido)).replace('.',',') }}
+                            <td class="text-end pe-3 text-nowrap fw-bold text-success">
+                                R$ {{ ("%0.2f"|format(subtotal_liquido)).replace('.',',') }}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot class="table-light fw-bold">
                         <tr>
-                            <td colspan="4" class="text-end text-uppercase">Totais Verificados:</td>
-                            <td class="text-end text-primary">
-                                R$ {{ ("%0.2f"|format(total_bruto)).replace('.',',') }}
+                            <td colspan="5" class="text-end text-uppercase">Totais:</td>
+                            <td class="text-end text-primary text-nowrap">
+                                R$ {{ ("%0.2f"|format(ns.soma_bruto)).replace('.',',') }}
                             </td>
-                            <td class="text-end text-danger">
-                                - R$ {{ ("%0.2f"|format(total_desconto)).replace('.',',') }}
+                            <td class="text-end text-danger text-nowrap">
+                                - R$ {{ ("%0.2f"|format(ns.soma_desconto)).replace('.',',') }}
                             </td>
-                            <td class="text-end pe-3 text-success">
-                                R$ {{ ("%0.2f"|format(total_liquido)).replace('.',',') }}
+                            <td class="text-end pe-3 text-success text-nowrap">
+                                R$ {{ ("%0.2f"|format(ns.soma_liquido)).replace('.',',') }}
                             </td>
                         </tr>
                     </tfoot>
