@@ -114,23 +114,43 @@ class FormPurchaseInvoice(FlaskForm):
         Length(max=10, message="Máximo 10 caracteres")
     ])
     
-    total_amount = DecimalField('Valor Total dos Produtos', validators=[
-        DataRequired('Valor total é obrigatório'),
+    total_amount = DecimalField('Total Bruto dos Produtos', validators=[
+        DataRequired('Valor total bruto é obrigatório'),
         NumberRange(min=0.01, message="Valor deve ser maior que zero")
     ], places=2)
 
-    total_discount = DecimalField('Total de Desconto', validators=[
+    # Usuário informa o total líquido (NF já com desconto aplicado)
+    # O total_discount é derivado no backend: total_amount - total_liquid
+    total_liquid = DecimalField('Total Líquido', validators=[
         Optional(),
-        NumberRange(min=0, message="Desconto não pode ser negativo")
+        NumberRange(min=0, message="Total líquido não pode ser negativo")
     ], places=2, default=0)
     
     store_id = HiddenField()
-    
-    # Lista de itens (para adicionar dinamicamente via JavaScript)
-    # items = FieldList(FormField(FormPurchaseInvoiceItem), min_entries=1)
+
+
+# =========================================================
+# FORMULÁRIO DE ITEM DA NOTA
+# =========================================================
 
 class FormPurchaseInvoiceItem(FlaskForm):
-    product_id = SelectField('Produto', coerce=int, validators=[DataRequired()])
-    supplier_product_code = StringField('Código no Fornecedor')
-    quantity = DecimalField('Quantidade', places=2, validators=[DataRequired(), NumberRange(min=0.01)])
-    unit_price = DecimalField('Preço Unitário', places=2, validators=[DataRequired(), NumberRange(min=0.01)])
+    """Sub-formulário para itens da nota de entrada."""
+
+    product_id = SelectField('Produto', coerce=int, validators=[
+        DataRequired('Selecione um produto')
+    ])
+
+    supplier_product_code = StringField('Código do Fornecedor', validators=[
+        Optional(),
+        Length(max=50, message="Máximo 50 caracteres")
+    ])
+
+    quantity = DecimalField('Quantidade', validators=[
+        DataRequired('Quantidade é obrigatória'),
+        NumberRange(min=0.01, message="Quantidade deve ser maior que zero")
+    ], places=2)
+
+    unit_price = DecimalField('Preço Unitário', validators=[
+        DataRequired('Preço unitário é obrigatório'),
+        NumberRange(min=0.01, message="Preço deve ser maior que zero")
+    ], places=2)

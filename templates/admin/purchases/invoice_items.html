@@ -62,8 +62,8 @@
                     {{ form_item.quantity(class="form-control form-control-sm", step="0.01") }}
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold">Preço Unit. (R$) *</label>
-                    {{ form_item.unit_price(class="form-control form-control-sm", step="0.01") }}
+                    <label class="form-label small fw-bold">Vlr.Total (R$) *</label>
+                    {{ form_item.amount(class="form-control form-control-sm", step="0.01") }}
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-success btn-sm w-100">
@@ -92,12 +92,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                    {# {% set total_acumulado = 0.0 %} #}
                     {% for item in items %}
-                        {% set subtotal_bruto = (item.quantity|float * item.unit_price|float) %}
-                        {% set proporcao = (subtotal_bruto / total_acumulado) if total_acumulado > 0 else 0 %}
-                        {% set desconto_item = (proporcao * total_discount) | round(2) %}
-                        {% set subtotal_liquido = subtotal_bruto - desconto_item %}
+                        {% set subtotal_bruto   = item.amount|float %}
+                        {% set desconto_item    = item.desconto_rateado|float %}
+                        {% set subtotal_liquido = item.subtotal_liquido|float %}
+                        
                         <tr class="text-center">
                             <td>{{ loop.index }}</td>
                             <td class="text-start">{{ item.product_name }}</td>
@@ -106,7 +105,7 @@
                             <td>R$ {{ ("%0.2f"|format(item.unit_price|float)).replace('.',',') }}</td>
                             <td class="fw-bold">R$ {{ ("%0.2f"|format(subtotal_bruto)).replace('.',',') }}</td>
                             <td class="text-danger">
-                                {% if total_discount > 0 %}
+                                {% if desconto_item > 0 %}
                                     - R$ {{ ("%0.2f"|format(desconto_item)).replace('.',',') }}
                                 {% else %}
                                     -

@@ -2,7 +2,7 @@
 
 from flask import Blueprint, session, render_template, redirect, url_for, flash, request
 from datetime import datetime
-import re
+import re, math
 
 from .models import Supplier, PurchaseInvoice, PurchaseInvoiceItem, db
 from .forms import FormSupplier, FormSupplierUpd, FormPurchaseInvoice, FormPurchaseInvoiceItem
@@ -274,12 +274,20 @@ def invoice_item_add():
         product_id = int(request.form.get('product_id'))
         product = Product.query.get(product_id)
         
+        qty = float(form.quantity.data)
+        total_item = float(form.amount.data)
+        
+        # Cálculo do preço unitário com arredondamento para cima (2 casas)
+        # Ex: 182.17 / 120 = 1.518083 -> 1.52
+        unit_price = math.ceil((total_item / qty) * 100) / 100
+
         new_item = {
             'product_id': product_id,
             'product_name': product.name,
             'supplier_product_code': form.supplier_product_code.data,
-            'quantity': float(form.quantity.data),
-            'unit_price': float(form.unit_price.data)
+            'quantity': float(qty),
+            'unit_price': float(unit_price),
+            'amount': float(total_item)
         }
         items.append(new_item)
         session['temp_items'] = items

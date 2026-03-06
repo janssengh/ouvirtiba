@@ -80,6 +80,7 @@ class PurchaseInvoiceItem(Base):
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
     unit_price = db.Column(db.Numeric(15, 2), nullable=False)
     discount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
+    amount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
     
     # Relacionamentos
     invoice = db.relationship('PurchaseInvoice', back_populates='items')

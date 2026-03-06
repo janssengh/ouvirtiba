@@ -150,7 +150,5 @@ class FormPurchaseInvoiceItem(FlaskForm):
         NumberRange(min=0.01, message="Quantidade deve ser maior que zero")
     ], places=2)
 
-    unit_price = DecimalField('Preço Unitário', validators=[
-        DataRequired('Preço unitário é obrigatório'),
-        NumberRange(min=0.01, message="Preço deve ser maior que zero")
-    ], places=2)
+    amount = DecimalField('Valor Total Item', validators=[
+        DataRequired()]) # Alterado

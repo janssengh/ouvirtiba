@@ -2,7 +2,7 @@
 
 from flask import Blueprint, session, render_template, redirect, url_for, flash, request
 from datetime import datetime
-import re
+import re, math
 
 from .models import Supplier, PurchaseInvoice, PurchaseInvoiceItem, db
 from .forms import FormSupplier, FormSupplierUpd, FormPurchaseInvoice, FormPurchaseInvoiceItem
@@ -221,8 +221,8 @@ def invoice_items():
     # Recupera a lista da sessão (se não existir, retorna uma lista vazia [])
     items = session.get('temp_items', [])
 
-    # CÁLCULO DA SOMA BRUTA DOS ITENS
-    total_acumulado = sum(item['quantity'] * item['unit_price'] for item in items)
+    # CÁLCULO DA SOMA BRUTA DOS ITENS (usa o valor total informado diretamente)
+    total_acumulado = round(sum(item['amount'] for item in items), 2)
 
     # DESCONTO TOTAL DA NOTA (do mestre)
     total_discount = float(invoice.get('total_discount', 0))
@@ -232,6 +232,23 @@ def invoice_items():
 
     # DIFERENÇA entre soma bruta dos itens e total bruto informado
     diff = abs(float(invoice['total_amount']) - total_acumulado)
+
+    # RATEIO DO DESCONTO POR ITEM (último item absorve diferença de arredondamento)
+    items_com_desconto = []
+    desconto_acumulado = 0.0
+    for idx, item in enumerate(items):
+        eh_ultimo = (idx == len(items) - 1)
+        subtotal_bruto = float(item['amount'])
+        if total_acumulado > 0 and total_discount > 0:
+            if eh_ultimo:
+                desconto_item = round(total_discount - desconto_acumulado, 2)
+            else:
+                desconto_item = round((subtotal_bruto / total_acumulado) * total_discount, 2)
+                desconto_acumulado += desconto_item
+        else:
+            desconto_item = 0.0
+        items_com_desconto.append({**item, 'desconto_rateado': desconto_item,
+                                   'subtotal_liquido': round(subtotal_bruto - desconto_item, 2)})
 
     # 1. Instancie o formulário que o template está esperando
     form_item = FormPurchaseInvoiceItem()
@@ -245,7 +262,7 @@ def invoice_items():
     return render_template(
         'admin/purchases/invoice_items.html', 
         invoice=invoice, 
-        items=items, 
+        items=items_com_desconto, 
         total_acumulado=total_acumulado,
         total_discount=total_discount,
         total_liquido_esperado=total_liquido_esperado,
@@ -274,12 +291,20 @@ def invoice_item_add():
         product_id = int(request.form.get('product_id'))
         product = Product.query.get(product_id)
         
+        qty = float(form.quantity.data)
+        total_item = float(form.amount.data)
+        
+        # Cálculo do preço unitário com arredondamento para cima (2 casas)
+        # Ex: 182.17 / 120 = 1.518083 -> 1.52
+        unit_price = math.ceil((total_item / qty) * 100) / 100
+
         new_item = {
             'product_id': product_id,
             'product_name': product.name,
             'supplier_product_code': form.supplier_product_code.data,
-            'quantity': float(form.quantity.data),
-            'unit_price': float(form.unit_price.data)
+            'quantity': float(qty),
+            'unit_price': float(unit_price),
+            'amount': float(total_item)
         }
         items.append(new_item)
         session['temp_items'] = items
@@ -303,7 +328,7 @@ def invoice_finalize():
         return redirect(url_for('purchases_bp.invoice_items'))
 
     # 2. Validação de segurança: Comparar total bruto da NF com a soma dos itens
-    total_itens = sum(item['quantity'] * item['unit_price'] for item in items_data)
+    total_itens = round(sum(item['amount'] for item in items_data), 2)
     total_discount = float(invoice_data.get('total_discount', 0))
 
     if abs(total_itens - invoice_data['total_amount']) > 0.01:
@@ -334,7 +359,7 @@ def invoice_finalize():
         desconto_rateado_acumulado = 0.0
 
         for idx, item in enumerate(items_data):
-            subtotal_item = item['quantity'] * item['unit_price']
+            subtotal_item = item['amount']  # usa o valor total informado
             eh_ultimo = (idx == len(items_data) - 1)
 
             if total_itens > 0 and total_discount > 0:
