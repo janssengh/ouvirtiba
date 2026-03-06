@@ -353,7 +353,14 @@ def invoice_finalize():
         db.session.add(new_invoice)
         db.session.flush()
 
-        # 4. Criar os itens com desconto rateado proporcionalmente
+        # 4. Pré-carrega todos os produtos necessários de uma vez (evita queries
+        #    dentro do loop que causam autoflush e DuplicatePreparedStatement)
+        product_ids = [item['product_id'] for item in items_data]
+        produtos_map = {
+            p.id: p for p in Product.query.filter(Product.id.in_(product_ids)).all()
+        }
+
+        # 5. Criar os itens com desconto rateado proporcionalmente
         # Rateio: desconto_item = (subtotal_item / total_bruto) * total_desconto
         # O último item absorve o centavo de arredondamento
         desconto_rateado_acumulado = 0.0
@@ -383,8 +390,8 @@ def invoice_finalize():
             )
             db.session.add(new_item)
 
-            # --- ATUALIZAÇÃO DO ESTOQUE ---
-            product = Product.query.get(item['product_id'])
+            # --- ATUALIZAÇÃO DO ESTOQUE (usa o map pré-carregado, sem nova query) ---
+            product = produtos_map.get(item['product_id'])
             if product:
                 current_stock = product.stock if product.stock else 0
                 product.stock = current_stock + item['quantity']

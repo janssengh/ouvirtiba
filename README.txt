@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "resolvendo definitivamente o DuplicatePreparedStatement"
+git commit -m "Atualizando o preço no produto na entrada nota fornecedor"
 git push origin master
 
 ATUALIZAR RENDER:
