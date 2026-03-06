@@ -390,11 +390,12 @@ def invoice_finalize():
             )
             db.session.add(new_item)
 
-            # --- ATUALIZAÇÃO DO ESTOQUE (usa o map pré-carregado, sem nova query) ---
+            # --- ATUALIZAÇÃO DE ESTOQUE E PREÇO DE CUSTO (usa o map pré-carregado, sem nova query) ---
             product = produtos_map.get(item['product_id'])
             if product:
                 current_stock = product.stock if product.stock else 0
                 product.stock = current_stock + item['quantity']
+                product.price = item['unit_price']  # atualiza preço de custo com o da NF
 
         # 5. Commit Final (Grava tudo ou nada)
         db.session.commit()

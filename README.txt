@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Atualizando o preço no produto na entrada nota fornecedor"
+git commit -m "Desfazer o preço produto ao excluir nota de entrada fornecedor"
 git push origin master
 
 ATUALIZAR RENDER:
