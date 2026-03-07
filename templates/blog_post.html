@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% set canonical = "https://www.ouvirtiba.com.br/blog/" + post.slug %}
+
+{% block title %}{{ post.title }} | Blog Ouvirtiba{% endblock %}
+
+{% block content %}
+
+<div class="container my-5">
+
+  <!-- Botão Voltar (topo) -->
+  <a href="{{ url_for('blog') }}" class="btn btn-outline-secondary btn-sm mb-4">
+    <i class="bi bi-arrow-left me-1"></i> Voltar para o Blog
+  </a>
+
+  <!-- ================================================
+       CABEÇALHO: imagem à esquerda + título à direita
+       ================================================ -->
+  <div class="row align-items-start g-4 mb-4">
+
+    {% if post.image %}
+    <div class="col-12 col-md-4">
+      <img
+        src="/static/{{ post.image }}"
+        alt="{{ post.title }}"
+        class="img-fluid rounded shadow-sm"
+        style="width:100%; max-height:300px; object-fit:cover;">
+    </div>
+    <div class="col-12 col-md-8">
+    {% else %}
+    <div class="col-12">
+    {% endif %}
+
+      <!-- Título (pode quebrar em 2+ linhas) -->
+      <h1 class="text-success fw-bold lh-base">{{ post.title }}</h1>
+
+      <!-- Autor e data -->
+      <p class="text-muted small mb-3">
+        <i class="bi bi-person me-1"></i>{{ post.author }}
+        &nbsp;|&nbsp;
+        <i class="bi bi-calendar3 me-1"></i>
+        {{ post.created_at.strftime('%d/%m/%Y') if post.created_at else '' }}
+        {% if post.updated_at %}
+          &nbsp;|&nbsp;
+          <i class="bi bi-pencil me-1"></i>Atualizado em
+          {{ post.updated_at.strftime('%d/%m/%Y') }}
+        {% endif %}
+      </p>
+
+      <!-- Resumo em destaque -->
+      <p class="lead text-secondary border-start border-success border-3 ps-3">
+        {{ post.summary }}
+      </p>
+
+    </div>
+  </div><!-- /row cabeçalho -->
+
+  <hr class="mb-4">
+
+  <!-- ================================================
+       CONTEÚDO COMPLETO
+       (conteudo já vem limpo de tags VML/Word)
+       ================================================ -->
+  {% if conteudo %}
+  <div class="blog-conteudo lh-lg">
+    {{ conteudo | safe }}
+  </div>
+  {% endif %}
+
+  <!-- Botão Voltar (rodapé) -->
+  <div class="mt-5 pt-3 border-top">
+    <a href="{{ url_for('blog') }}" class="btn btn-success">
+      <i class="bi bi-arrow-left me-1"></i> Voltar para o Blog
+    </a>
+  </div>
+
+</div><!-- /container -->
+
+<style>
+  /* ------------------------------------------------
+     Estilo do conteúdo do post
+     ------------------------------------------------ */
+  .blog-conteudo {
+    font-size: 1.05rem;
+    max-width: 860px;
+  }
+  .blog-conteudo h2 {
+    color: #146c43;
+    margin-top: 2rem;
+    margin-bottom: .6rem;
+    font-size: 1.4rem;
+  }
+  .blog-conteudo h3 {
+    color: #198754;
+    margin-top: 1.6rem;
+    margin-bottom: .5rem;
+    font-size: 1.15rem;
+  }
+  .blog-conteudo p {
+    margin-bottom: 1.1rem;
+  }
+  .blog-conteudo img {
+    max-width: 100%;
+    height: auto;
+    border-radius: .4rem;
+    margin: .8rem auto;
+    display: block;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+  .blog-conteudo a {
+    color: #198754;
+  }
+  .blog-conteudo a:hover {
+    color: #146c43;
+  }
+</style>
+
+{% endblock content %}

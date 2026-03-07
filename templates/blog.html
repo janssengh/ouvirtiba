@@ -1,93 +1,92 @@
 {% extends "layout.html" %}
 {% set canonical = "https://www.ouvirtiba.com.br/blog" %}
 
+{% block title %}Blog Ouvirtiba | Dicas sobre Aparelhos Auditivos{% endblock %}
+
 {% block content %}
-<!-- Menu (já com blog incluso) -->
-<!-- ... [mesma estrutura de navegação com item Blog] ... -->
-<!-- Conteúdo do Blog -->
+
 <div class="container my-5">
- <h1 class="mb-4 text-center">
-  Blog Ouvirtiba
- </h1>
- <!-- Post 1 -->
- <div class="mb-5">
-  <h2>
-   1. Como identificar a perda auditiva no dia a dia
-  </h2>
-  <p>
-   A perda auditiva pode ser gradual e silenciosa. Se voc&ecirc; percebe que aumenta o volume da TV com frequ&ecirc;ncia, pede para repetirem o que foi dito ou sente dificuldade em acompanhar conversas em ambientes ruidosos, esses podem ser sinais iniciais. Reconhecer esses sintomas cedo &eacute; essencial para buscar ajuda especializada.
-  </p>
-  <p>
-   Quer saber mais?
-   <a href="/contato">
-    Fale com um especialista
-   </a>
-   ou
-   <a href="/blog/como-identificar-perda-auditiva">
-    entenda os primeiros sinais de perda auditiva
-   </a>
-   .
-  </p>
- </div>
- <!-- Post 2 -->
- <div class="mb-5">
-  <h2>
-   2. Por que &eacute; importante usar aparelhos auditivos
-  </h2>
-  <p>
-   Usar aparelhos auditivos n&atilde;o &eacute; apenas uma quest&atilde;o de ouvir melhor. Eles melhoram a qualidade de vida, mant&ecirc;m voc&ecirc; ativo socialmente e ajudam a prevenir o isolamento, a depress&atilde;o e at&eacute; mesmo o decl&iacute;nio cognitivo. A tecnologia atual oferece conforto, discri&ccedil;&atilde;o e excelente qualidade sonora.
-  </p>
-  <p>
-   Quer saber mais?
-   <a href="/contato">
-    Fale com um especialista
-   </a>
-   ou
-   <a href="/blog/uso-aparelhos-auditivos">
-    leia mais sobre os benef&iacute;cios dos aparelhos
-   </a>
-   .
-  </p>
- </div>
- <!-- Post 3 -->
- <div class="mb-5">
-  <h2>
-   3. Dicas para se adaptar melhor ao uso de aparelhos auditivos
-  </h2>
-  <p>
-   A adapta&ccedil;&atilde;o pode levar alguns dias. Comece usando os aparelhos em casa, em ambientes calmos. V&aacute; aumentando o tempo de uso e testando em diferentes situa&ccedil;&otilde;es. Conte com o acompanhamento de uma fonoaudi&oacute;loga para ajustar o aparelho conforme suas necessidades. A pr&aacute;tica leva &agrave; naturalidade.
-  </p>
-  <p>
-   Quer saber mais?
-   <a href="/contato">
-    Agende uma avalia&ccedil;&atilde;o
-   </a>
-   ou
-   <a href="/blog/dicas-adaptacao-aparelho">
-    veja nossas dicas de adapta&ccedil;&atilde;o
-   </a>
-   .
-  </p>
- </div>
+
+  <h1 class="text-center mb-5">Blog Ouvirtiba</h1>
+
+  {% if posts %}
+  <div class="row g-4 justify-content-center">
+
+    {% for post in posts %}
+    <div class="col-12 col-md-6 col-lg-4">
+
+      <div class="card h-100 shadow-sm border-0 rounded-3 position-relative blog-card">
+
+        <!-- 1ª linha: Título -->
+        <div class="card-header bg-white border-0 pt-3 pb-1 px-3">
+          <h5 class="card-title text-success fw-bold mb-0 lh-sm">
+            {{ post.title }}
+          </h5>
+        </div>
+
+        <!-- 2ª linha: Imagem -->
+        {% if post.image %}
+        <img
+          src="/static/{{ post.image }}"
+          class="card-img-middle"
+          alt="{{ post.title }}"
+          style="height:210px; object-fit:cover;">
+        {% else %}
+        <div class="d-flex align-items-center justify-content-center bg-light"
+             style="height:210px;">
+          <i class="bi bi-ear text-secondary" style="font-size:3rem;"></i>
+        </div>
+        {% endif %}
+
+        <!-- 3ª linha: Resumo truncado -->
+        <div class="card-body d-flex flex-column px-3 py-3">
+          {% if post.summary %}
+            {% set resumo = post.summary %}
+            <p class="card-text text-muted flex-grow-1 mb-2">
+              {% if resumo|length > 200 %}
+                {{ resumo[:200] }}&hellip; <span class="text-success fw-semibold">mais</span>
+              {% else %}
+                {{ resumo }}
+              {% endif %}
+            </p>
+          {% endif %}
+
+          <span class="btn btn-success btn-sm mt-auto align-self-start" style="pointer-events:none;">
+            Ler mais <i class="bi bi-arrow-right ms-1"></i>
+          </span>
+        </div>
+
+        <!-- Rodapé: autor + data -->
+        <div class="card-footer bg-white border-0 text-muted small pb-3 px-3">
+          <i class="bi bi-person me-1"></i>{{ post.author }}
+          &nbsp;|&nbsp;
+          <i class="bi bi-calendar3 me-1"></i>
+          {{ post.created_at.strftime('%d/%m/%Y') if post.created_at else '' }}
+        </div>
+
+        <!-- stretched-link: card inteiro clicável -->
+        <a href="{{ url_for('blog_post', slug=post.slug) }}"
+           class="stretched-link"
+           aria-label="Ler: {{ post.title }}"></a>
+
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+
+  {% else %}
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-journal-x" style="font-size:3rem;"></i>
+    <p class="mt-3">Nenhum artigo publicado ainda. Volte em breve!</p>
+  </div>
+  {% endif %}
+
 </div>
+
+<style>
+  .blog-card { transition: transform .18s, box-shadow .18s; cursor: pointer; }
+  .blog-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.13) !important; }
+</style>
+
 {% endblock content %}
-
-{% block title %}Blog Ouvirtiba | Sa&uacute;de Auditiva, Aparelhos e Dicas{% endblock %}
-{% block description %}Confira artigos sobre perda auditiva, uso de aparelhos auditivos e dicas pr&aacute;ticas para sua sa&uacute;de auditiva no Blog Ouvirtiba.{% endblock %}
-
-{% block scripts %}
-<script type="application/ld+json">
- {
-  "@context": "https://schema.org",
-  "@type": "Blog",
-  "name": "Blog Ouvirtiba",
-  "description": "Dicas e informações sobre saúde auditiva, perda auditiva e aparelhos auditivos.",
-  "url": "https://www.ouvirtiba.com.br/blog",
-  "publisher": {
-    "@type": "Organization",
-    "name": "Ouvirtiba Aparelhos Auditivos",
-    "url": "https://www.ouvirtiba.com.br"
-  }
-}
-</script>
-{% endblock %}

@@ -9,7 +9,7 @@ from sqlalchemy import text
 import resend  # ✅ NOVA BIBLIOTECA
 import os
 import logging
-import re
+import re as _re
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -51,6 +51,7 @@ from admin.blog_post.routes import blog_bp
 from admin.purchases import purchases_bp
 from admin.image.routes import image_bp
 from admin.assembly.routes import assembly_bp
+from admin.blog_post.models import BlogPost
 
 db.init_app(app)
 bcrypt.init_app(app)  # ✅ adiciona essa linha
@@ -112,11 +113,11 @@ def produtos():
 def validar_email(email):
     """Valida formato de email"""
     padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(padrao, email) is not None
+    return _re.match(padrao, email) is not None
 
 def validar_telefone(telefone):
     """Valida se tem exatamente 11 dígitos (DDD + 9 dígitos)"""
-    apenas_numeros = re.sub(r'\D', '', telefone)
+    apenas_numeros = _re.sub(r'\D', '', telefone)
     return len(apenas_numeros) == 11
 
 @app.route('/contato', methods=['GET', 'POST'])
@@ -226,21 +227,58 @@ def contato():
     return render_template('contato.html', description="Entre em contato com a Ouvirtiba para agendar seu atendimento e teste de aparelhos auditivos.")
 
 
+def _limpar_html_word(html):
+    """Remove tags VML/MSO geradas pelo Word, preservando imagens e HTML limpo."""
+    if not html:
+        return ''
+
+    # 1. Remove blocos VML <!--[if gte vml 1]>...</[endif]--> (shapetype/shape do Word)
+    html = _re.sub(r'<!--\s*\[if gte vml\b.*?\[endif\]-->', '', html, flags=_re.DOTALL)
+
+    # 2. <!--[if !vml]-->IMAGEM REAL<!--[endif]--> — remove só os comentários, preserva img
+    html = _re.sub(r'<!--\s*\[if !vml\]-->', '', html)
+    html = _re.sub(r'<!--\s*\[endif\]-->', '', html)
+
+    # 3. Remove atributos lang="EN-US" etc.
+    html = _re.sub(r'\s+lang="[^"]*"', '', html)
+
+    # 4. Remove classes MSO: class="MsoNormal" etc.
+    html = _re.sub(r'\s+class="Mso[^"]*"', '', html)
+
+    # 5. Remove propriedades mso-* dentro de style=""
+    html = _re.sub(r'mso-[^;:"\'><\s]+[^;"]*;?\s*', '', html)
+
+    # 6. Remove style="" vazios que sobraram
+    html = _re.sub(r'\s+style="\s*"', '', html)
+
+    # 7. Remove <span> vazias que sobraram
+    html = _re.sub(r'<span>\s*</span>', '', html)
+
+    return html.strip()
+
+
 @app.route('/blog')
 def blog():
-    return render_template('blog.html', description="Dicas no Blog Ouvirtiba, para adaptação e uso de aparelhos auditivos, e como identificar a perda auditiva")
+    posts = (BlogPost.query
+             .filter_by(active=True)
+             .order_by(BlogPost.created_at.desc())
+             .all())
+    return render_template(
+        'blog.html',
+        posts=posts,
+        description="Dicas no Blog Ouvirtiba sobre adaptação e uso de aparelhos auditivos."
+    )
 
-@app.route('/blog/dicas-adaptacao-aparelho')
-def dicas_adaptacao():
-    return render_template('dicas-adaptacao-aparelho.html', description="Dicas para adaptação de aparelhos auditivos")
-
-@app.route('/blog/uso-aparelhos-auditivos')
-def uso_aparelhos_auditivos():
-    return render_template('uso-aparelhos-auditivos.html', description="Benefícios para usar aparelhos auditivos")
-
-@app.route('/blog/como-identificar-perda-auditiva')
-def como_identificar_perda_auditiva():
-    return render_template('como-identificar-perda-auditiva.html', description="Como identificar a perda auditiva")
+@app.route('/blog/<slug>')
+def blog_post(slug):
+    post = BlogPost.query.filter_by(slug=slug, active=True).first_or_404()
+    conteudo_limpo = _limpar_html_word(post.content)
+    return render_template(
+        'blog_post.html',
+        post=post,
+        conteudo=conteudo_limpo,
+        description=post.summary[:160] if post.summary else post.title
+    )
 
 @app.route('/politica')
 def politica():
