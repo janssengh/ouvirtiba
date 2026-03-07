@@ -449,18 +449,30 @@ def invoice_delete(invoice_id):
     try:
         invoice_number = f"{invoice.invoice_number}/{invoice.series}"
 
-        # Estornar o estoque de cada item antes de excluir
+        # Estornar estoque e preço de custo de cada item antes de excluir
         for item in invoice.items:
             product = Product.query.get(item.product_id)
             if product:
-                # Subtraímos a quantidade que havia entrado pela nota
-                # Tratamos None como 0 para evitar erros de cálculo
+                # Estorna quantidade do estoque
                 current_stock = product.stock if product.stock else 0
                 product.stock = current_stock - item.quantity
-                
-                # Opcional: Impedir que o estoque fique negativo (regra de negócio)
-                # if product.stock < 0:
-                #     product.stock = 0
+
+                # Estorna preço de custo: busca o unit_price da nota anterior
+                # mais recente para este produto (excluindo a nota atual)
+                item_anterior = (
+                    PurchaseInvoiceItem.query
+                    .join(PurchaseInvoice)
+                    .filter(
+                        PurchaseInvoiceItem.product_id == item.product_id,
+                        PurchaseInvoice.id != invoice_id
+                    )
+                    .order_by(PurchaseInvoice.receipt_date.desc(), PurchaseInvoice.id.desc())
+                    .first()
+                )
+                if item_anterior:
+                    product.price = item_anterior.unit_price
+                else:
+                    product.price = 0  # sem histórico anterior, zera o preço de custo
 
 
         db.session.delete(invoice)

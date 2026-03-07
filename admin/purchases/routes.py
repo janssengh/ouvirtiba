@@ -145,8 +145,10 @@ def supplier_delete(supplier_id):
 def invoice_list():
     """Lista todas as notas de entrada da loja."""
     store_id = session.get('store_id')
+
     invoices = PurchaseInvoice.query.filter_by(store_id=store_id)\
-        .order_by(PurchaseInvoice.receipt_date.desc()).all()
+            .order_by(PurchaseInvoice.receipt_date.desc(), PurchaseInvoice.id.desc()).all()
+
     return render_template('admin/purchases/invoice_list.html', invoices=invoices)
 
 
@@ -390,12 +392,18 @@ def invoice_finalize():
             )
             db.session.add(new_item)
 
-            # --- ATUALIZAÇÃO DE ESTOQUE E PREÇO DE CUSTO (usa o map pré-carregado, sem nova query) ---
+            # --- ATUALIZAÇÃO DE ESTOQUE E PREÇO DE CUSTO ---
             product = produtos_map.get(item['product_id'])
             if product:
                 current_stock = product.stock if product.stock else 0
                 product.stock = current_stock + item['quantity']
-                product.price = item['unit_price']  # atualiza preço de custo com o da NF
+
+                # Preço líquido unitário = (amount - desconto_item) / quantity
+                # Arredondado para 2 casas decimais (ex: 1997,54833... → 1997,55)
+                preco_liquido_unitario = round(
+                    (item['amount'] - item_discount) / item['quantity'], 2
+                )
+                product.price = preco_liquido_unitario
 
         # 5. Commit Final (Grava tudo ou nada)
         db.session.commit()
@@ -470,7 +478,12 @@ def invoice_delete(invoice_id):
                     .first()
                 )
                 if item_anterior:
-                    product.price = item_anterior.unit_price
+                    # Recalcula o preço líquido unitário da nota anterior
+                    # usando a mesma fórmula: (amount - discount) / quantity
+                    desc_ant   = float(item_anterior.discount or 0)
+                    amount_ant = float(item_anterior.amount or 0)
+                    qty_ant    = float(item_anterior.quantity)
+                    product.price = round((amount_ant - desc_ant) / qty_ant, 2)
                 else:
                     product.price = 0  # sem histórico anterior, zera o preço de custo
 
