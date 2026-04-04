@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Incusão do blog dinâmico no site"
+git commit -m "Alteração Do Processo Produção e Observação do Pedido"
 git push origin master
 
 ATUALIZAR RENDER:

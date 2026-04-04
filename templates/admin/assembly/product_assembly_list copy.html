@@ -14,7 +14,6 @@
                     <th>Produto Final</th>
                     <th>Componentes (Aparelho + Rec + Oliva)</th>
                     <th>Qtd</th>
-                    <th>Preço de Venda</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -25,7 +24,6 @@
                     <td class="fw-bold">{{ a.parent.name }}</td>
                     <td><small>{{ a.base.name }} + {{ a.receptor.name }} + {{ a.oliva.name }}</small></td>
                     <td>{{ a.quantity }}</td>
-                    <td>R$ {{ a.sale_price | int }}</td>
                     <td><span class="badge bg-success">{{ a.status }}</span></td>
                 </tr>
                 {% endfor %}
