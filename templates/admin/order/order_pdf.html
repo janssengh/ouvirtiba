@@ -13,8 +13,8 @@
         .pedido-header-table td { vertical-align: top; padding: 10px; }
         .titulo-secao { background-color: #f8f9fa; font-weight: bold; padding: 5px; margin-top: 10px; margin-bottom: 5px; }
         .tabela-itens thead tr { background-color: #dee2e6; }
-        /* Garantir que as imagens sejam menores no PDF */
         .logo-img { max-height: 80px; width: auto; }
+        .text-cor { color: #6c757d; font-size: 9pt; }
     </style>
   </head>
   <body>
@@ -139,10 +139,12 @@
                             <td>{{loop.index}}</td>
 
                             <td>
+                                {{oi.product.name}}
+                                {% if oi.product.colors and oi.product.colors != 'N/APLICA' %}
+                                    <span class="text-cor">| {{ oi.product.colors }}</span>
+                                {% endif %}
                                 {% if oi.serialnumber %}
-                                    {{oi.product.name}} SN {{oi.serialnumber}}
-                                {% else %}
-                                    {{oi.product.name}}
+                                    SN {{oi.serialnumber}}
                                 {% endif %}
                             </td>
 

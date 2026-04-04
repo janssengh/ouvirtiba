@@ -60,7 +60,12 @@
                     {% for oi in ordersitem %}
                         <tr>
                             <td class="text-center">{{ loop.index }}</td>
-                            <td>{{ oi.product.name }}</td>
+                            <td>
+                                {{ oi.product.name }}
+                                {% if oi.product.colors and oi.product.colors != 'N/APLICA' %}
+                                    <span class="text-muted">| {{ oi.product.colors }}</span>
+                                {% endif %}
+                            </td>
                             <td class="text-center">
                                 {% if oi.serialnumber %}
                                     <span class="badge bg-info text-dark">{{ oi.serialnumber }}</span>
