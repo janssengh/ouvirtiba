@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Alteração Do Processo Produção e Observação do Pedido"
+git commit -m "Alteração No Select Do Produto Base Inclusão Cor"
 git push origin master
 
 ATUALIZAR RENDER:

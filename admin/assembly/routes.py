@@ -25,7 +25,10 @@ def assembly_create():
 
     # Filtros para os componentes
     base_units = Product.query.filter(Product.type_id == 1, Product.stock > 0, Product.store_id == store_id).all()
-    form.base_unit_id.choices = [(p.id, f"{p.name} (Estoque: {p.stock})") for p in base_units]
+    form.base_unit_id.choices = [
+        (p.id, f"{p.name} | {p.colors} (Estoque: {p.stock})")
+        for p in base_units
+    ]
 
     receptors = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('receptores')).all()
     form.receptor_id.choices = [(p.id, f"{p.name} (Estoque: {p.stock})") for p in receptors]
@@ -59,7 +62,6 @@ def assembly_create():
             custo_total    = custo_base + custo_receptor + custo_oliva
 
             if custo_total > 0:
-                # floor em todos; o resto cai na oliva para fechar o total
                 rateio_base     = math.floor(suggested_price * custo_base     / custo_total)
                 rateio_receptor = math.floor(suggested_price * custo_receptor / custo_total)
                 rateio_oliva    = int(suggested_price) - rateio_base - rateio_receptor
@@ -90,7 +92,7 @@ def assembly_create():
                 if custo_total > 0:
                     preco_base     = math.floor(final_price * custo_base     / custo_total)
                     preco_receptor = math.floor(final_price * custo_receptor / custo_total)
-                    preco_oliva    = int(final_price) - preco_base - preco_receptor  # resto garante fechamento exato
+                    preco_oliva    = int(final_price) - preco_base - preco_receptor
                 else:
                     preco_base, preco_receptor, preco_oliva = int(final_price), 0, 0
 
