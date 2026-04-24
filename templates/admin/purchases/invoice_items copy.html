@@ -51,19 +51,7 @@
                 {{ form_item.csrf_token }}
                 <div class="col-md-4">
                     <label class="form-label small fw-bold">Produto *</label>
-                    <select name="product_id" id="product_id" class="form-select form-select-sm" required>
-                        <option value="">— Selecione um produto —</option>
-                        <optgroup label="🦻 Aparelhos Auditivos">
-                            {% for p in produtos if p.type_id == 1 %}
-                                <option value="{{ p.id }}">{{ p.name }}</option>
-                            {% endfor %}
-                        </optgroup>
-                        <optgroup label="🔧 Acessórios">
-                            {% for p in produtos if p.type_id == 2 %}
-                                <option value="{{ p.id }}">{{ p.name }}</option>
-                            {% endfor %}
-                        </optgroup>
-                    </select>
+                    {{ form_item.product_id(class="form-select form-select-sm") }}
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold">Cód. Fornecedor</label>

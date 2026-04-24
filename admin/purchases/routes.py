@@ -255,11 +255,13 @@ def invoice_items():
     # 1. Instancie o formulário que o template está esperando
     form_item = FormPurchaseInvoiceItem()
     
-    # 2. Popule o campo de seleção de produtos com os dados do banco
-    form_item.product_id.choices = [
-        (p.id, p.name) for p in Product.query.order_by('name').all()
-    ]
-    
+    # 2. Popule o campo de seleção de produtos (apenas tipos 1 e 2)
+    produtos = Product.query\
+        .filter(Product.type_id.in_([1, 2]))\
+        .order_by(Product.type_id, Product.name)\
+        .all()
+    form_item.product_id.choices = [(p.id, p.name) for p in produtos]
+
     # 3. Passe o 'form_item' para o template
     return render_template(
         'admin/purchases/invoice_items.html', 
@@ -269,7 +271,8 @@ def invoice_items():
         total_discount=total_discount,
         total_liquido_esperado=total_liquido_esperado,
         diff=diff,
-        form_item=form_item   
+        form_item=form_item,
+        produtos=produtos
     )
 
 
@@ -277,8 +280,13 @@ def invoice_items():
 def invoice_item_add():
     """Adiciona um item à nota fiscal de entrada."""
     form = FormPurchaseInvoiceItem()
-    # Carrega os produtos para o SelectField
-    form.product_id.choices = [(p.id, p.name) for p in Product.query.order_by('name').all()]
+    # Carrega os produtos para o SelectField (apenas tipos 1 e 2)
+    form.product_id.choices = [
+        (p.id, p.name) for p in Product.query
+            .filter(Product.type_id.in_([1, 2]))
+            .order_by(Product.type_id, Product.name)
+            .all()
+    ]
     
     # Em vez de buscar no banco por ID, verificamos se existe uma nota na sessão
     if 'temp_invoice' not in session:

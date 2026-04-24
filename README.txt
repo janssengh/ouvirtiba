@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Alteração Na Descrição Do Produto No Pedido Inclusão Cor"
+git commit -m "No item nota fiscal entrada, select por e somente AA e AC"
 git push origin master
 
 ATUALIZAR RENDER:
@@ -81,6 +81,11 @@ tabela, evitando que ele tente usar um número repetido no próximo INSERT:
 SELECT setval('ouvirtiba.tabela', (SELECT MAX(id) FROM ouvirtiba.tabela));
 ----------------------------------------------------------------------------
 
+Ativar ambiente virtual venv:
+No git bash:
+  source venv/Scripts/activate
+
+----------------------------------------------------------------------------- 
 # Guia de Debug no Render - Erro na Geração de PDF
 
 ## 1. Verificar Logs no Render
