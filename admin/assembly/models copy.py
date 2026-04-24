@@ -11,7 +11,6 @@ class ProductAssembly(db.Model):
     base_unit_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.product.id'), nullable=False)
     receptor_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.product.id'), nullable=False)
     oliva_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.product.id'), nullable=False)
-    carregador_id = db.Column(db.Integer, db.ForeignKey('ouvirtiba.product.id'), nullable=True)
 
     quantity = db.Column(db.Integer, nullable=False, default=1)
     sale_price = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)  # Preço de venda informado na montagem
@@ -23,4 +22,3 @@ class ProductAssembly(db.Model):
     base = db.relationship('Product', foreign_keys=[base_unit_id])
     receptor = db.relationship('Product', foreign_keys=[receptor_id])
     oliva = db.relationship('Product', foreign_keys=[oliva_id])
-    carregador = db.relationship('Product', foreign_keys=[carregador_id])

@@ -36,12 +36,17 @@ def assembly_create():
     olivas = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('olivas')).all()
     form.oliva_id.choices = [(p.id, f"{p.name} (Estoque: {p.stock})") for p in olivas]
 
+    carregadores = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('carregadores')).all()
+    form.carregador_id.choices = [(0, '— Sem carregador —')] + [(p.id, f"{p.name} (Estoque: {p.stock})") for p in carregadores]
+
     show_confirmation = False
     suggested_name  = ""
     suggested_price = 0.0
     rateio_base     = 0
     rateio_receptor = 0
     rateio_oliva    = 0
+    rateio_carregador = 0
+    carregador_selecionado = False
 
     if request.method == 'POST':
 
@@ -52,19 +57,24 @@ def assembly_create():
             base     = Product.query.get(form.base_unit_id.data)
             receptor = Product.query.get(form.receptor_id.data)
             oliva    = Product.query.get(form.oliva_id.data)
+            carregador_id = form.carregador_id.data
+            carregador = Product.query.get(carregador_id) if carregador_id else None
+            carregador_selecionado = carregador is not None
 
             suggested_name  = f"{base.name} {receptor.name} {oliva.name}"
             suggested_price = float(base.price)
 
-            custo_base     = float(base.price or 0)
-            custo_receptor = float(receptor.price or 0)
-            custo_oliva    = float(oliva.price or 0)
-            custo_total    = custo_base + custo_receptor + custo_oliva
+            custo_base      = float(base.price or 0)
+            custo_receptor  = float(receptor.price or 0)
+            custo_oliva     = float(oliva.price or 0)
+            custo_carregador = float(carregador.price or 0) if carregador else 0
+            custo_total     = custo_base + custo_receptor + custo_oliva + custo_carregador
 
             if custo_total > 0:
-                rateio_base     = math.floor(suggested_price * custo_base     / custo_total)
-                rateio_receptor = math.floor(suggested_price * custo_receptor / custo_total)
-                rateio_oliva    = int(suggested_price) - rateio_base - rateio_receptor
+                rateio_base      = math.floor(suggested_price * custo_base      / custo_total)
+                rateio_receptor  = math.floor(suggested_price * custo_receptor  / custo_total)
+                rateio_carregador = math.floor(suggested_price * custo_carregador / custo_total) if carregador else 0
+                rateio_oliva     = int(suggested_price) - rateio_base - rateio_receptor - rateio_carregador
             else:
                 rateio_base = int(suggested_price)
 
@@ -78,88 +88,78 @@ def assembly_create():
                 qty         = int(request.form.get('final_qty', 1))
                 final_name  = request.form.get('final_name')
                 final_price = float(request.form.get('final_price', 0).replace(',', '.'))
+                carregador_id = form.carregador_id.data
 
                 base     = Product.query.get(form.base_unit_id.data)
                 receptor = Product.query.get(form.receptor_id.data)
                 oliva    = Product.query.get(form.oliva_id.data)
+                carregador = Product.query.get(carregador_id) if carregador_id else None
 
                 # Rateio proporcional ao price de cada componente — valores inteiros
-                custo_base     = float(base.price or 0)
-                custo_receptor = float(receptor.price or 0)
-                custo_oliva    = float(oliva.price or 0)
-                custo_total    = custo_base + custo_receptor + custo_oliva
+                custo_base       = float(base.price or 0)
+                custo_receptor   = float(receptor.price or 0)
+                custo_oliva      = float(oliva.price or 0)
+                custo_carregador = float(carregador.price or 0) if carregador else 0
+                custo_total      = custo_base + custo_receptor + custo_oliva + custo_carregador
 
                 if custo_total > 0:
-                    preco_base     = math.floor(final_price * custo_base     / custo_total)
-                    preco_receptor = math.floor(final_price * custo_receptor / custo_total)
-                    preco_oliva    = int(final_price) - preco_base - preco_receptor
+                    preco_base       = math.floor(final_price * custo_base       / custo_total)
+                    preco_receptor   = math.floor(final_price * custo_receptor   / custo_total)
+                    preco_carregador = math.floor(final_price * custo_carregador / custo_total) if carregador else 0
+                    preco_oliva      = int(final_price) - preco_base - preco_receptor - preco_carregador
                 else:
-                    preco_base, preco_receptor, preco_oliva = int(final_price), 0, 0
+                    preco_base, preco_receptor, preco_oliva, preco_carregador = int(final_price), 0, 0, 0
 
                 data_local = datetime.now() - timedelta(hours=3)
 
-                # --- Produto acabado: CORPO -------------------------------- #
-                prod_base = Product(
-                    name=base.name,
-                    type_id=3,
-                    stock=qty,
-                    price=preco_base,
-                    brand_id=base.brand_id,
-                    category_id=base.category_id,
-                    color_id=base.color_id,
-                    size_id=base.size_id,
-                    store_id=store_id,
-                    image_1=base.image_1,
-                    image_2=base.image_2,
-                    image_3=base.image_3,
-                    discription=base.discription,
-                    colors=base.colors,
-                    packaging_id=base.packaging_id,
-                    pub_date=data_local
-                )
+                # -------------------------------------------------------------- #
+                # Função interna: busca produto acabado existente ou cria novo.   #
+                # Evita UniqueViolation ao remontar o mesmo conjunto de peças.    #
+                # -------------------------------------------------------------- #
+                def upsert_produto_acabado(componente, preco, qty):
+                    existente = Product.query.filter_by(
+                        store_id=store_id,
+                        name=componente.name.upper(),
+                        brand_id=componente.brand_id,
+                        category_id=componente.category_id,
+                        size_id=componente.size_id,
+                        color_id=componente.color_id,
+                        type_id=3
+                    ).first()
+                    if existente:
+                        existente.stock += qty
+                        existente.price  = preco  # atualiza preço de custo rateado
+                        return existente, False    # False = não é novo
+                    novo = Product(
+                        name=componente.name,
+                        type_id=3,
+                        stock=qty,
+                        price=preco,
+                        brand_id=componente.brand_id,
+                        category_id=componente.category_id,
+                        color_id=componente.color_id,
+                        size_id=componente.size_id,
+                        store_id=store_id,
+                        image_1=componente.image_1,
+                        image_2=componente.image_2,
+                        image_3=componente.image_3,
+                        discription=componente.discription,
+                        colors=componente.colors,
+                        packaging_id=componente.packaging_id,
+                        pub_date=data_local
+                    )
+                    db.session.add(novo)
+                    return novo, True  # True = novo registro
 
-                # --- Produto acabado: RECEPTOR ----------------------------- #
-                prod_receptor = Product(
-                    name=receptor.name,
-                    type_id=3,
-                    stock=qty,
-                    price=preco_receptor,
-                    brand_id=receptor.brand_id,
-                    category_id=receptor.category_id,
-                    color_id=receptor.color_id,
-                    size_id=receptor.size_id,
-                    store_id=store_id,
-                    image_1=receptor.image_1,
-                    image_2=receptor.image_2,
-                    image_3=receptor.image_3,
-                    discription=receptor.discription,
-                    colors=receptor.colors,
-                    packaging_id=receptor.packaging_id,
-                    pub_date=data_local
-                )
+                prod_base,      _ = upsert_produto_acabado(base,     preco_base,     qty)
+                prod_receptor,  _ = upsert_produto_acabado(receptor, preco_receptor, qty)
+                prod_oliva,     _ = upsert_produto_acabado(oliva,    preco_oliva,    qty)
 
-                # --- Produto acabado: OLIVA -------------------------------- #
-                prod_oliva = Product(
-                    name=oliva.name,
-                    type_id=3,
-                    stock=qty,
-                    price=preco_oliva,
-                    brand_id=oliva.brand_id,
-                    category_id=oliva.category_id,
-                    color_id=oliva.color_id,
-                    size_id=oliva.size_id,
-                    store_id=store_id,
-                    image_1=oliva.image_1,
-                    image_2=oliva.image_2,
-                    image_3=oliva.image_3,
-                    discription=oliva.discription,
-                    colors=oliva.colors,
-                    packaging_id=oliva.packaging_id,
-                    pub_date=data_local
-                )
+                prod_carregador = None
+                if carregador:
+                    prod_carregador, _ = upsert_produto_acabado(carregador, preco_carregador, qty)
 
-                db.session.add_all([prod_base, prod_receptor, prod_oliva])
-                db.session.flush()  # gera os IDs
+                db.session.flush()  # gera IDs dos novos registros
 
                 # --- Registro na tabela assembly --------------------------- #
                 new_assembly = ProductAssembly(
@@ -168,6 +168,7 @@ def assembly_create():
                     base_unit_id=base.id,
                     receptor_id=receptor.id,
                     oliva_id=oliva.id,
+                    carregador_id=carregador.id if carregador else None,
                     quantity=qty,
                     sale_price=Decimal(str(int(final_price))),
                     status='CONCLUIDO',
@@ -179,13 +180,18 @@ def assembly_create():
                 base.stock     -= qty
                 receptor.stock -= qty
                 oliva.stock    -= qty
+                if carregador:
+                    carregador.stock -= qty
 
                 db.session.commit()
+
+                msg_carregador = f', "{prod_carregador.name}" R$ {preco_carregador}' if carregador else ''
                 flash(
                     f'Montagem concluída! '
                     f'"{prod_base.name}" R$ {preco_base}, '
                     f'"{prod_receptor.name}" R$ {preco_receptor}, '
-                    f'"{prod_oliva.name}" R$ {preco_oliva}. '
+                    f'"{prod_oliva.name}" R$ {preco_oliva}'
+                    f'{msg_carregador}. '
                     f'Total: R$ {int(final_price)}.',
                     'success'
                 )
@@ -204,4 +210,6 @@ def assembly_create():
         rateio_base=rateio_base,
         rateio_receptor=rateio_receptor,
         rateio_oliva=rateio_oliva,
+        rateio_carregador=rateio_carregador,
+        carregador_selecionado=carregador_selecionado,
     )

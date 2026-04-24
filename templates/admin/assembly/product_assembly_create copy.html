@@ -25,13 +25,6 @@
                     <label class="small fw-bold">Oliva</label>
                     {{ form.oliva_id(class="form-select", readonly=show_confirmation) }}
                 </div>
-                <div class="col-md-4">
-                    <label class="small fw-bold">
-                        Carregador
-                        <span class="badge bg-secondary fw-normal ms-1">Opcional</span>
-                    </label>
-                    {{ form.carregador_id(class="form-select", readonly=show_confirmation) }}
-                </div>
             </div>
             {% if not show_confirmation %}
             <div class="mt-4">
@@ -62,19 +55,6 @@
                     <button type="submit" name="btn_finalizar" class="btn btn-success btn-lg w-100">Finalizar</button>
                 </div>
             </div>
-
-            <div class="mt-3">
-                <small class="text-muted d-block mb-1"><strong>Rateio de custo estimado:</strong></small>
-                <div class="d-flex flex-wrap gap-2">
-                    <span class="badge bg-primary">Corpo: R$ {{ rateio_base }}</span>
-                    <span class="badge bg-info text-dark">Receptor: R$ {{ rateio_receptor }}</span>
-                    <span class="badge bg-warning text-dark">Oliva: R$ {{ rateio_oliva }}</span>
-                    {% if carregador_selecionado %}
-                    <span class="badge bg-secondary">Carregador: R$ {{ rateio_carregador }}</span>
-                    {% endif %}
-                </div>
-            </div>
-
             <div class="mt-3">
                 <small class="text-muted">
                     {% if parent_product_id %}

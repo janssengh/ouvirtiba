@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "No item nota fiscal entrada, select por e somente AA e AC"
+git commit -m "Inclusão do acessório carregador na montagem aparelho opcional"
 git push origin master
 
 ATUALIZAR RENDER:

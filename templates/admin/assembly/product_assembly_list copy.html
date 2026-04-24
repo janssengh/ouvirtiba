@@ -23,7 +23,7 @@
                 <tr>
                     <td>{{ a.assembly_date.strftime('%d/%m/%Y %H:%M') }}</td>
                     <td class="fw-bold">{{ a.parent.name }}</td>
-                    <td><small>{{ a.base.name }} + {{ a.receptor.name }} + {{ a.oliva.name }}{% if a.carregador %} + {{ a.carregador.name }}{% endif %}</small></td>
+                    <td><small>{{ a.base.name }} + {{ a.receptor.name }} + {{ a.oliva.name }}</small></td>
                     <td>{{ a.quantity }}</td>
                     <td>R$ {{ a.sale_price | int }}</td>
                     <td><span class="badge bg-success">{{ a.status }}</span></td>

@@ -267,7 +267,7 @@ def order_create():
             payment_form_inp = 0
             payment_condition = 0
 
-            OBS_FIXA = """ESTE PEDIDO É VALIDO COMO RECIBO! A garantia é válida para não funcionamento de fábrica e não cobre
+            OBS_FIXA = """A garantia é válida para não funcionamento de fábrica e não cobre
 uso inadequado do aparelho, excesso de umidade, excesso de cerumin, molhado e quebrado, assim como danos aos acessórios(receptores e olivas)."""
             obs_form = request.form.get('observation', '')
             observation_final = f"{OBS_FIXA}\n\n{obs_form}"
