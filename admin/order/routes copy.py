@@ -267,7 +267,7 @@ def order_create():
             quantities = request.form.getlist('quantity[]')
             prices = request.form.getlist('price[]')
             serialnumbers = request.form.getlist('serialnumber[]')
-            discount_values = request.form.getlist('discount_value[]')
+            discount_pcts = request.form.getlist('discount_pct[]')
 
             payment_form = int(request.form.get('payment_form', 0))
             payment_amount_inp = 0
@@ -327,16 +327,17 @@ uso inadequado do aparelho, excesso de umidade, excesso de cerumin, molhado e qu
             total_desconto = 0
 
             for i in range(len(product_ids)):
-                pid         = product_ids[i]
-                qty         = quantities[i] if i < len(quantities) else None
-                prc         = prices[i] if i < len(prices) else None
-                serial      = serialnumbers[i] if i < len(serialnumbers) else None
-                disc_value  = float(discount_values[i]) if i < len(discount_values) else 0
+                pid    = product_ids[i]
+                qty    = quantities[i] if i < len(quantities) else None
+                prc    = prices[i] if i < len(prices) else None
+                serial = serialnumbers[i] if i < len(serialnumbers) else None
+                pct    = float(discount_pcts[i]) if i < len(discount_pcts) else 0
 
                 if not pid or not qty or not prc:
                     continue
 
                 qty = int(qty)
+                prc = float(prc)
 
                 # Buscar produto
                 product = Product.query.get(pid)
@@ -351,11 +352,13 @@ uso inadequado do aparelho, excesso de umidade, excesso de cerumin, molhado e qu
                     return redirect(url_for('order_bp.order_create'))
 
                 preco_original = float(product.price)
-                amount_initial = preco_original * qty
 
-                # Usa o valor do desconto informado na tela (em R$), nunca recalcula pelo %
-                discount = max(0, min(disc_value, amount_initial))  # garante 0 ≤ desconto ≤ bruto
-                amount   = amount_initial - discount
+                # Calcular desconto e valores com base no % informado
+                pct = max(0, min(100, pct))  # garante entre 0 e 100
+                preco_com_desconto = preco_original * (1 - pct / 100)
+                amount_initial     = preco_original * qty
+                discount           = preco_original * qty * (pct / 100)
+                amount             = preco_com_desconto * qty
 
                 total_pedido += amount
                 total_desconto += discount
@@ -370,8 +373,8 @@ uso inadequado do aparelho, excesso de umidade, excesso de cerumin, molhado e qu
                     customer_request_id=order.id,
                     product_id=pid,
                     quantity=qty,
-                    price=preco_original,   # sempre preço bruto
-                    discount=discount,       # valor R$ informado na tela
+                    price=preco_original,
+                    discount=discount,
                     amount_initial=amount_initial,
                     amount=amount,
                     serialnumber=serial_clean

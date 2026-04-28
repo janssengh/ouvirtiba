@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Inclusão do acessório carregador na montagem aparelho opcional"
+git commit -m "Alteração Pedido de venda: No select somente produtos acabados, valor bruto e valor desconto"
 git push origin master
 
 ATUALIZAR RENDER:

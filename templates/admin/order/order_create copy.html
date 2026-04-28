@@ -68,8 +68,8 @@
                     <div class="col-md-3"><small class="text-muted fw-bold">Produto</small></div>
                     <div class="col-md-2"><small class="text-muted fw-bold">Nº Série</small></div>
                     <div class="col-md-1"><small class="text-muted fw-bold">Qtde</small></div>
-                    <div class="col-md-2"><small class="text-muted fw-bold">Preço Bruto</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Desc. R$</small></div>
+                    <div class="col-md-2"><small class="text-muted fw-bold">Preço Unit.</small></div>
+                    <div class="col-md-1"><small class="text-muted fw-bold">Desc. %</small></div>
                     <div class="col-md-2"><small class="text-muted fw-bold">Total Item</small></div>
                     <div class="col-md-1"><small class="text-muted fw-bold">Ação</small></div>
                 </div>
@@ -97,13 +97,12 @@
                             <input type="number" name="quantity[]" class="form-control form-control-sm quantity-input" min="1" value="1" required>
                         </div>
                         <div class="col-md-2">
-                            <!-- Preço bruto: preenchido automaticamente ao selecionar produto, somente leitura -->
-                            <input type="number" step="0.01" min="0" name="price[]" class="form-control form-control-sm price-input" placeholder="0.00" readonly style="background-color:#f8f9fa;" required>
+                            <input type="number" step="0.01" min="0" name="price[]" class="form-control form-control-sm price-input" placeholder="0.00" required>
                             <input type="hidden" class="original-price" value="">
                         </div>
                         <div class="col-md-1">
-                            <!-- Valor do desconto em R$: editável pelo usuário -->
-                            <input type="number" step="0.01" min="0" name="discount_value[]" class="form-control form-control-sm discount-value-input" placeholder="0.00" value="0">
+                            <input type="number" step="0.01" min="0" max="100" name="discount_pct[]" class="form-control form-control-sm discount-pct-input" placeholder="0.00" value="0">
+                            <input type="hidden" name="discount_value[]" class="discount-value-hidden">
                         </div>
                         <div class="col-md-2">
                             <input type="text" name="item_total[]" class="form-control form-control-sm total-input" readonly placeholder="0.00">
@@ -170,40 +169,35 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ─── Cálculo de uma linha ────────────────────────────────────────────────
-    // Regras:
-    //   preço bruto  = original-price (hidden) → exibido em price-input (readonly)
-    //   total item   = (preço_bruto * qty) - desconto_R$
-    //   desconto_R$  é digitado pelo usuário e enviado diretamente ao backend
+    // Lógica:
+    //   preco_com_desconto = preco_original * (1 - pct/100)
+    //   total_item         = qty * preco_com_desconto
+    //   discount_value     = qty * preco_original * (pct/100)   → enviado ao backend
     function calcRow(row) {
-        const qty         = parseFloat(row.querySelector('.quantity-input').value)      || 0;
-        const origPrice   = parseFloat(row.querySelector('.original-price').value)      || 0;
-        const discountVal = parseFloat(row.querySelector('.discount-value-input').value) || 0;
+        const qty       = parseFloat(row.querySelector('.quantity-input').value)     || 0;
+        const origPrice = parseFloat(row.querySelector('.original-price').value)     || 0;
+        const pct       = parseFloat(row.querySelector('.discount-pct-input').value) || 0;
 
-        const brutoLinha  = origPrice * qty;
+        // Preço unitário com desconto aplicado (arredondado p/ 2 casas)
+        const priceWithDiscount = origPrice * (1 - pct / 100);
+        const total             = qty * priceWithDiscount;
+        const discountValue     = qty * origPrice * (pct / 100);
 
-        // Não permite desconto maior que o valor bruto da linha
-        const discountSafe = Math.min(discountVal, brutoLinha);
-        if (discountVal > brutoLinha && brutoLinha > 0) {
-            row.querySelector('.discount-value-input').value = discountSafe.toFixed(2);
-        }
-
-        const total = brutoLinha - discountSafe;
-
-        // price-input exibe sempre o preço bruto (readonly)
-        row.querySelector('.price-input').value = origPrice.toFixed(2);
-        row.querySelector('.total-input').value = total.toFixed(2);
+        // Atualiza o campo de preço para mostrar o preço já com desconto
+        row.querySelector('.price-input').value          = priceWithDiscount.toFixed(2);
+        row.querySelector('.total-input').value          = total.toFixed(2);
+        row.querySelector('.discount-value-hidden').value = discountValue.toFixed(2);
     }
 
     function calcTotals() {
         let bruto    = 0;
         let desconto = 0;
         document.querySelectorAll('.item-row').forEach(function (row) {
-            const origPrice   = parseFloat(row.querySelector('.original-price').value)       || 0;
-            const qty         = parseFloat(row.querySelector('.quantity-input').value)       || 0;
-            const discountVal = parseFloat(row.querySelector('.discount-value-input').value) || 0;
-            const brutoLinha  = origPrice * qty;
-            bruto    += brutoLinha;
-            desconto += Math.min(discountVal, brutoLinha);
+            const origPrice = parseFloat(row.querySelector('.original-price').value)     || 0;
+            const qty       = parseFloat(row.querySelector('.quantity-input').value)     || 0;
+            const pct       = parseFloat(row.querySelector('.discount-pct-input').value) || 0;
+            bruto    += qty * origPrice;
+            desconto += qty * origPrice * (pct / 100);
         });
         document.getElementById('total-bruto').value    = 'R$ ' + bruto.toFixed(2);
         document.getElementById('total-desconto').value = 'R$ ' + desconto.toFixed(2);
@@ -212,41 +206,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ─── Vincula eventos a uma linha ─────────────────────────────────────────
     function bindRowEvents(row) {
-
-        // Selecionar produto → preenche preço bruto e calcula desconto R$ padrão do cadastro
+        // Selecionar produto → preencher preço original e % desconto do cadastro
         row.querySelector('.product-select').addEventListener('change', function () {
-            const opt         = this.options[this.selectedIndex];
-            const price       = parseFloat(opt.getAttribute('data-price'))    || 0;
-            const discountPct = parseFloat(opt.getAttribute('data-discount')) || 0;
-            const qty         = parseFloat(row.querySelector('.quantity-input').value) || 1;
+            const opt      = this.options[this.selectedIndex];
+            const price    = parseFloat(opt.getAttribute('data-price'))    || 0;
+            const discount = parseFloat(opt.getAttribute('data-discount')) || 0;
 
-            // Converte o % padrão do produto para valor R$ (apenas ponto de partida, editável)
-            const discountVal = price * qty * (discountPct / 100);
-
-            row.querySelector('.original-price').value           = price.toFixed(2);
-            row.querySelector('.price-input').value              = price.toFixed(2);
-            row.querySelector('.discount-value-input').value     = discountVal.toFixed(2);
-            row.querySelector('.serialnumber-input').value       = '';
+            row.querySelector('.original-price').value       = price.toFixed(2);
+            row.querySelector('.price-input').value          = price.toFixed(2);
+            row.querySelector('.discount-pct-input').value   = discount.toFixed(2);
+            row.querySelector('.serialnumber-input').value   = '';
             calcRow(row);
             calcTotals();
         });
 
-        // Usuário altera o desconto R$ → recalcula total
-        row.querySelector('.discount-value-input').addEventListener('input', function () {
-            const origPrice  = parseFloat(row.querySelector('.original-price').value) || 0;
-            const qty        = parseFloat(row.querySelector('.quantity-input').value) || 0;
-            const brutoLinha = origPrice * qty;
-            let val = parseFloat(this.value) || 0;
-            if (val < 0)          { val = 0;          this.value = '0'; }
-            if (val > brutoLinha) { val = brutoLinha; this.value = brutoLinha.toFixed(2); }
+        // Alterar % de desconto → recalcular preço e total
+        row.querySelector('.discount-pct-input').addEventListener('input', function () {
+            let pct = parseFloat(this.value) || 0;
+            if (pct < 0)   { pct = 0;   this.value = '0'; }
+            if (pct > 100) { pct = 100; this.value = '100'; }
             calcRow(row);
             calcTotals();
         });
 
-        // Quantidade alterada → mantém desconto R$ absoluto e recalcula
+        // Quantidade alterada → recalcular total
         row.querySelector('.quantity-input').addEventListener('input', function () {
-            calcRow(row);
-            calcTotals();
+            calcRow(row); calcTotals();
         });
 
         // Remover linha
@@ -269,13 +254,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const firstRow  = container.querySelector('.item-row');
         const newRow    = firstRow.cloneNode(true);
 
-        newRow.querySelector('.product-select').selectedIndex     = 0;
-        newRow.querySelector('.serialnumber-input').value         = '';
-        newRow.querySelector('.quantity-input').value             = '1';
-        newRow.querySelector('.price-input').value                = '';
-        newRow.querySelector('.original-price').value             = '';
-        newRow.querySelector('.discount-value-input').value       = '0';
-        newRow.querySelector('.total-input').value                = '';
+        newRow.querySelector('.product-select').selectedIndex    = 0;
+        newRow.querySelector('.serialnumber-input').value        = '';
+        newRow.querySelector('.quantity-input').value            = '1';
+        newRow.querySelector('.price-input').value               = '';
+        newRow.querySelector('.original-price').value            = '';
+        newRow.querySelector('.discount-pct-input').value        = '0';
+        newRow.querySelector('.discount-value-hidden').value     = '0';
+        newRow.querySelector('.total-input').value               = '';
 
         container.appendChild(newRow);
         bindRowEvents(newRow);
