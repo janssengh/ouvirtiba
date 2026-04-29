@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Alteração Pedido de venda: No select somente produtos acabados, valor bruto e valor desconto"
+git commit -m "Alteração no menu navbar-admin, histórico e gerar produção"
 git push origin master
 
 ATUALIZAR RENDER:
