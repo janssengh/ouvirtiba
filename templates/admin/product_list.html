@@ -15,6 +15,8 @@
               Acessórios
           {% elif type_id == 3 %}
               Produto Acabado
+          {% elif type_id == 0 %}
+              Todos os Produtos <small class="text-muted fs-6">(completo, incluindo sem estoque)</small>
           {% else %}
               Todos os Produtos
           {% endif %}
@@ -30,11 +32,11 @@
     <thead>
       <th>Marca</th>
       <th>Categoria</th>
-      <th>Produto</th>
+      <th>Produto / Cor</th>
       <th>Etq</th>
-      <th>Preço</th>
+      <th>Custo</th>
+      <th>Preço Venda</th>
       <th>Desc.</th>
-      <th>Cor</th>
       <th>Foto</th>
       <th>Editar</th>
       <th>Deletar</th>
@@ -44,11 +46,18 @@
       <tr>
         <td>{{produto.marca.name}}</td>
         <td>{{produto.categoria.name}}</td>
-        <td>{{produto.name}}</td>
+        <td>
+          {{produto.name}}
+          <span class="text-muted small">/ {{produto.colors}}</span>
+        </td>
+        {% if produto.stock == 0 %}
+        <td><span class="badge bg-danger">0</span></td>
+        {% else %}
         <td>{{produto.stock}}</td>
+        {% endif %}
         <td>{{produto.price}}</td>
+        <td>{{produto.sale_price}}</td>
         <td>{{produto.discount}} %</td>
-        <td>{{produto.colors}}</td>
         <td><img src="{{url_for('static',filename='img/admin/' + produto.image_1)}}" width="50" height="40"></td>
         <td><a href="{{ url_for('admin.produto_editar', id=produto.id) }}" class="btn btn-success btn-sm">Editar</a></td>
         <td>

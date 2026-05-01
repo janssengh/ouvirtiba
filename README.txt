@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Alteração no menu navbar-admin, histórico e gerar produção"
+git commit -m "Modificação módulos: Produção e Pedido para buscar o preço venda"
 git push origin master
 
 ATUALIZAR RENDER:

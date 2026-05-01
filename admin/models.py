@@ -97,6 +97,7 @@ class Product(Base):
     type_id = db.Column(db.Integer, nullable=True)
     name = db.Column(db.String(80), nullable=False)
     price = db.Column(db.Numeric(10,2), nullable=False)
+    sale_price = db.Column(db.Numeric(10,2), nullable=False, default=0)
     discount = db.Column(db.Integer, default=0)
     stock = db.Column(db.Integer, nullable=False)
     colors = db.Column(db.Text, nullable=False)

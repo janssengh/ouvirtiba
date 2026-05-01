@@ -83,12 +83,11 @@ def product_list(type_id):
     if 'email' not in session:
         flash(f'Favor fazer o seu login no sistema primeiro!', 'danger')
         return redirect(url_for('auth.login', origin='admin'))
-    
-    # ✅ CORREÇÃO: Força type_id = 1 se for None
+
+    # type_id=0  → "Todos os Produtos": sem filtro de tipo nem de estoque
+    # type_id=None → redireciona para type_id=1 (comportamento padrão)
     if type_id is None:
-        type_id = 1 
-        # Opcional: Redirecionar para /admin/1 para que a URL seja limpa
-        # return redirect(url_for('admin.product_list', type_id=1))
+        type_id = 1
 
     parametrosloja()
     store_id = session['store_id']
@@ -96,16 +95,20 @@ def product_list(type_id):
     store_logo = session['Store']['Logo']
     url_logo = session['Store']['Url logo']
 
-    # Cria o filtro base (sempre filtra pela loja)
-
-    query = Product.query.filter(
-        Product.store_id == store_id
-    )
-    #query = Product.query.filter(Product.store_id == store_id)
-
-    # Se o type_id foi informado (1, 2 etc.), adiciona ao filtro
-    if type_id is not None and type_id in [1, 2, 3]: # Garante que só filtra se for 1 ou 2
-        query = query.filter(Product.type_id == type_id)
+    # type_id=0: lista completa (todos os tipos, com e sem estoque)
+    if type_id == 0:
+        query = Product.query.filter(
+            Product.store_id == store_id
+        )
+    else:
+        # Demais tipos: somente produtos com estoque
+        query = Product.query.filter(
+            Product.store_id == store_id,
+            Product.stock > 0
+        )
+        # Filtra pelo tipo específico (1=AA, 2=Acessórios, 3=Produto Acabado)
+        if type_id in [1, 2, 3]:
+            query = query.filter(Product.type_id == type_id)
 
     # Ordena os resultados
 

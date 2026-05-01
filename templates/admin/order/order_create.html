@@ -82,7 +82,7 @@
                                 {% for tipo, produtos_tipo in products | groupby('type_name') %}
                                 <optgroup label="{{ tipo }}">
                                     {% for p in produtos_tipo %}
-                                    <option value="{{ p.id }}" data-price="{{ p.price }}" data-discount="{{ p.discount if p.discount else 0 }}">
+                                    <option value="{{ p.id }}" data-price="{{ p.sale_price }}" data-discount="{{ p.discount if p.discount else 0 }}">
                                         {{ p.name }} (Estoque: {{ p.stock }})
                                     </option>
                                     {% endfor %}
@@ -97,7 +97,7 @@
                             <input type="number" name="quantity[]" class="form-control form-control-sm quantity-input" min="1" value="1" required>
                         </div>
                         <div class="col-md-2">
-                            <!-- Preço bruto: preenchido automaticamente ao selecionar produto, somente leitura -->
+                            <!-- Preço Bruto: preenchido automaticamente ao selecionar produto, somente leitura -->
                             <input type="number" step="0.01" min="0" name="price[]" class="form-control form-control-sm price-input" placeholder="0.00" readonly style="background-color:#f8f9fa;" required>
                             <input type="hidden" class="original-price" value="">
                         </div>

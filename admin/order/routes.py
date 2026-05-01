@@ -252,7 +252,7 @@ def order_create():
 
     products = Product.query.filter(
         Product.stock > 0,
-        Product.type_id == 3  # 🔥 somente produtos acabados
+        Product.type_id > 0  # 🔥 todos os produtos
     ).order_by(Product.name.asc()).all()
 
 
@@ -350,7 +350,7 @@ uso inadequado do aparelho, excesso de umidade, excesso de cerumin, molhado e qu
                     db.session.rollback()
                     return redirect(url_for('order_bp.order_create'))
 
-                preco_original = float(product.price)
+                preco_original = float(product.sale_price)
                 amount_initial = preco_original * qty
 
                 # Usa o valor do desconto informado na tela (em R$), nunca recalcula pelo %
