@@ -11,95 +11,13 @@ import math
 assembly_bp = Blueprint('assembly_bp', __name__, template_folder='templates')
 
 
-# ─────────────────────────────────────────────
-# LISTAGEM
-# ─────────────────────────────────────────────
 @assembly_bp.route('/admin/assembly/list')
 def assembly_list():
     store_id = session.get('store_id')
-    assemblies = (
-        ProductAssembly.query
-        .filter_by(store_id=store_id)
-        .order_by(ProductAssembly.assembly_date.desc())
-        .all()
-    )
+    assemblies = ProductAssembly.query.filter_by(store_id=store_id).order_by(ProductAssembly.assembly_date.desc()).all()
     return render_template('admin/assembly/product_assembly_list.html', assemblies=assemblies)
 
 
-# ─────────────────────────────────────────────
-# DETALHE
-# ─────────────────────────────────────────────
-@assembly_bp.route('/admin/assembly/detail/<int:assembly_id>')
-def assembly_detail(assembly_id):
-    store_id = session.get('store_id')
-    assembly = ProductAssembly.query.filter_by(id=assembly_id, store_id=store_id).first_or_404()
-    return render_template('admin/assembly/product_assembly_detail.html', a=assembly)
-
-
-# ─────────────────────────────────────────────
-# EXCLUSÃO COM REVERSÃO DE PREÇOS
-# ─────────────────────────────────────────────
-@assembly_bp.route('/admin/assembly/delete/<int:assembly_id>', methods=['POST'])
-def assembly_delete(assembly_id):
-    store_id = session.get('store_id')
-    assembly = ProductAssembly.query.filter_by(id=assembly_id, store_id=store_id).first_or_404()
-
-    def restaurar_preco(produto, coluna_fk, coluna_preco, excluindo_id):
-        """
-        Busca o registro anterior mais recente (excluindo o que será deletado)
-        que contenha este produto na coluna FK e restaura sale_price com
-        o valor da coluna de preço correspondente.
-        Se não houver histórico anterior, zera o sale_price.
-
-        coluna_fk    → nome exato do atributo FK no model   (ex: 'base_unit_id')
-        coluna_preco → nome exato do atributo de preço      (ex: 'selling_price_base')
-        """
-        if produto is None:
-            return
-
-        filtro = getattr(ProductAssembly, coluna_fk) == produto.id
-        anterior = (
-            ProductAssembly.query
-            .filter(filtro, ProductAssembly.id != excluindo_id)
-            .order_by(ProductAssembly.assembly_date.desc())
-            .first()
-        )
-
-        if anterior:
-            preco_anterior = getattr(anterior, coluna_preco)
-            produto.sale_price = preco_anterior if preco_anterior is not None else 0
-        else:
-            produto.sale_price = 0
-
-    try:
-        base       = assembly.base
-        receptor   = assembly.receptor
-        oliva      = assembly.oliva
-        carregador = assembly.carregador  # pode ser None
-
-        # coluna_fk   → nome exato da coluna no model  (base_unit_id, receptor_id …)
-        # coluna_preco → nome exato do campo de preço  (selling_price_base, …)
-        restaurar_preco(base,     'base_unit_id',  'selling_price_base',       assembly_id)
-        restaurar_preco(receptor, 'receptor_id',   'selling_price_receptor',   assembly_id)
-        restaurar_preco(oliva,    'oliva_id',       'selling_price_oliva',      assembly_id)
-        if carregador:
-            restaurar_preco(carregador, 'carregador_id', 'selling_price_carregador', assembly_id)
-
-        db.session.delete(assembly)
-        db.session.commit()
-
-        flash('Registro excluído e preços de venda revertidos com sucesso.', 'success')
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao excluir: {str(e)}', 'danger')
-
-    return redirect(url_for('assembly_bp.assembly_list'))
-
-
-# ─────────────────────────────────────────────
-# CRIAÇÃO
-# ─────────────────────────────────────────────
 @assembly_bp.route('/admin/assembly/create', methods=['GET', 'POST'])
 def assembly_create():
     form = FormProductAssembly()
@@ -117,18 +35,18 @@ def assembly_create():
     carregadores = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('carregadores')).all()
     form.carregador_id.choices = [(0, '— Sem carregador —')] + [(p.id, f"{p.name} (Estoque: {p.stock})") for p in carregadores]
 
-    show_confirmation      = False
-    suggested_name         = ""
-    suggested_price        = 0.0
-    rateio_base            = 0
-    rateio_receptor        = 0
-    rateio_oliva           = 0
-    rateio_carregador      = 0
+    show_confirmation = False
+    suggested_name  = ""
+    suggested_price = 0.0
+    rateio_base     = 0
+    rateio_receptor = 0
+    rateio_oliva    = 0
+    rateio_carregador = 0
     carregador_selecionado = False
 
     if request.method == 'POST':
 
-        # PASSO 1 — pré-visualização do rateio
+        # PASSO 1
         if 'btn_gerar' in request.form:
             base     = Product.query.get(form.base_unit_id.data)
             receptor = Product.query.get(form.receptor_id.data)
@@ -141,23 +59,23 @@ def assembly_create():
             suggested_name  = f"{base.name} {receptor.name} {oliva.name}"
             suggested_price = float(base.price)
 
-            custo_base       = float(base.price or 0)
-            custo_receptor   = float(receptor.price or 0)
-            custo_oliva      = float(oliva.price or 0)
+            custo_base      = float(base.price or 0)
+            custo_receptor  = float(receptor.price or 0)
+            custo_oliva     = float(oliva.price or 0)
             custo_carregador = float(carregador.price or 0) if carregador else 0
-            custo_total      = custo_base + custo_receptor + custo_oliva + custo_carregador
+            custo_total     = custo_base + custo_receptor + custo_oliva + custo_carregador
 
             if custo_total > 0:
-                rateio_base       = math.floor(suggested_price * custo_base / custo_total)
-                rateio_receptor   = math.floor(suggested_price * custo_receptor / custo_total)
+                rateio_base      = math.floor(suggested_price * custo_base / custo_total)
+                rateio_receptor  = math.floor(suggested_price * custo_receptor / custo_total)
                 rateio_carregador = math.floor(suggested_price * custo_carregador / custo_total) if carregador else 0
-                rateio_oliva      = int(suggested_price) - rateio_base - rateio_receptor - rateio_carregador
+                rateio_oliva     = int(suggested_price) - rateio_base - rateio_receptor - rateio_carregador
             else:
                 rateio_base = int(suggested_price)
 
             show_confirmation = True
 
-        # PASSO 2 — confirmação e gravação
+        # PASSO 2
         elif 'btn_finalizar' in request.form:
             try:
                 qty         = int(request.form.get('final_qty', 1))
@@ -186,14 +104,15 @@ def assembly_create():
 
                 data_local = datetime.now() - timedelta(hours=3)
 
-                # Atualiza preços de venda nos produtos
-                base.sale_price     = preco_base
+                # Atualiza preço de venda
+                base.sale_price = preco_base
                 receptor.sale_price = preco_receptor
-                oliva.sale_price    = preco_oliva
+                oliva.sale_price = preco_oliva
+
                 if carregador:
                     carregador.sale_price = preco_carregador
 
-                # Grava registro histórico
+                # Registro da montagem (histórico de formação de preço)
                 new_assembly = ProductAssembly(
                     store_id=store_id,
                     parent_product_id=base.id,
@@ -216,12 +135,14 @@ def assembly_create():
 
                 flash(
                     f'Preço gerado com sucesso! '
-                    f'Base R$ {preco_base}, Receptor R$ {preco_receptor}, '
+                    f'Base R$ {preco_base}, '
+                    f'Receptor R$ {preco_receptor}, '
                     f'Oliva R$ {preco_oliva}'
                     f'{f", Carregador R$ {preco_carregador}" if carregador else ""}. '
                     f'Total: R$ {int(final_price)}.',
                     'success'
                 )
+
                 return redirect(url_for('assembly_bp.assembly_list'))
 
             except Exception as e:

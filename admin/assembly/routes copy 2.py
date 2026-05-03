@@ -44,46 +44,46 @@ def assembly_delete(assembly_id):
     store_id = session.get('store_id')
     assembly = ProductAssembly.query.filter_by(id=assembly_id, store_id=store_id).first_or_404()
 
-    def restaurar_preco(produto, coluna_fk, coluna_preco, excluindo_id):
+    def restaurar_preco(produto, campo_selling, excluindo_id):
         """
         Busca o registro anterior mais recente (excluindo o que será deletado)
-        que contenha este produto na coluna FK e restaura sale_price com
-        o valor da coluna de preço correspondente.
+        que contenha este produto no campo informado e restaura o sale_price.
         Se não houver histórico anterior, zera o sale_price.
-
-        coluna_fk    → nome exato do atributo FK no model   (ex: 'base_unit_id')
-        coluna_preco → nome exato do atributo de preço      (ex: 'selling_price_base')
         """
         if produto is None:
             return
 
-        filtro = getattr(ProductAssembly, coluna_fk) == produto.id
+        # Monta filtro dinâmico pelo campo (base, receptor, oliva ou carregador)
+        filtro_produto = getattr(ProductAssembly, f'{campo_selling}_id') == produto.id
         anterior = (
             ProductAssembly.query
-            .filter(filtro, ProductAssembly.id != excluindo_id)
+            .filter(
+                filtro_produto,
+                ProductAssembly.id != excluindo_id
+            )
             .order_by(ProductAssembly.assembly_date.desc())
             .first()
         )
 
         if anterior:
-            preco_anterior = getattr(anterior, coluna_preco)
+            preco_anterior = getattr(anterior, f'selling_price_{campo_selling}')
             produto.sale_price = preco_anterior if preco_anterior is not None else 0
         else:
             produto.sale_price = 0
 
     try:
-        base       = assembly.base
-        receptor   = assembly.receptor
-        oliva      = assembly.oliva
+        # Carrega os produtos envolvidos antes de deletar o registro
+        base      = assembly.base
+        receptor  = assembly.receptor
+        oliva     = assembly.oliva
         carregador = assembly.carregador  # pode ser None
 
-        # coluna_fk   → nome exato da coluna no model  (base_unit_id, receptor_id …)
-        # coluna_preco → nome exato do campo de preço  (selling_price_base, …)
-        restaurar_preco(base,     'base_unit_id',  'selling_price_base',       assembly_id)
-        restaurar_preco(receptor, 'receptor_id',   'selling_price_receptor',   assembly_id)
-        restaurar_preco(oliva,    'oliva_id',       'selling_price_oliva',      assembly_id)
+        # Reverte os preços de venda de cada componente
+        restaurar_preco(base,      'base',      assembly_id)
+        restaurar_preco(receptor,  'receptor',  assembly_id)
+        restaurar_preco(oliva,     'oliva',     assembly_id)
         if carregador:
-            restaurar_preco(carregador, 'carregador_id', 'selling_price_carregador', assembly_id)
+            restaurar_preco(carregador, 'carregador', assembly_id)
 
         db.session.delete(assembly)
         db.session.commit()
@@ -117,13 +117,13 @@ def assembly_create():
     carregadores = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('carregadores')).all()
     form.carregador_id.choices = [(0, '— Sem carregador —')] + [(p.id, f"{p.name} (Estoque: {p.stock})") for p in carregadores]
 
-    show_confirmation      = False
-    suggested_name         = ""
-    suggested_price        = 0.0
-    rateio_base            = 0
-    rateio_receptor        = 0
-    rateio_oliva           = 0
-    rateio_carregador      = 0
+    show_confirmation  = False
+    suggested_name     = ""
+    suggested_price    = 0.0
+    rateio_base        = 0
+    rateio_receptor    = 0
+    rateio_oliva       = 0
+    rateio_carregador  = 0
     carregador_selecionado = False
 
     if request.method == 'POST':

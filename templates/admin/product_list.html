@@ -30,6 +30,7 @@
   
   <table class="table table table-sm table-striped">
     <thead>
+      <th>Tipo</th>
       <th>Marca</th>
       <th>Categoria</th>
       <th>Produto / Cor</th>
@@ -44,6 +45,12 @@
     <tbody>
       {% for produto in produtos %}
       <tr>
+        <td>
+          {% if produto.type_id == 1 %}AA
+          {% elif produto.type_id == 2 %}Ac
+          {% elif produto.type_id == 3 %}Pa
+          {% else %}--{% endif %}
+        </td>
         <td>{{produto.marca.name}}</td>
         <td>{{produto.categoria.name}}</td>
         <td>

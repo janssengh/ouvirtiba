@@ -27,6 +27,16 @@
             </ul>
           </li>
 
+
+          <!-- COMPRAS -->
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Compras</a>
+            <ul class="dropdown-menu">
+              <li><a href="{{ url_for('purchases_bp.supplier_list') }}" class="dropdown-item">Fornecedores</a></li>
+              <li><a href="{{ url_for('purchases_bp.invoice_list') }}" class="dropdown-item">Notas de Entrada</a></li>
+            </ul>
+          </li>
+
           <!-- PRODUÇÃO -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -43,15 +53,6 @@
             <ul class="dropdown-menu">
               <li><a href="{{ url_for('order_bp.order_list') }}" class="dropdown-item">Pedidos</a></li>
               <li><a href="{{ url_for('nfe_bp.nfe_list') }}" class="dropdown-item">Notas Fiscais</a></li>
-            </ul>
-          </li>
-
-          <!-- COMPRAS -->
-          <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Compras</a>
-            <ul class="dropdown-menu">
-              <li><a href="{{ url_for('purchases_bp.supplier_list') }}" class="dropdown-item">Fornecedores</a></li>
-              <li><a href="{{ url_for('purchases_bp.invoice_list') }}" class="dropdown-item">Notas de Entrada</a></li>
             </ul>
           </li>
 

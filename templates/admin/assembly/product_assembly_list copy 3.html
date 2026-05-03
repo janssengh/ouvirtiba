@@ -35,7 +35,7 @@
                         </small>
                     </td>
                     <td class="text-center">{{ a.quantity }}</td>
-                    <td class="text-end fw-bold">R$ {{ "%.2f"|format(a.sale_price|float)|replace(".", ",") }}</td>
+                    <td class="text-end fw-bold">R$ {{ "%.2f"|format(a.sale_price|float) }}</td>
                     <td class="text-center">
                         <span class="badge bg-success">{{ a.status }}</span>
                     </td>
@@ -76,7 +76,7 @@
                                 {% if a.carregador %}
                                 <p class="mb-1"><strong>Carregador:</strong> {{ a.carregador.name }}</p>
                                 {% endif %}
-                                <p class="mb-0 mt-2"><strong>Total:</strong> R$ {{ "%.2f"|format(a.sale_price|float)|replace(".", ",") }}</p>
+                                <p class="mb-0 mt-2"><strong>Total:</strong> R$ {{ "%.2f"|format(a.sale_price|float) }}</p>
                                 <hr>
                                 <div class="alert alert-warning mb-0 py-2">
                                     <i class="bi bi-arrow-counterclockwise me-1"></i>

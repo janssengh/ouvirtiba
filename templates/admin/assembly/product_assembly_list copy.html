@@ -1,0 +1,36 @@
+{% extends "layout_admin.html" %}
+{% block content %}
+{% include 'navbar_admin.html' %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary">🛠️ Histórico Preço Venda</h2>
+        <a href="{{ url_for('assembly_bp.assembly_create') }}" class="btn btn-success">Nova Montagem</a>
+    </div>
+    <div class="card shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Data</th>
+                    <th>Produto Final</th>
+                    <th>Componentes (Aparelho + Rec + Oliva)</th>
+                    <th>Qtd</th>
+                    <th>Preço de Venda</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assemblies %}
+                <tr>
+                    <td>{{ a.assembly_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="fw-bold">{{ a.parent.name }}</td>
+                    <td><small>{{ a.base.name }} + {{ a.receptor.name }} + {{ a.oliva.name }}{% if a.carregador %} + {{ a.carregador.name }}{% endif %}</small></td>
+                    <td>{{ a.quantity }}</td>
+                    <td>R$ {{ a.sale_price | int }}</td>
+                    <td><span class="badge bg-success">{{ a.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
