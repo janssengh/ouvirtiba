@@ -109,6 +109,49 @@
         </div>
     </div>
 
+    <!-- 🔥 NOVO CARD DE CLONE -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-arrow-repeat me-1"></i>Gerar Nova Venda
+        </div>
+
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('assembly_bp.assembly_clone', assembly_id=a.id) }}">
+
+                {{ form_clone.hidden_tag() }}
+
+                <div class="mb-2">
+                    {{ form_clone.receptor_id.label(class="form-label") }}
+                    {{ form_clone.receptor_id(class="form-select") }}
+                </div>
+
+                <div class="mb-2">
+                    {{ form_clone.oliva_id.label(class="form-label") }}
+                    {{ form_clone.oliva_id(class="form-select") }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form_clone.carregador_id.label(class="form-label") }}
+                    {{ form_clone.carregador_id(class="form-select") }}
+                </div>
+
+                <div class="alert alert-info py-2 small">
+                    <i class="bi bi-lock me-1"></i>
+                    Base, preço total e quantidade serão mantidos.
+                </div>
+
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-check-circle me-1"></i>Gerar Nova Venda
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botão excluir com modal -->
+    <div class="d-flex justify-content-end">
+
+
+
     <!-- Botão excluir com modal -->
     <div class="d-flex justify-content-end">
         <button type="button" class="btn btn-danger btn-sm"

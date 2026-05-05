@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, session,
 from extension import db
 from admin.models import Product, Category
 from .models import ProductAssembly
-from .forms import FormProductAssembly
+from .forms import FormProductAssembly, FormAssemblyClone
 
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -29,11 +29,111 @@ def assembly_list():
 # ─────────────────────────────────────────────
 # DETALHE
 # ─────────────────────────────────────────────
-@assembly_bp.route('/admin/assembly/detail/<int:assembly_id>')
+@assembly_bp.route('/admin/assembly/detail/<int:assembly_id>', methods=['GET', 'POST'])
 def assembly_detail(assembly_id):
     store_id = session.get('store_id')
     assembly = ProductAssembly.query.filter_by(id=assembly_id, store_id=store_id).first_or_404()
-    return render_template('admin/assembly/product_assembly_detail.html', a=assembly)
+
+    form_clone = FormAssemblyClone()
+
+    # 🔹 carregar opções
+    receptors = Product.query.join(Category).filter(Category.name.ilike('receptores')).all()
+    olivas = Product.query.join(Category).filter(Category.name.ilike('olivas')).all()
+    carregadores = Product.query.join(Category).filter(Category.name.ilike('carregadores')).all()
+
+    form_clone.receptor_id.choices = [(p.id, p.name) for p in receptors]
+    form_clone.oliva_id.choices = [(p.id, p.name) for p in olivas]
+    form_clone.carregador_id.choices = [(0, '— Sem carregador —')] + [(p.id, p.name) for p in carregadores]
+
+    # 🔹 pré-seleção
+    if request.method == 'GET':
+        form_clone.receptor_id.data = assembly.receptor_id
+        form_clone.oliva_id.data = assembly.oliva_id
+        form_clone.carregador_id.data = assembly.carregador_id or 0
+
+    return render_template(
+        'admin/assembly/product_assembly_detail.html',
+        a=assembly,
+        form_clone=form_clone
+    )
+
+@assembly_bp.route('/admin/assembly/clone/<int:assembly_id>', methods=['POST'])
+def assembly_clone(assembly_id):
+    store_id = session.get('store_id')
+    assembly = ProductAssembly.query.filter_by(id=assembly_id, store_id=store_id).first_or_404()
+
+    form = FormAssemblyClone()
+
+    receptors = Product.query.join(Category).filter(Category.name.ilike('receptores')).all()
+    olivas = Product.query.join(Category).filter(Category.name.ilike('olivas')).all()
+    carregadores = Product.query.join(Category).filter(Category.name.ilike('carregadores')).all()
+
+    form.receptor_id.choices = [(p.id, p.name) for p in receptors]
+    form.oliva_id.choices = [(p.id, p.name) for p in olivas]
+    form.carregador_id.choices = [(0, '— Sem carregador —')] + [(p.id, p.name) for p in carregadores]
+
+    if form.validate_on_submit():
+        try:
+            base = assembly.base
+            receptor = Product.query.get(form.receptor_id.data)
+            oliva = Product.query.get(form.oliva_id.data)
+
+            carregador_id = form.carregador_id.data
+            carregador = Product.query.get(carregador_id) if carregador_id else None
+
+            # 🔥 NÃO recalcula — usa valores do histórico
+            preco_base = float(assembly.selling_price_base or 0)
+            preco_receptor = float(assembly.selling_price_receptor or 0)
+            preco_oliva = float(assembly.selling_price_oliva or 0)
+            preco_carregador = float(assembly.selling_price_carregador or 0) if carregador else 0
+
+            final_price = float(assembly.sale_price)
+
+            # 🔹 Atualiza produtos com os MESMOS valores
+            base.sale_price = preco_base
+            receptor.sale_price = preco_receptor
+            oliva.sale_price = preco_oliva
+            if carregador:
+                carregador.sale_price = preco_carregador
+
+            data_local = datetime.now() - timedelta(hours=3)
+
+            new_assembly = ProductAssembly(
+                store_id=store_id,
+                parent_product_id=base.id,
+                base_unit_id=base.id,
+                receptor_id=receptor.id,
+                oliva_id=oliva.id,
+                carregador_id=carregador.id if carregador else None,
+                quantity=assembly.quantity,
+                sale_price=Decimal(str(final_price)),
+
+                # 🔥 grava exatamente os mesmos valores
+                selling_price_base=Decimal(str(preco_base)),
+                selling_price_receptor=Decimal(str(preco_receptor)),
+                selling_price_oliva=Decimal(str(preco_oliva)),
+                selling_price_carregador=Decimal(str(preco_carregador)) if carregador else None,
+
+                status='CONCLUIDO',
+                assembly_date=data_local
+            )
+
+            print(f'new_assembly: {new_assembly}')
+
+            db.session.add(new_assembly)
+            db.session.commit()
+            
+            flash('Nova venda gerada com sucesso!', 'success')
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao gerar clone: {str(e)}', 'danger')
+
+    else:
+        flash(f'Erro de validação do formulário: {form.errors}', 'danger')
+
+    # Sempre retorna para a lista após clonar (sucesso ou erro)
+    return redirect(url_for('assembly_bp.assembly_list'))
 
 
 # ─────────────────────────────────────────────

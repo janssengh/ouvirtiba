@@ -416,6 +416,10 @@ def produto_inserir(type_id):
     store_id = session['store_id']
     form = ProductForm()
 
+    # type_id=0 vem do link "Todos os Produtos"; trata igual a None (sem tipo pré-definido)
+    if type_id == 0:
+        type_id = None
+
     tipo_nome = "Aparelhos Auditivos" if type_id == 1 else "Acessórios" if type_id == 2 else "Produto Acabado" if type_id == 3 else "Todos os Produtos"
     
     if type_id is not None:
@@ -480,7 +484,10 @@ def produto_inserir(type_id):
             db.session.commit()
             
             flash(f'O produto "{form.name.data}" foi cadastrado com sucesso!', 'success')
-            return redirect(url_for('admin.product_list', type_id=type_id))
+            # Redireciona para a lista usando o type_id real do produto gravado,
+            # pois quando type_id é None (acesso via "Todos os Produtos") o usuário
+            # escolheu o tipo no select e ele já está em novo_produto.type_id
+            return redirect(url_for('admin.product_list', type_id=novo_produto.type_id))
 
         except IntegrityError as e:
             db.session.rollback()

@@ -19,17 +19,25 @@
                         {{form.csrf_token}}
 
                         <div class="mb-3">
-                            <label for="tipoproduto">Adicionar um tipo de produto</label>
+                            <label for="tipoproduto">Tipo de produto</label>
 
-                            <select name="tipoproduto_display" id="tipoproduto_display" class="form-select" disabled>
-                                <option value="">-- Selecione um Tipo de Produto --</option>
-                                
-                                <option value="1" {% if form.tipoproduto.data == 1 %}selected{% endif %}>Aparelhos Auditivos</option>
-                                <option value="2" {% if form.tipoproduto.data == 2 %}selected{% endif %}>Acessórios</option>
-                                <option value="3" {% if form.tipoproduto.data == 3 %}selected{% endif %}>Produto Acabado</option>
-                            </select>
-                            
-                            <input type="hidden" name="{{ form.tipoproduto.name }}" value="{{ form.tipoproduto.data }}">
+                            {% if type_id in [1, 2, 3] %}
+                                {# Tipo já definido pela URL: exibe bloqueado e usa hidden #}
+                                <select name="tipoproduto_display" id="tipoproduto_display" class="form-select" disabled>
+                                    <option value="1" {% if form.tipoproduto.data == 1 %}selected{% endif %}>Aparelhos Auditivos</option>
+                                    <option value="2" {% if form.tipoproduto.data == 2 %}selected{% endif %}>Acessórios</option>
+                                    <option value="3" {% if form.tipoproduto.data == 3 %}selected{% endif %}>Produto Acabado</option>
+                                </select>
+                                <input type="hidden" name="{{ form.tipoproduto.name }}" value="{{ form.tipoproduto.data }}">
+                            {% else %}
+                                {# Acesso via "Todos os Produtos" (type_id=0 ou None): usuário deve escolher o tipo #}
+                                <select name="{{ form.tipoproduto.name }}" id="tipoproduto" class="form-select" required>
+                                    <option value="">-- Selecione um Tipo de Produto --</option>
+                                    <option value="1" {% if form.tipoproduto.data == 1 %}selected{% endif %}>Aparelhos Auditivos</option>
+                                    <option value="2" {% if form.tipoproduto.data == 2 %}selected{% endif %}>Acessórios</option>
+                                    <option value="3" {% if form.tipoproduto.data == 3 %}selected{% endif %}>Produto Acabado</option>
+                                </select>
+                            {% endif %}
                         </div>
                         
                         {{ render_field(form.name, class="form-control", placeholder="Nome do Produto") }}
@@ -111,4 +119,3 @@
 </script>
 
 {% endblock content %}
-

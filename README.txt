@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Modificação Módulo Produção, inclusão da consulta componentes e exclusão"
+git commit -m "Melhorias processo geração nova venda e inclusão novo produto na lista todos"
 git push origin master
 
 ATUALIZAR RENDER:
