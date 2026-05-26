@@ -205,16 +205,40 @@ def assembly_create():
     form = FormProductAssembly()
     store_id = session.get('store_id')
 
-    base_units = Product.query.filter(Product.type_id == 1, Product.stock > 0, Product.store_id == store_id).all()
+    base_units = Product.query.filter(
+        Product.type_id == 1, 
+        Product.store_id == store_id
+    ).order_by(
+        Product.name.asc(),   # Primeiro ordena por nome (A-Z)
+        Product.stock.desc()  # Depois ordena por estoque (Maior para o Menor)
+    ).all()
     form.base_unit_id.choices = [(p.id, f"{p.name} | {p.colors} (Estoque: {p.stock})") for p in base_units]
 
-    receptors = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('receptores')).all()
+    receptors = Product.query.join(Category).filter(
+        Product.type_id == 2, 
+        Category.name.ilike('receptores')
+    ).order_by(
+        Product.name.asc(),   # 1º: Ordena por nome em ordem alfabética
+        Product.stock.desc()  # 2º: Ordena por maior estoque (critério de desempate)
+    ).all()
     form.receptor_id.choices = [(p.id, f"{p.name} (Estoque: {p.stock})") for p in receptors]
 
-    olivas = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('olivas')).all()
+    olivas = Product.query.join(Category).filter(
+        Product.type_id == 2, 
+        Category.name.ilike('olivas')
+    ).order_by(
+        Product.name.asc(),   # 1º: Ordena por nome (A-Z)
+        Product.stock.desc()  # 2º: Desempata pelo maior estoque
+    ).all()
     form.oliva_id.choices = [(p.id, f"{p.name} (Estoque: {p.stock})") for p in olivas]
 
-    carregadores = Product.query.join(Category).filter(Product.type_id == 2, Product.stock > 0, Category.name.ilike('carregadores')).all()
+    carregadores = Product.query.join(Category).filter(
+        Product.type_id == 2, 
+        Category.name.ilike('carregadores')
+    ).order_by(
+        Product.name.asc(),   # 1º: Ordena por nome (A-Z)
+        Product.stock.desc()  # 2º: Desempata pelo maior estoque
+    ).all()
     form.carregador_id.choices = [(0, '— Sem carregador —')] + [(p.id, f"{p.name} (Estoque: {p.stock})") for p in carregadores]
 
     show_confirmation      = False
