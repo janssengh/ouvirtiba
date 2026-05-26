@@ -1,0 +1,281 @@
+{% extends "layout_admin.html" %}
+
+{% block content %}
+
+{% include 'navbar_admin.html' %}
+<div class="container-fluid col-11 m-auto mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>{{ titulo }}</h4>
+    <a href="{{ url_for('quote_bp.quote_list') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <form method="POST" id="quote-form">
+
+    <!-- ── Dados do Orçamento ─────────────────────────────── -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">Dados do Orçamento</div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">Cliente <span class="text-danger">*</span></label>
+            <select name="client_id" class="form-select form-select-sm" required>
+              <option value="">— Selecione o cliente —</option>
+              {% for c in clients %}
+              <option value="{{ c.id }}">{{ c.name }} — {{ c.contact }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Válido até</label>
+            <input type="date" name="valid_until" class="form-control form-control-sm"
+                   value="{{ default_valid.strftime('%Y-%m-%d') }}">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Desconto Geral (R$)</label>
+            <input type="number" name="discount" id="discount-geral"
+                   class="form-control form-control-sm" value="0.00" min="0" step="0.01"
+                   oninput="recalc()">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Observações / Condições</label>
+            <textarea name="observations" class="form-control form-control-sm" rows="2"
+                      placeholder="Condições de pagamento, prazo de entrega..."></textarea>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Itens do Orçamento ─────────────────────────────── -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+        Itens do Orçamento
+        <button type="button" class="btn btn-sm btn-success" id="btn-add" disabled>
+          <i class="bi bi-plus-circle me-1"></i> Inserir Item
+        </button>
+      </div>
+
+      <!-- Spinner enquanto carrega os produtos -->
+      <div id="loading-products" class="text-center py-3">
+        <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+        <small class="text-muted">Carregando produtos...</small>
+      </div>
+
+      <div class="card-body p-0" id="items-wrapper" style="display:none">
+        <table class="table table-bordered table-sm mb-0 align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th style="width:38%">Produto</th>
+              <th style="width:9%"  class="text-center">Qtde</th>
+              <th style="width:16%" class="text-end">Vlr. Unit. (R$)</th>
+              <th style="width:10%" class="text-center">Desc. (%)</th>
+              <th style="width:14%" class="text-end">Total (R$)</th>
+              <th style="width:4%"></th>
+            </tr>
+          </thead>
+          <tbody id="items-body"></tbody>
+          <tfoot>
+            <tr class="table-light">
+              <td colspan="4" class="text-end fw-semibold">Subtotal:</td>
+              <td class="text-end fw-semibold" id="subtotal">0,00</td>
+              <td></td>
+            </tr>
+            <tr class="table-light">
+              <td colspan="4" class="text-end text-danger">Desconto Geral (R$):</td>
+              <td class="text-end text-danger" id="disc-display">0,00</td>
+              <td></td>
+            </tr>
+            <tr class="table-light">
+              <td colspan="4" class="text-end fw-bold fs-6">Total Final:</td>
+              <td class="text-end fw-bold fs-6 text-success" id="grand-total">0,00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-4">
+      <a href="{{ url_for('quote_bp.quote_list') }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+      <button type="submit" class="btn btn-success btn-sm" id="btn-salvar" disabled>
+        <i class="bi bi-save me-1"></i> Salvar Orçamento
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+// ── Dados globais carregados via API ─────────────────────────
+let PRODUCTS = [];
+
+async function loadProducts() {
+  try {
+    const r = await fetch('/admin/quote/products');
+    if (!r.ok) throw new Error('Falha ao carregar produtos');
+    PRODUCTS = await r.json();
+  } catch (e) {
+    console.error(e);
+    PRODUCTS = [];
+    document.getElementById('loading-products').innerHTML =
+      '<small class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Erro ao carregar produtos. Recarregue a página.</small>';
+    return;
+  }
+
+  document.getElementById('loading-products').style.display = 'none';
+  document.getElementById('items-wrapper').style.display    = '';
+  document.getElementById('btn-add').disabled               = false;
+  document.getElementById('btn-salvar').disabled            = false;
+
+  // Adiciona primeira linha automaticamente
+  addRow();
+}
+
+// ── Formatação BR ────────────────────────────────────────────
+function fmtBR(n) {
+  return parseFloat(n || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+}
+
+// ── Opções do select de produtos ────────────────────────────
+function buildOptions(selectedId) {
+  let html = '<option value="">— Selecione o produto —</option>';
+  PRODUCTS.forEach(p => {
+    const sel = (selectedId && p.id == selectedId) ? ' selected' : '';
+    html += `<option value="${p.id}"
+               data-price="${p.sale_price}"
+               data-disc="${p.discount}"${sel}>${p.name}</option>`;
+  });
+  return html;
+}
+
+// ── Recalcula totais ─────────────────────────────────────────
+function recalc() {
+  let sub = 0;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const qty      = parseFloat(row.querySelector('.qty').value)   || 0;
+    const price    = parseFloat(row.querySelector('.price').value) || 0;
+    const discPct  = parseFloat(row.querySelector('.disc').value)  || 0;
+    const tot      = qty * price * (1 - discPct / 100);
+    row.querySelector('.row-total').textContent = fmtBR(tot);
+    sub += tot;
+  });
+  const descGeral = parseFloat(document.getElementById('discount-geral').value) || 0;
+  const grand     = Math.max(sub - descGeral, 0);
+  document.getElementById('subtotal').textContent    = fmtBR(sub);
+  document.getElementById('disc-display').textContent = fmtBR(descGeral);
+  document.getElementById('grand-total').textContent  = fmtBR(grand);
+}
+
+// ── Preenche linha ao selecionar produto ─────────────────────
+function onProductChange(select, row) {
+  const opt   = select.options[select.selectedIndex];
+  const price = parseFloat(opt.dataset.price || 0);
+  const disc  = parseFloat(opt.dataset.disc  || 0);
+
+  row.querySelector('.price').value = price.toFixed(2);
+  row.querySelector('.disc').value  = disc.toFixed(2);
+
+  // Preenche campo hidden description com nome do produto
+  row.querySelector('.desc').value  = opt.text !== '— Selecione o produto —' ? opt.text : '';
+
+  recalc();
+}
+
+// ── Cria nova linha de item ───────────────────────────────────
+function addRow() {
+  const tbody = document.getElementById('items-body');
+  const tr    = document.createElement('tr');
+  tr.className = 'item-row';
+
+  tr.innerHTML = `
+    <td>
+      <select name="product_id[]" class="form-select form-select-sm prod-sel" required>
+        ${buildOptions()}
+      </select>
+      <input type="hidden" name="description[]" class="desc" value="">
+    </td>
+    <td>
+      <input type="number" name="quantity[]"
+             class="form-control form-control-sm text-center qty"
+             value="1" min="0.001" step="0.001" required>
+    </td>
+    <td>
+      <!-- sale_price: somente leitura, vem do product_assembly -->
+      <input type="number" name="unit_price[]"
+             class="form-control form-control-sm text-end price"
+             value="0.00" step="0.01" readonly
+             title="Preço preenchido automaticamente pelo produto">
+    </td>
+    <td>
+      <!-- discount: editável, pré-preenchido com p.discount -->
+      <input type="number" name="discount_pct[]"
+             class="form-control form-control-sm text-center disc"
+             value="0.00" min="0" max="100" step="0.01">
+    </td>
+    <td class="text-end align-middle row-total fw-semibold text-nowrap">0,00</td>
+    <td class="text-center align-middle">
+      <button type="button" class="btn btn-sm btn-outline-danger btn-remove"
+              title="Remover item">
+        <i class="bi bi-trash"></i>
+      </button>
+    </td>`;
+
+  // Eventos
+  const sel = tr.querySelector('.prod-sel');
+  sel.addEventListener('change', () => onProductChange(sel, tr));
+
+  tr.querySelector('.qty').addEventListener('input', recalc);
+  tr.querySelector('.disc').addEventListener('input', recalc);
+
+  tr.querySelector('.btn-remove').addEventListener('click', () => {
+    const rows = document.querySelectorAll('.item-row');
+    if (rows.length > 1) {
+      tr.remove();
+      recalc();
+    } else {
+      // Última linha: apenas limpa
+      sel.value = '';
+      tr.querySelector('.price').value = '0.00';
+      tr.querySelector('.disc').value  = '0.00';
+      tr.querySelector('.qty').value   = '1';
+      tr.querySelector('.desc').value  = '';
+      tr.querySelector('.row-total').textContent = '0,00';
+      recalc();
+    }
+  });
+
+  tbody.appendChild(tr);
+  recalc();
+}
+
+// ── Validação antes de enviar ────────────────────────────────
+document.getElementById('quote-form').addEventListener('submit', function(e) {
+  const rows = document.querySelectorAll('.item-row');
+  let hasItem = false;
+  rows.forEach(row => {
+    const pid = row.querySelector('.prod-sel').value;
+    if (pid) hasItem = true;
+  });
+  if (!hasItem) {
+    e.preventDefault();
+    alert('Adicione pelo menos um produto ao orçamento.');
+  }
+});
+
+// ── Botão Inserir Item ───────────────────────────────────────
+document.getElementById('btn-add').addEventListener('click', addRow);
+
+// ── Inicializa ───────────────────────────────────────────────
+loadProducts();
+</script>
+
+{% endblock %}

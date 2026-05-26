@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Recibo {{ receipt.number }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; color: #222; padding: 10mm 12mm; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .logo { max-height: 55px; }
+    .store-name { font-size: 13pt; font-weight: bold; }
+    .store-info { font-size: 8pt; color: #555; line-height: 1.6; margin-top: 3px; }
+    .doc-label { text-align: right; }
+    .doc-label h2 { font-size: 17pt; font-weight: bold; color: #198754; }
+    .doc-number { font-weight: bold; font-size: 11pt; }
+    .doc-date   { font-size: 9pt; color: #555; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 10px 0; }
+    .section-title { font-size: 8pt; text-transform: uppercase; color: #777;
+                     letter-spacing: .5px; margin-bottom: 4px; font-weight: bold; }
+    .client-name { font-weight: bold; font-size: 12pt; margin-bottom: 3px; }
+    .client-info { font-size: 9pt; color: #444; line-height: 1.65; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    thead tr { background: #333; color: #fff; }
+    thead th { padding: 5px 7px; font-size: 9pt; }
+    thead th.r { text-align: right; }
+    thead th.c { text-align: center; }
+    tbody tr:nth-child(even) { background: #f9f9f9; }
+    tbody tr { border-bottom: 1px solid #e5e5e5; }
+    tbody td { padding: 4px 7px; font-size: 10pt; }
+    tbody td.r { text-align: right; }
+    tbody td.c { text-align: center; }
+    tfoot tr { background: #f0f0f0; }
+    tfoot td { padding: 6px 7px; font-weight: bold; }
+    .total-val { font-size: 13pt; color: #198754; text-align: right; }
+    .payment { margin-top: 10px; font-size: 10pt; }
+    .obs { margin-top: 8px; padding: 7px; border: 1px solid #ddd;
+           background: #fafafa; font-size: 9pt; }
+    .cancelled { font-size: 22pt; color: #dc3545; font-weight: bold;
+                 border: 3px solid #dc3545; display: inline-block;
+                 padding: 3px 14px; transform: rotate(-10deg);
+                 position: absolute; top: 50px; right: 30px; opacity: .7; }
+    .signs { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 60px; gap: 40px; }
+    .sign-block { width: 44%; text-align: center; }
+    .sign-space { height: 48px; }
+    .sign-line { border-top: 1px solid #333; padding-top: 6px;
+                 font-size: 9pt; color: #444; line-height: 1.5; }
+    .sign-name { font-weight: bold; font-size: 10pt; }
+  </style>
+</head>
+<body>
+
+{# ── Macros de máscara ──────────────────────────────────── #}
+{% macro fmt_doc(code, type) -%}
+  {%- set c = (code or '') | replace(' ','') | replace('.','') | replace('-','') | replace('/','') -%}
+  {%- if type == 'F' and c|length == 11 -%}
+    {{ c[:3] }}.{{ c[3:6] }}.{{ c[6:9] }}-{{ c[9:] }}
+  {%- elif type == 'J' and c|length == 14 -%}
+    {{ c[:2] }}.{{ c[2:5] }}.{{ c[5:8] }}/{{ c[8:12] }}-{{ c[12:] }}
+  {%- else -%}{{ code or '' }}{%- endif -%}
+{%- endmacro %}
+
+{% macro fmt_cnpj(code) -%}
+  {%- set c = (code or '') | replace(' ','') | replace('.','') | replace('-','') | replace('/','') -%}
+  {%- if c|length == 14 -%}
+    {{ c[:2] }}.{{ c[2:5] }}.{{ c[5:8] }}/{{ c[8:12] }}-{{ c[12:] }}
+  {%- else -%}{{ code or '' }}{%- endif -%}
+{%- endmacro %}
+
+{% macro fmt_cep(zipcode) -%}
+  {%- set z = (zipcode or '') | replace('-','') | replace(' ','') -%}
+  {%- if z|length == 8 -%}{{ z[:5] }}-{{ z[5:] }}{%- else -%}{{ zipcode or '' }}{%- endif -%}
+{%- endmacro %}
+
+{% if receipt.status == 'CANCELADO' %}
+<div class="cancelled">CANCELADO</div>
+{% endif %}
+
+<!-- ── CABEÇALHO: RECEBEDOR ── -->
+<div class="header">
+
+  <div>
+    {% if logohtml %}<img src="{{ logohtml }}" class="logo" alt="Logo"><br>{% endif %}
+    <div class="store-name">{{ store.get('Name','') }}</div>
+    {% if store_obj %}
+    <div class="store-info">
+      CNPJ: {{ fmt_cnpj(store_obj.code) }}<br>
+      {{ store_obj.address }}, {{ store_obj.number }}
+      {%- if store_obj.complement %} — {{ store_obj.complement }}{% endif %}<br>
+      {{ store_obj.neighborhood }} — {{ store_obj.city }}/{{ store_obj.region }}
+      &nbsp;CEP: {{ fmt_cep(store_obj.zipcode) }}<br>
+      {% if store_obj.phone %}Tel: {{ store_obj.phone }}{% endif %}
+    </div>
+    {% else %}
+    <div class="store-info">
+      {{ store.get('Address','') }}{% if store.get('City') %} — {{ store.get('City') }}{% endif %}<br>
+      {% if store.get('Phone') %}Tel: {{ store.get('Phone') }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="doc-label">
+    <h2>RECIBO</h2>
+    <div class="doc-number">Nº {{ receipt.number }}</div>
+    <div class="doc-date">{{ receipt.issue_date.strftime('%d/%m/%Y') }}</div>
+  </div>
+
+</div>
+
+<hr>
+
+<!-- ── DADOS DO PAGANTE ── -->
+{% set cl = receipt.client %}
+<div class="section-title">Dados do Pagante</div>
+<div class="client-name">{{ cl.name }}</div>
+<div class="client-info">
+  {% if cl.code %}
+    {% if cl.type == 'F' %}CPF{% elif cl.type == 'J' %}CNPJ{% else %}Doc{% endif %}:
+    {{ fmt_doc(cl.code, cl.type) }}<br>
+  {% endif %}
+  {{ cl.address }}, {{ cl.number }}
+  {%- if cl.complement %} — {{ cl.complement }}{% endif %}<br>
+  {{ cl.neighborhood }} — {{ cl.city }}/{{ cl.region }}
+  &nbsp;CEP: {{ fmt_cep(cl.zipcode) }}<br>
+  {% if cl.contact %}Tel: {{ cl.contact }}{% endif %}
+  {% if cl.email %} &nbsp;|&nbsp; {{ cl.email }}{% endif %}
+</div>
+
+<!-- ── ITENS ── -->
+<table>
+  <thead>
+    <tr>
+      <th style="width:45%">Descrição</th>
+      <th class="c" style="width:15%">Qtd</th>
+      <th class="r" style="width:20%">Valor Unit. (R$)</th>
+      <th class="r" style="width:20%">Total (R$)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.description }}</td>
+      <td class="c">{{ item.quantity | int if item.quantity == item.quantity | int else '%.3f'|format(item.quantity) | replace('.', '#') | replace(',', '.') | replace('#', ',') }}</td>
+      <td class="r">{{ '%.2f'|format(item.unit_price) | replace('.', '#') | replace(',', '.') | replace('#', ',') }}</td>
+      <td class="r">{{ '%.2f'|format(item.total) | replace('.', '#') | replace(',', '.') | replace('#', ',') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3" style="text-align:right">Total Recebido:</td>
+      <td class="total-val">R$ {{ '%.2f'|format(receipt.total) | replace('.', '#') | replace(',', '.') | replace('#', ',') }}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="payment">
+  <strong>Forma de Pagamento:</strong> {{ receipt.payment_method }}
+</div>
+
+{% if receipt.observations %}
+<div class="obs"><strong>Observações:</strong> {{ receipt.observations }}</div>
+{% endif %}
+
+<!-- ── ASSINATURAS ── -->
+<div class="signs">
+
+  <div class="sign-block">
+    <div class="sign-space"></div>
+    <div class="sign-line">
+      <div class="sign-name">{{ store.get('Name','') }}</div>
+      {% if store_obj %}
+      CNPJ: {{ fmt_cnpj(store_obj.code) }}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="sign-block">
+    <div class="sign-space"></div>
+    <div class="sign-line">
+      <div class="sign-name">{{ cl.name }}</div>
+      {% if cl.code %}
+        {{ 'CPF' if cl.type == 'F' else ('CNPJ' if cl.type == 'J' else 'Doc') }}:
+        {{ fmt_doc(cl.code, cl.type) }}
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
 git add . 
-git commit -m "Mudar botão: Para GERAR PREÇO VENDA, na produção"
+git commit -m "Implementação de recibos e orçamentos"
 git push origin master
 
 ATUALIZAR RENDER:

@@ -52,6 +52,8 @@ from admin.purchases import purchases_bp
 from admin.image.routes import image_bp
 from admin.assembly.routes import assembly_bp
 from admin.blog_post.models import BlogPost
+from admin.receipt.routes import receipt_bp
+from admin.quote.routes   import quote_bp
 
 db.init_app(app)
 bcrypt.init_app(app)  # ✅ adiciona essa linha
@@ -64,6 +66,9 @@ app.register_blueprint(blog_bp)
 app.register_blueprint(purchases_bp)
 app.register_blueprint(image_bp)
 app.register_blueprint(assembly_bp)
+app.register_blueprint(receipt_bp)
+app.register_blueprint(quote_bp)
+
 
 ######################## Término Inclusão com banco de dados #####################
 

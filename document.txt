@@ -297,3 +297,6 @@ COMMENT ON COLUMN ouvirtiba.blog_post.active IS 'Indica se o post está publicad
                             </a>
 
                         <input type="hidden" name="tipoproduto" value="{{ produto.type_id }}">
+
+
+            <td class="text-end">{{ fmt_br(q.total) }}</td>
