@@ -3,37 +3,94 @@
 {% block content %}
 {% include 'navbar_admin.html' %}
 
+{% set dt = order.doc_type or 'PED' %}
+
+{# ── Rótulo dinâmico do número conforme tipo ── #}
+{% if dt == 'TEG' %}
+    {% set lbl_numero = 'Número TEG' %}
+{% elif dt == 'OVG' %}
+    {% set lbl_numero = 'Número O.S.' %}
+{% else %}
+    {% set lbl_numero = 'Número Pedido' %}
+{% endif %}
+
+{# ── Data a exibir: issued_at quando disponível, senão created_at ── #}
+{% if order.issued_at %}
+    {% set data_emissao = order.issued_at.strftime('%d/%m/%Y') %}
+{% else %}
+    {% set data_emissao = order.created_at.strftime('%d/%m/%Y') %}
+{% endif %}
+
 <div class="container mt-4">
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <h2 class="fw-bold text-primary mb-0">📦 Lista de Itens do Pedido</h2>
+            <h2 class="fw-bold text-primary mb-0">📦 Lista de Itens dos Termos / Ordens de Serviço</h2>
             <hr class="mt-2" style="width: 50%; margin: 0 auto;">
         </div>
     </div>
 
-    <!-- Cabeçalho do Pedido -->
+    <!-- Cabeçalho do documento -->
     <div class="card shadow-sm p-3 mb-4">
         <div class="row">
-            <div class="col-md-4 col-sm-6 mb-2">
-                <strong>Número do Pedido:</strong><br>
+
+            <!-- Número (rótulo dinâmico) -->
+            <div class="col-md-3 col-sm-6 mb-2">
+                <strong>{{ lbl_numero }}:</strong><br>
                 {{ order.number }}
             </div>
 
-            <div class="col-md-4 col-sm-6 mb-2">
+            <!-- Tipo de documento -->
+            <div class="col-md-2 col-sm-6 mb-2">
+                <strong>Tipo:</strong><br>
+                {% if dt == 'TEG' %}
+                    <span class="badge" style="background-color:#6f42c1;">TEG</span>
+                    Termo de Entrega em Garantia
+                {% elif dt == 'OVG' %}
+                    <span class="badge" style="background-color:#0d6efd;">OVG</span>
+                    O.S. c/ Garantia de Venda
+                {% else %}
+                    <span class="badge bg-success">PED</span>
+                    Pedido de Venda
+                {% endif %}
+            </div>
+
+            <!-- Data de emissão -->
+            <div class="col-md-2 col-sm-6 mb-2">
+                <strong>Data de Emissão:</strong><br>
+                {{ data_emissao }}
+            </div>
+
+            <!-- Cliente -->
+            <div class="col-md-3 col-sm-6 mb-2">
                 <strong>Cliente:</strong><br>
                 {{ order.client.name }}
             </div>
 
-            <div class="col-md-4 col-sm-6 mb-2">
-                {% set total = ("%0.2f" | format(order.amount|float) | string()).replace('.',',') %}
-                <strong>Total do Pedido:</strong><br>
-                R$ {{ total }}
+            <!-- Valor Total (TEG = R$ 0,00; outros mostram o valor real) -->
+            <div class="col-md-2 col-sm-6 mb-2">
+                {% set total = ("%0.2f" | format(order.amount|float) | string()).replace('.', ',') %}
+                <strong>Valor Total:</strong><br>
+                {% if dt == 'TEG' %}
+                    <span class="text-muted fst-italic">Em Garantia</span>
+                {% else %}
+                    R$ {{ total }}
+                {% endif %}
             </div>
 
+            <!-- NF Fornecedor: somente para TEG -->
+            {% if dt == 'TEG' %}
+            <div class="col-md-3 col-sm-6 mb-2">
+                <strong>NF Fornecedor:</strong><br>
+                {{ order.supplier_invoice or '–' }}
+            </div>
+            {% endif %}
+
+            <!-- Observação (largura total) -->
             <div class="col-md-12 mt-2">
                 <strong>Observação:</strong><br>
-                {{ order.observation or '-' }}
+                {{ order.observation or '–' }}
             </div>
+
         </div>
     </div>
 
@@ -50,10 +107,12 @@
                             <th>Produto</th>
                             <th>Nº Série</th>
                             <th>Qtde</th>
+                            {% if dt != 'TEG' %}
                             <th>Preço Unit.</th>
                             <th>Vlr. Total</th>
                             <th>Desc.</th>
                             <th>Total c/ Desc.</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -70,22 +129,24 @@
                                 {% if oi.serialnumber %}
                                     <span class="badge bg-info text-dark">{{ oi.serialnumber }}</span>
                                 {% else %}
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted">–</span>
                                 {% endif %}
                             </td>
                             <td class="text-center">{{ oi.quantity }}</td>
 
-                            {% set price = ("%0.2f" | format(oi.price|float) | string()).replace('.',',') %}
+                            {% if dt != 'TEG' %}
+                            {% set price = ("%0.2f" | format(oi.price|float) | string()).replace('.', ',') %}
                             <td class="text-end">R$ {{ price }}</td>
 
-                            {% set total_bruto = ("%0.2f" | format(oi.amount_initial|float) | string()).replace('.',',') %}
+                            {% set total_bruto = ("%0.2f" | format(oi.amount_initial|float) | string()).replace('.', ',') %}
                             <td class="text-end">R$ {{ total_bruto }}</td>
 
-                            {% set desconto = ("%0.2f" | format(oi.discount|float) | string()).replace('.',',') %}
+                            {% set desconto = ("%0.2f" | format(oi.discount|float) | string()).replace('.', ',') %}
                             <td class="text-end">R$ {{ desconto }}</td>
 
-                            {% set total_liq = ("%0.2f" | format(oi.amount|float) | string()).replace('.',',') %}
+                            {% set total_liq = ("%0.2f" | format(oi.amount|float) | string()).replace('.', ',') %}
                             <td class="text-end fw-semibold">R$ {{ total_liq }}</td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -93,8 +154,8 @@
             </div>
 
             <div class="mt-3 text-end">
-                <a class="btn btn-outline-danger btn-sm" href="{{ url_for('order_bp.order_list') }}">
-                    ⬅ Voltar à Lista de Pedidos
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('order_bp.order_list') }}">
+                    ⬅ Voltar à Lista de Termos / O.S.
                 </a>
             </div>
         </div>

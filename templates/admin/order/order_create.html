@@ -7,10 +7,25 @@
         <div class="card-body">
             <h3 class="fw-bold text-primary mb-3">{{ titulo }}</h3>
             <form method="POST">
-                <!-- Cliente e Observação -->
+
+                {# ══════════════════════════════════════════════════════════
+                   BLOCO 1 — Tipo de documento, Cliente, Data de emissão
+                ══════════════════════════════════════════════════════════ #}
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="client_id" class="form-label">Cliente</label>
+
+                    {# ── Tipo de documento ── #}
+                    <div class="col-md-3">
+                        <label for="doc_type" class="form-label fw-semibold">Tipo de Documento</label>
+                        <select name="doc_type" id="doc_type" class="form-select" required>
+                            <option value="PED">PED – Pedido de Venda</option>
+                            <option value="TEG">TEG – Termo de Entrega em Garantia</option>
+                            <option value="OVG">OVG – O.S. c/ Garantia de Venda</option>
+                        </select>
+                    </div>
+
+                    {# ── Cliente ── #}
+                    <div class="col-md-5">
+                        <label for="client_id" class="form-label fw-semibold">Cliente</label>
                         <select name="client_id" id="client_id" class="form-select" required>
                             <option value="">Selecione...</option>
                             {% for c in clients %}
@@ -18,58 +33,99 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <label for="observation" class="form-label">Observação</label>
-                        <input type="text" name="observation" id="observation" class="form-control">
+
+                    {# ── Data de emissão ── #}
+                    <div class="col-md-2">
+                        <label for="issued_at" class="form-label fw-semibold">Data de Emissão</label>
+                        <input type="date" name="issued_at" id="issued_at" class="form-control"
+                               value="{{ now_date }}" required>
                     </div>
+
+                    {# ── Nº NF Fornecedor (visível apenas para TEG) ── #}
+                    <div class="col-md-2" id="supplier_invoice_div" style="display:none;">
+                        <label for="supplier_invoice" class="form-label fw-semibold">Nº NF Fornecedor</label>
+                        <input type="text" name="supplier_invoice" id="supplier_invoice"
+                               class="form-control" maxlength="30" placeholder="Ex.: 12345">
+                    </div>
+
                 </div>
 
-                <hr>
-                <!-- Forma de Pagamento -->
+                {# ── Observação ── #}
                 <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label for="payment_form" class="form-label">Forma de Pagamento</label>
-                        <select name="payment_form" id="payment_form" class="form-select" required>
-                            <option value="">Selecione...</option>
-                            <option value="1">Dinheiro</option>
-                            <option value="2">Pix</option>
-                            <option value="3">Cartão Débito</option>
-                            <option value="4">Cartão Crédito</option>
-                            <option value="5">Entrada + Parcelas Cartão Crédito</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-4" id="payment_amount_div" style="display:none;">
-                        <label for="payment_amount_inp" class="form-label">Valor de Entrada</label>
-                        <input type="number" step="0.01" min="0" name="payment_amount_inp" id="payment_amount_inp" class="form-control">
-                    </div>
-
-                    <div class="col-md-4" id="payment_form_inp_div" style="display:none;">
-                        <label for="payment_form_inp" class="form-label">Forma da Entrada</label>
-                        <select name="payment_form_inp" id="payment_form_inp" class="form-select">
-                            <option value="">Selecione...</option>
-                            <option value="1">Dinheiro</option>
-                            <option value="2">Pix</option>
-                            <option value="3">Cartão Débito</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-4" id="payment_condition_div" style="display:none;">
-                        <label for="payment_condition" class="form-label">Parcelamento (Qtde)</label>
-                        <input type="number" min="1" max="18" name="payment_condition" id="payment_condition" class="form-control">
+                    <div class="col-md-12">
+                        <label for="observation" class="form-label fw-semibold">
+                            Observação
+                            <small class="text-muted fw-normal">
+                                (a cláusula de garantia é adicionada automaticamente)
+                            </small>
+                        </label>
+                        <input type="text" name="observation" id="observation"
+                               class="form-control" placeholder="Complemento opcional...">
                     </div>
                 </div>
 
                 <hr>
-                <h5 class="text-secondary mb-2">Itens do Pedido</h5>
 
-                <!-- ✅ CABEÇALHOS FIXOS - APARECEM APENAS UMA VEZ -->
+                {# ══════════════════════════════════════════════════════════
+                   BLOCO 2 — Forma de pagamento (oculto no TEG)
+                ══════════════════════════════════════════════════════════ #}
+                <div id="payment_block">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="payment_form" class="form-label fw-semibold">Forma de Pagamento</label>
+                            <select name="payment_form" id="payment_form" class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="1">Dinheiro</option>
+                                <option value="2">Pix</option>
+                                <option value="3">Cartão Débito</option>
+                                <option value="4">Cartão Crédito</option>
+                                <option value="5">Entrada + Parcelas Cartão Crédito</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4" id="payment_amount_div" style="display:none;">
+                            <label for="payment_amount_inp" class="form-label fw-semibold">Valor de Entrada</label>
+                            <input type="number" step="0.01" min="0" name="payment_amount_inp"
+                                   id="payment_amount_inp" class="form-control">
+                        </div>
+
+                        <div class="col-md-4" id="payment_form_inp_div" style="display:none;">
+                            <label for="payment_form_inp" class="form-label fw-semibold">Forma da Entrada</label>
+                            <select name="payment_form_inp" id="payment_form_inp" class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="1">Dinheiro</option>
+                                <option value="2">Pix</option>
+                                <option value="3">Cartão Débito</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4" id="payment_condition_div" style="display:none;">
+                            <label for="payment_condition" class="form-label fw-semibold">Parcelamento (Qtde)</label>
+                            <input type="number" min="1" max="18" name="payment_condition"
+                                   id="payment_condition" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                {# Aviso que substitui o bloco de pagamento no TEG #}
+                <div id="teg_payment_info" class="alert alert-purple border-0 mb-3" style="display:none; background:#f3eeff; border-left:4px solid #6f42c1 !important;">
+                    <i class="bi bi-shield-check me-2 text-purple" style="color:#6f42c1;"></i>
+                    <strong>Termo de Entrega em Garantia:</strong> pagamento registrado automaticamente como <em>Em Garantia</em>.
+                </div>
+
+                <hr>
+
+                {# ══════════════════════════════════════════════════════════
+                   BLOCO 3 — Itens
+                ══════════════════════════════════════════════════════════ #}
+                <h5 class="text-secondary mb-2">Itens</h5>
+
                 <div class="row mb-1">
                     <div class="col-md-3"><small class="text-muted fw-bold">Produto</small></div>
                     <div class="col-md-2"><small class="text-muted fw-bold">Nº Série</small></div>
                     <div class="col-md-1"><small class="text-muted fw-bold">Qtde</small></div>
                     <div class="col-md-2"><small class="text-muted fw-bold">Preço Bruto</small></div>
-                    <div class="col-md-1"><small class="text-muted fw-bold">Desc. R$</small></div>
+                    <div class="col-md-1" id="hdr_discount"><small class="text-muted fw-bold">Desc. R$</small></div>
                     <div class="col-md-2"><small class="text-muted fw-bold">Total Item</small></div>
                     <div class="col-md-1"><small class="text-muted fw-bold">Ação</small></div>
                 </div>
@@ -82,7 +138,9 @@
                                 {% for tipo, produtos_tipo in products | groupby('type_name') %}
                                 <optgroup label="{{ tipo }}">
                                     {% for p in produtos_tipo %}
-                                    <option value="{{ p.id }}" data-price="{{ p.sale_price }}" data-discount="{{ p.discount if p.discount else 0 }}">
+                                    <option value="{{ p.id }}"
+                                            data-price="{{ p.sale_price }}"
+                                            data-discount="{{ p.discount if p.discount else 0 }}">
                                         {{ p.name }} (Estoque: {{ p.stock }})
                                     </option>
                                     {% endfor %}
@@ -91,22 +149,30 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <input type="text" name="serialnumber[]" class="form-control form-control-sm serialnumber-input" maxlength="15" placeholder="Serial" autocomplete="off">
+                            <input type="text" name="serialnumber[]"
+                                   class="form-control form-control-sm serialnumber-input"
+                                   maxlength="15" placeholder="Serial" autocomplete="off">
                         </div>
                         <div class="col-md-1">
-                            <input type="number" name="quantity[]" class="form-control form-control-sm quantity-input" min="1" value="1" required>
+                            <input type="number" name="quantity[]"
+                                   class="form-control form-control-sm quantity-input"
+                                   min="1" value="1" required>
                         </div>
                         <div class="col-md-2">
-                            <!-- Preço Bruto: preenchido automaticamente ao selecionar produto, somente leitura -->
-                            <input type="number" step="0.01" min="0" name="price[]" class="form-control form-control-sm price-input" placeholder="0.00" readonly style="background-color:#f8f9fa;" required>
+                            <input type="number" step="0.01" min="0" name="price[]"
+                                   class="form-control form-control-sm price-input"
+                                   placeholder="0.00" readonly style="background-color:#f8f9fa;" required>
                             <input type="hidden" class="original-price" value="">
                         </div>
                         <div class="col-md-1">
-                            <!-- Valor do desconto em R$: editável pelo usuário -->
-                            <input type="number" step="0.01" min="0" name="discount_value[]" class="form-control form-control-sm discount-value-input" placeholder="0.00" value="0">
+                            <input type="number" step="0.01" min="0" name="discount_value[]"
+                                   class="form-control form-control-sm discount-value-input"
+                                   placeholder="0.00" value="0">
                         </div>
                         <div class="col-md-2">
-                            <input type="text" name="item_total[]" class="form-control form-control-sm total-input" readonly placeholder="0.00">
+                            <input type="text" name="item_total[]"
+                                   class="form-control form-control-sm total-input"
+                                   readonly placeholder="0.00">
                         </div>
                         <div class="col-md-1 text-center">
                             <button type="button" class="btn btn-outline-danger btn-sm remove-item">🗑</button>
@@ -115,33 +181,44 @@
                 </div>
 
                 <div class="text-end mb-3">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="add-item">+ Adicionar Item</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="add-item">
+                        + Adicionar Item
+                    </button>
                 </div>
 
-                <!-- ✅ RESUMO DO PEDIDO -->
+                {# ── Resumo ── #}
                 <div class="card bg-light mb-3">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
                                 <strong>Total Bruto:</strong>
-                                <input type="text" id="total-bruto" class="form-control form-control-sm" readonly value="R$ 0.00">
+                                <input type="text" id="total-bruto" class="form-control form-control-sm"
+                                       readonly value="R$ 0.00">
                             </div>
                             <div class="col-md-4">
                                 <strong>Total Desconto:</strong>
-                                <input type="text" id="total-desconto" class="form-control form-control-sm" readonly value="R$ 0.00">
+                                <input type="text" id="total-desconto" class="form-control form-control-sm"
+                                       readonly value="R$ 0.00">
                             </div>
                             <div class="col-md-4">
                                 <strong>Total Líquido:</strong>
-                                <input type="text" id="total-liquido" class="form-control form-control-sm fw-bold" readonly value="R$ 0.00">
+                                <input type="text" id="total-liquido"
+                                       class="form-control form-control-sm fw-bold"
+                                       readonly value="R$ 0.00">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="text-end">
-                    <button type="submit" class="btn btn-success">💾 Salvar Pedido</button>
-                    <button type="button" id="cancel-button" class="btn btn-outline-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-success" id="btn-salvar">
+                        💾 Salvar
+                    </button>
+                    <button type="button" id="cancel-button" class="btn btn-outline-secondary">
+                        Cancelar
+                    </button>
                 </div>
+
             </form>
         </div>
     </div>
@@ -150,57 +227,91 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+    const docTypeSelect        = document.getElementById('doc_type');
+    const supplierInvDiv       = document.getElementById('supplier_invoice_div');
+    const paymentBlock         = document.getElementById('payment_block');
+    const tegInfo              = document.getElementById('teg_payment_info');
+    const hdrDiscount          = document.getElementById('hdr_discount');
+    const btnSalvar            = document.getElementById('btn-salvar');
+
+    // ── Preenche a data de emissão com hoje (YYYY-MM-DD) ────────────────────
+    const issuedAt = document.getElementById('issued_at');
+    if (!issuedAt.value) {
+        const today = new Date();
+        issuedAt.value = today.toISOString().split('T')[0];
+    }
+
+    // ── Reage à mudança do tipo de documento ────────────────────────────────
+    function applyDocType() {
+        const dt = docTypeSelect.value;
+
+        // NF fornecedor: apenas para TEG
+        supplierInvDiv.style.display = (dt === 'TEG') ? 'block' : 'none';
+
+        // Pagamento: oculto no TEG
+        if (dt === 'TEG') {
+            paymentBlock.style.display = 'none';
+            tegInfo.style.display      = 'block';
+        } else {
+            paymentBlock.style.display = 'block';
+            tegInfo.style.display      = 'none';
+        }
+
+        // Coluna de desconto: oculta no TEG
+        hdrDiscount.style.display = (dt === 'TEG') ? 'none' : '';
+        document.querySelectorAll('.discount-value-input').forEach(function (inp) {
+            inp.closest('.col-md-1').style.display = (dt === 'TEG') ? 'none' : '';
+            if (dt === 'TEG') inp.value = '0';
+        });
+
+        // Rótulo do botão
+        const labels = { PED: '💾 Salvar Pedido', TEG: '💾 Salvar Termo', OVG: '💾 Salvar O.S.' };
+        btnSalvar.textContent = labels[dt] || '💾 Salvar';
+
+        calcTotals();
+    }
+
+    docTypeSelect.addEventListener('change', applyDocType);
+    applyDocType(); // estado inicial
+
     // ─── Pagamento condicional ───────────────────────────────────────────────
-    const paymentForm = document.getElementById('payment_form');
-    const paymentAmountDiv = document.getElementById('payment_amount_div');
-    const paymentFormInpDiv = document.getElementById('payment_form_inp_div');
+    const paymentForm        = document.getElementById('payment_form');
+    const paymentAmountDiv   = document.getElementById('payment_amount_div');
+    const paymentFormInpDiv  = document.getElementById('payment_form_inp_div');
     const paymentConditionDiv = document.getElementById('payment_condition_div');
 
     function togglePaymentFields() {
-        const val = paymentForm.value;
+        const val       = paymentForm.value;
         const isCredit  = (val === '4');
         const isEntrada = (val === '5');
         paymentAmountDiv.style.display    = isEntrada ? 'block' : 'none';
         paymentFormInpDiv.style.display   = isEntrada ? 'block' : 'none';
         paymentConditionDiv.style.display = (isCredit || isEntrada) ? 'block' : 'none';
     }
-    if (paymentForm) {
-        paymentForm.addEventListener('change', togglePaymentFields);
-        togglePaymentFields();
-    }
+    paymentForm.addEventListener('change', togglePaymentFields);
+    togglePaymentFields();
 
-    // ─── Cálculo de uma linha ────────────────────────────────────────────────
-    // Regras:
-    //   preço bruto  = original-price (hidden) → exibido em price-input (readonly)
-    //   total item   = (preço_bruto * qty) - desconto_R$
-    //   desconto_R$  é digitado pelo usuário e enviado diretamente ao backend
+    // ─── Cálculo de linha ────────────────────────────────────────────────────
     function calcRow(row) {
-        const qty         = parseFloat(row.querySelector('.quantity-input').value)      || 0;
-        const origPrice   = parseFloat(row.querySelector('.original-price').value)      || 0;
-        const discountVal = parseFloat(row.querySelector('.discount-value-input').value) || 0;
-
+        const isTEG       = (docTypeSelect.value === 'TEG');
+        const qty         = parseFloat(row.querySelector('.quantity-input').value)       || 0;
+        const origPrice   = parseFloat(row.querySelector('.original-price').value)       || 0;
+        const discountVal = isTEG ? 0 : (parseFloat(row.querySelector('.discount-value-input').value) || 0);
         const brutoLinha  = origPrice * qty;
-
-        // Não permite desconto maior que o valor bruto da linha
         const discountSafe = Math.min(discountVal, brutoLinha);
-        if (discountVal > brutoLinha && brutoLinha > 0) {
-            row.querySelector('.discount-value-input').value = discountSafe.toFixed(2);
-        }
+        const total       = isTEG ? 0 : (brutoLinha - discountSafe);
 
-        const total = brutoLinha - discountSafe;
-
-        // price-input exibe sempre o preço bruto (readonly)
         row.querySelector('.price-input').value = origPrice.toFixed(2);
         row.querySelector('.total-input').value = total.toFixed(2);
     }
 
     function calcTotals() {
-        let bruto    = 0;
-        let desconto = 0;
+        const isTEG = (docTypeSelect.value === 'TEG');
+        let bruto = 0, desconto = 0;
         document.querySelectorAll('.item-row').forEach(function (row) {
             const origPrice   = parseFloat(row.querySelector('.original-price').value)       || 0;
             const qty         = parseFloat(row.querySelector('.quantity-input').value)       || 0;
-            const discountVal = parseFloat(row.querySelector('.discount-value-input').value) || 0;
+            const discountVal = isTEG ? 0 : (parseFloat(row.querySelector('.discount-value-input').value) || 0);
             const brutoLinha  = origPrice * qty;
             bruto    += brutoLinha;
             desconto += Math.min(discountVal, brutoLinha);
@@ -212,26 +323,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ─── Vincula eventos a uma linha ─────────────────────────────────────────
     function bindRowEvents(row) {
-
-        // Selecionar produto → preenche preço bruto e calcula desconto R$ padrão do cadastro
         row.querySelector('.product-select').addEventListener('change', function () {
             const opt         = this.options[this.selectedIndex];
             const price       = parseFloat(opt.getAttribute('data-price'))    || 0;
             const discountPct = parseFloat(opt.getAttribute('data-discount')) || 0;
             const qty         = parseFloat(row.querySelector('.quantity-input').value) || 1;
-
-            // Converte o % padrão do produto para valor R$ (apenas ponto de partida, editável)
             const discountVal = price * qty * (discountPct / 100);
 
-            row.querySelector('.original-price').value           = price.toFixed(2);
-            row.querySelector('.price-input').value              = price.toFixed(2);
-            row.querySelector('.discount-value-input').value     = discountVal.toFixed(2);
-            row.querySelector('.serialnumber-input').value       = '';
+            row.querySelector('.original-price').value       = price.toFixed(2);
+            row.querySelector('.price-input').value          = price.toFixed(2);
+            row.querySelector('.discount-value-input').value = discountVal.toFixed(2);
+            row.querySelector('.serialnumber-input').value   = '';
             calcRow(row);
             calcTotals();
         });
 
-        // Usuário altera o desconto R$ → recalcula total
         row.querySelector('.discount-value-input').addEventListener('input', function () {
             const origPrice  = parseFloat(row.querySelector('.original-price').value) || 0;
             const qty        = parseFloat(row.querySelector('.quantity-input').value) || 0;
@@ -243,24 +349,21 @@ document.addEventListener('DOMContentLoaded', function () {
             calcTotals();
         });
 
-        // Quantidade alterada → mantém desconto R$ absoluto e recalcula
         row.querySelector('.quantity-input').addEventListener('input', function () {
             calcRow(row);
             calcTotals();
         });
 
-        // Remover linha
         row.querySelector('.remove-item').addEventListener('click', function () {
             if (document.querySelectorAll('.item-row').length > 1) {
                 row.remove();
                 calcTotals();
             } else {
-                alert('O pedido deve ter ao menos um item.');
+                alert('O documento deve ter ao menos um item.');
             }
         });
     }
 
-    // Vincula a linha inicial
     document.querySelectorAll('.item-row').forEach(bindRowEvents);
 
     // ─── Adicionar nova linha ────────────────────────────────────────────────
@@ -279,17 +382,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         container.appendChild(newRow);
         bindRowEvents(newRow);
+        applyDocType(); // re-aplica visibilidade do desconto na nova linha
     });
 
     // ─── Cancelar ───────────────────────────────────────────────────────────
-    const cancelBtn = document.getElementById('cancel-button');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', function () {
-            window.location.href = "{{ url_for('order_bp.order_list') }}";
-        });
-    }
+    document.getElementById('cancel-button').addEventListener('click', function () {
+        window.location.href = "{{ url_for('order_bp.order_list') }}";
+    });
 
-    // Cálculo inicial
     calcTotals();
 });
 </script>

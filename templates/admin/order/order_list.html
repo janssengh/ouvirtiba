@@ -4,20 +4,22 @@
 
 <style>
   .btn-compact { padding: .1rem .35rem !important; line-height: 1.1; }
+  .badge-teg { background-color: #6f42c1; }
+  .badge-ovg { background-color: #0d6efd; }
+  .badge-ped { background-color: #198754; }
 </style>
-
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="fw-bold text-primary mb-0">
-            📋 {{ titulo or "Lista de Pedidos" }}
+            📋 {{ titulo or "Termos / Ordens de Serviço" }}
         </h2>
         <div>
             <a href="{{ url_for('order_bp.pdf_list') }}" class="btn btn-info shadow-sm me-2">
                 <i class="bi bi-file-pdf me-1"></i> Gerenciar PDFs
             </a>
             <a href="{{ url_for('order_bp.order_create') }}" class="btn btn-success shadow-sm">
-                <i class="bi bi-plus-circle me-1"></i> Novo Pedido
+                <i class="bi bi-plus-circle me-1"></i> Novo Termo / O.S.
             </a>
         </div>
     </div>
@@ -28,9 +30,11 @@
                 <thead class="table-light">
                     <tr class="text-center">
                         <th>Nº</th>
+                        <th>Tipo</th>
                         <th>Código</th>
                         <th>Cliente</th>
-                        <th>Data</th>
+                        {# Data de emissão (issued_at), não a de criação #}
+                        <th>Emissão</th>
                         <th>Forma de Pagto</th>
                         <th>Valor Total</th>
                         <th>Status</th>
@@ -45,47 +49,65 @@
                     <tr>
                         <td class="text-center fw-semibold">{{ o.number }}</td>
 
-                        {% if o.type == 'D' %}
-                        <td>{{'{}/{}/{}-{}:{}:{}:{}'.format(o.client.code[:2], o.client.code[2:4], o.client.code[4:6], o.client.code[6:8], o.client.code[8:10], o.client.code[10:12], o.client.code[12:])}}</td>
-                        {% elif o.type =='J' %}
-                        <td>{{'{}.{}.{}/{}-{}'.format(c.code[:2], o.client.code[2:5], o.client.code[5:8], o.client.code[8:12], o.client.code[12:])}}</td>
-                        {% else %}  
-                        <td>{{'{}.{}.{}-{}'.format(o.client.code[:3], o.client.code[3:6], o.client.code[6:9], o.client.code[9:])}}</td>
-                        {% endif %}
-
-                        <td>{{ o.client.name }}</td>
-                        <td class="text-center">{{ o.created_at.strftime('%d/%m/%Y') }}</td>
-
-                        <!-- Forma de pagamento -->
-                        <td>
-                            {% if o.payment_form == 1 %}
-                                À vista - Dinheiro
-                            {% elif o.payment_form == 2 %}
-                                À vista - Pix
-                            {% elif o.payment_form == 3 %}
-                                À vista - C.Débito
-                            {% elif o.payment_form == 4 %}
-                                C.Créd {{ o.payment_condition }}x
+                        {# ── Badge do tipo de documento ── #}
+                        <td class="text-center">
+                            {% set dt = o.doc_type or 'PED' %}
+                            {% if dt == 'TEG' %}
+                                <span class="badge badge-teg">TEG</span>
+                            {% elif dt == 'OVG' %}
+                                <span class="badge badge-ovg">OVG</span>
                             {% else %}
-                                <!-- Parcelado -->
-                                {% set amount_num = o.amount|float %}
-                                {% set amount_inp_num = o.payment_amount_inp|float %}
-                                {% set balance_payable = amount_num - amount_inp_num %}
-                                {% set condition_num = o.payment_condition|int %}
-                                {% set installment_pay = "%0.2f" | format(balance_payable / condition_num) %}
-                                {% set installment_pay = installment_pay.replace('.', ',') %}
-                                {% set product_amount_inp = "%0.2f" | format(o.payment_amount_inp|float) %}
-                                {% set product_amount_inp = product_amount_inp.replace('.', ',') %}
-                                Ent. R$ {{ product_amount_inp }} + {{ o.payment_condition }}x R$ {{ installment_pay }}
+                                <span class="badge badge-ped">PED</span>
                             {% endif %}
                         </td>
 
-                        <!-- Valor total formatado -->
-                        {% set product_amount = "%0.2f" | format(o.amount|float) %}
-                        {% set product_amount = product_amount.replace('.', ',') %}
-                        <td class="text-end fw-semibold">R$ {{ product_amount }}</td>
+                        {# ── CPF / CNPJ / RG formatado ── #}
+                        {% if o.client.type == 'D' %}
+                        <td>{{ '{}/{}/{}-{}:{}:{}:{}'.format(o.client.code[:2], o.client.code[2:4], o.client.code[4:6], o.client.code[6:8], o.client.code[8:10], o.client.code[10:12], o.client.code[12:]) }}</td>
+                        {% elif o.client.type == 'J' %}
+                        <td>{{ '{}.{}.{}/{}-{}'.format(o.client.code[:2], o.client.code[2:5], o.client.code[5:8], o.client.code[8:12], o.client.code[12:]) }}</td>
+                        {% else %}
+                        <td>{{ '{}.{}.{}-{}'.format(o.client.code[:3], o.client.code[3:6], o.client.code[6:9], o.client.code[9:]) }}</td>
+                        {% endif %}
 
-                        <!-- Status -->
+                        <td>{{ o.client.name }}</td>
+
+                        {# ── Data de emissão ── #}
+                        <td class="text-center">
+                            {% if o.issued_at %}
+                                {{ o.issued_at.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                {{ o.created_at.strftime('%d/%m/%Y') }}
+                            {% endif %}
+                        </td>
+
+                        {# ── Forma de pagamento (TEG mostra "Em Garantia") ── #}
+                        <td>
+                            {% set dt = o.doc_type or 'PED' %}
+                            {% if dt == 'TEG' or o.payment_form == 0 %}
+                                <span class="text-muted fst-italic">Em Garantia</span>
+                            {% elif o.payment_form == 1 %}
+                                À vista – Dinheiro
+                            {% elif o.payment_form == 2 %}
+                                À vista – Pix
+                            {% elif o.payment_form == 3 %}
+                                À vista – C. Débito
+                            {% elif o.payment_form == 4 %}
+                                C. Crédito {{ o.payment_condition }}x
+                            {% else %}
+                                {% set balance = o.amount|float - o.payment_amount_inp|float %}
+                                {% set inst    = (balance / o.payment_condition)|float if o.payment_condition else 0 %}
+                                Ent. R$ {{ "%0.2f" | format(o.payment_amount_inp|float) | replace('.', ',') }}
+                                + {{ o.payment_condition }}x R$ {{ "%0.2f" | format(inst) | replace('.', ',') }}
+                            {% endif %}
+                        </td>
+
+                        {# ── Valor total ── #}
+                        <td class="text-end fw-semibold">
+                            R$ {{ "%0.2f" | format(o.amount|float) | replace('.', ',') }}
+                        </td>
+
+                        {# ── Status ── #}
                         <td class="text-center">
                             {% if o.status == "N" %}
                                 <span class="badge bg-warning text-dark">Não Emitido</span>
@@ -96,59 +118,58 @@
                             {% endif %}
                         </td>
 
-                        <!-- Itens -->
+                        {# ── Itens ── #}
                         <td class="text-center">
-                            <a href="{{ url_for('order_bp.orderitem_list', order_id=o.id) }}" 
+                            <a href="{{ url_for('order_bp.orderitem_list', order_id=o.id) }}"
                                class="btn btn-outline-primary btn-sm btn-compact text-nowrap">
                                 <i class="bi bi-box-seam"></i> Itens
                             </a>
                         </td>
 
-                        <!-- Excluir -->
+                        {# ── Excluir ── #}
                         <td class="text-center">
                             {% if o.status == "N" %}
-                                <button type="button" 
-                                        class="btn btn-outline-danger btn-sm btn-compact text-nowrap" 
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm btn-compact text-nowrap"
                                         data-bs-toggle="modal"
                                         data-bs-target="#modalExcluir-{{ o.id }}">
                                     <i class="bi bi-trash"></i> Excluir
                                 </button>
                             {% else %}
-                                <span class="text-muted">
-                                    <i class="bi bi-lock"></i> Bloqueado
-                                </span>
+                                <span class="text-muted"><i class="bi bi-lock"></i> Bloqueado</span>
                             {% endif %}
                         </td>
 
-                        <!-- PDF -->
+                        {# ── PDF ── #}
                         <td class="text-center">
-                            <a href="{{ url_for('order_bp.orderpdf', order_id=o.id) }}" class="btn btn-outline-success btn-sm btn-compact text-nowrap">
+                            <a href="{{ url_for('order_bp.orderpdf', order_id=o.id) }}"
+                               class="btn btn-outline-success btn-sm btn-compact text-nowrap">
                                 <i class="bi bi-file-earmark-pdf"></i> PDF
                             </a>
                         </td>
                     </tr>
 
-                    <!-- Modal de Confirmação -->
-                    <div class="modal fade" id="modalExcluir-{{ o.id }}" tabindex="-1" aria-labelledby="modalExcluirLabel-{{ o.id }}" aria-hidden="true">
+                    {# ── Modal de confirmação de exclusão ── #}
+                    <div class="modal fade" id="modalExcluir-{{ o.id }}" tabindex="-1"
+                         aria-labelledby="modalExcluirLabel-{{ o.id }}" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header bg-danger text-white">
-                                    <h5 class="modal-title" id="modalExcluirLabel-{{ o.id }}">
-                                        Confirmar Exclusão
-                                    </h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                                    <button type="button" class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body text-center">
                                     <p class="fw-bold mb-0 text-danger">
-                                        Tem certeza que deseja excluir o pedido nº {{ o.number }}?
+                                        Tem certeza que deseja excluir o documento nº {{ o.number }}?
                                     </p>
                                     <small class="text-muted">Esta ação não poderá ser desfeita.</small>
                                 </div>
                                 <div class="modal-footer justify-content-between">
-                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                                        Cancelar
-                                    </button>
-                                    <form action="{{ url_for('order_bp.order_delete', order_id=o.id) }}" method="POST">
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                            data-bs-dismiss="modal">Cancelar</button>
+                                    <form action="{{ url_for('order_bp.order_delete', order_id=o.id) }}"
+                                          method="POST">
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bi bi-trash"></i> Excluir
                                         </button>

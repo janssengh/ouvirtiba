@@ -13,9 +13,9 @@ key api: hmrv54mnh3ve8vnwbkmrljsdxmayiukqutuitg16zkgfqrhd
 ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
-git add . 
-git commit -m "Permitir gerar preço de venda para produtos sem estoque"
-git push origin master
+    git add . 
+    git commit -m "Implementação OS / Termo no processo do pedido"
+    git push origin master
 
 ATUALIZAR RENDER:
 Atualizar Render (https://dashboard.render.com/web/srv-d26hb715pdvs73a2ut8g/deploys/dep-d526tge3jp1c73btdm70):
