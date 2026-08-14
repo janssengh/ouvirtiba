@@ -114,19 +114,12 @@
   {% set DESC_VIST = sim_desc_vist | default(10) | float %}
   {% set SEM_JUROS = sim_sem_juros | default(6)  | int %}
 
-  {# ── Coeficiente de parcelamento — lookup via if/elif para evitar KeyError ── #}
-  {% if   MAX_PARC == 7  %}{% set coef_use = 0.156140 %}
-  {% elif MAX_PARC == 8  %}{% set coef_use = 0.144836 %}
-  {% elif MAX_PARC == 9  %}{% set coef_use = 0.134388 %}
-  {% elif MAX_PARC == 11 %}{% set coef_use = 0.115704 %}
-  {% elif MAX_PARC == 12 %}{% set coef_use = 0.107651 %}
-  {% elif MAX_PARC == 13 %}{% set coef_use = 0.100856 %}
-  {% elif MAX_PARC == 14 %}{% set coef_use = 0.095048 %}
-  {% elif MAX_PARC == 15 %}{% set coef_use = 0.090029 %}
-  {% elif MAX_PARC == 16 %}{% set coef_use = 0.085640 %}
-  {% elif MAX_PARC == 17 %}{% set coef_use = 0.081789 %}
-  {% elif MAX_PARC == 18 %}{% set coef_use = 0.078379 %}
-  {% else %}{% set coef_use = 0.125376 %}{% endif %}{# default 10x #}
+  {# ── Coeficiente de parcelamento — vem da tabela ouvirtiba.payment_installment_condition
+       (coef_map = {installments: coefficient}, montado em routes.py via get_coefficient_map()).
+       Se não houver condição cadastrada/ativa para o nº de parcelas escolhido, cai no
+       coeficiente padrão de 10x como último recurso, para nunca quebrar a geração do PDF. ── #}
+  {% set coef_map = coef_map | default({}) %}
+  {% set coef_use = coef_map.get(MAX_PARC, 0.125376) %}
 
   {% set cl = quote.client %}
 

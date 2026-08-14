@@ -130,8 +130,11 @@
       <div class="d-flex align-items-center gap-2 ms-auto">
         <label class="mb-0 small fw-normal">Parcela máxima:</label>
         <select id="sim-parcelas" class="form-select form-select-sm" style="width:80px">
-          {% for n in range(7, 19) %}
-          <option value="{{ n }}" {% if n == 10 %}selected{% endif %}>{{ n }}x</option>
+          {% for c in installment_conditions %}
+          <option value="{{ c.installments }}" {% if loop.first %}selected{% endif %}
+                  title="{{ c.description }}">{{ c.installments }}x</option>
+          {% else %}
+          <option value="10" selected>10x</option>
           {% endfor %}
         </select>
         <label class="mb-0 small fw-normal ms-2">Desc. à vista (%):</label>
@@ -301,24 +304,19 @@
 }
 </style>
 
+<!-- ── Dados de coeficientes (tabela ouvirtiba.payment_installment_condition) ──
+     Fica num <script type="application/json"> separado para não ser interpretado
+     como JavaScript pelo editor/IDE e para evitar problemas de escaping do Jinja
+     dentro de um bloco <script> comum. -->
+<script id="coef-data" type="application/json">{{ coef_map | tojson }}</script>
+
 <!-- ── Script de Simulação ──────────────────────────────── -->
 <script>
-// ── Coeficientes tabelados (PMT = VlrTotal * COEF) ──────
-// 10–18: exatos da planilha; 7–9: extrapolação quadrática
-const COEF = {
-   7: 0.156140,
-   8: 0.144836,
-   9: 0.134388,
-  10: 0.125376,
-  11: 0.115704,
-  12: 0.107651,
-  13: 0.100856,
-  14: 0.095048,
-  15: 0.090029,
-  16: 0.085640,
-  17: 0.081789,
-  18: 0.078379,
-};
+// ── Coeficientes (PMT = VlrTotal * COEF) ─────────────────
+// Vêm da tabela ouvirtiba.payment_installment_condition (condições ativas),
+// montados em routes.py via get_coefficient_map() e lidos do bloco JSON acima.
+const COEF = JSON.parse(document.getElementById('coef-data').textContent);
+const COEF_DEFAULT = 0.125376; // usado apenas se a parcela escolhida não tiver condição cadastrada
 
 // ── Formatação BR ────────────────────────────────────────
 function fmtBR(n) {
@@ -346,7 +344,7 @@ function simular() {
     const pmtSemJuros  = total / semJuros;
 
     // Com juros: total * coeficiente da parcela máxima
-    const coef         = COEF[maxParc] || COEF[10];
+    const coef         = COEF[maxParc] || COEF_DEFAULT;
     const pmtComJuros  = total * coef;
     const totalComJuros = pmtComJuros * maxParc;
 

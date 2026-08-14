@@ -3,4 +3,9 @@ from sqlalchemy import inspect
 
 with app.app_context():
     inspector = inspect(db.engine)
-    print("Tabelas no banco:", inspector.get_table_names())
+
+    print("Schema public:")
+    print(inspector.get_table_names(schema="public"))
+
+    print("\nSchema ouvirtiba:")
+    print(inspector.get_table_names(schema="ouvirtiba"))

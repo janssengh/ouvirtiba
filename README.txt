@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
     git add . 
-    git commit -m "Implementação OS / Termo no processo do pedido"
+    git commit -m "Implementação tabela de coeficientes para cálculo pagamento à prazo"
     git push origin master
 
 ATUALIZAR RENDER:

@@ -1,9 +1,9 @@
 from flask import Blueprint, session, render_template, redirect, url_for, flash, request, jsonify, send_file
-from admin.quote.models import Quote, QuoteItem, db
+from admin.quote.models import Quote, QuoteItem, PaymentInstallmentCondition, db
 from admin.client.models import Client
 from admin.models import Product, Store
 from admin.assembly.models import ProductAssembly
-import base64, os, logging, traceback, re
+import base64, os, logging, traceback, re, shutil
 import unidecode
 from datetime import datetime, timedelta
 from sqlalchemy import desc
@@ -34,6 +34,19 @@ def get_sale_price(product_id, store_id):
         return float(assembly.sale_price)
     product = Product.query.get(product_id)
     return float(product.sale_price) if product else 0.0
+
+
+# ─────────────────────────────────────────────────────────────
+# HELPER: mapa {installments: coefficient} das condições ativas
+# ─────────────────────────────────────────────────────────────
+def get_coefficient_map():
+    conditions = (
+        PaymentInstallmentCondition.query
+        .filter_by(active=True)
+        .order_by(PaymentInstallmentCondition.installments)
+        .all()
+    )
+    return {c.installments: float(c.coefficient) for c in conditions}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -265,6 +278,7 @@ def quote_view(quote_id):
                                        items=items,
                                        store=store,
                                        store_obj=store_obj,
+                                       coef_map=get_coefficient_map(),
                                        titulo='Orçamento')
 
             pdf_folder = 'static/pdf'
@@ -286,13 +300,15 @@ def quote_view(quote_id):
             }
 
             wkhtmltopdf_paths = [
+                shutil.which('wkhtmltopdf'),
                 '/usr/local/bin/wkhtmltopdf',
                 '/usr/bin/wkhtmltopdf',
                 r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe',
+                r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe',
             ]
             config = None
             for path in wkhtmltopdf_paths:
-                if os.path.exists(path):
+                if path and os.path.exists(path):
                     config = pdfkit.configuration(wkhtmltopdf=path)
                     break
 
@@ -316,6 +332,13 @@ def quote_view(quote_id):
     pdf_exists  = os.path.exists(pdf_path)
     pdf_url     = url_for('static', filename=f'pdf/{new_filename}') if pdf_exists else None
 
+    installment_conditions = (
+        PaymentInstallmentCondition.query
+        .filter_by(active=True)
+        .order_by(PaymentInstallmentCondition.installments)
+        .all()
+    )
+
     return render_template('quote/quote_view.html',
                            quote=quote,
                            items=items,
@@ -323,6 +346,8 @@ def quote_view(quote_id):
                            store_obj=store_obj,
                            caminho_logo=caminho_logo,
                            pdf_url=pdf_url,
+                           installment_conditions=installment_conditions,
+                           coef_map=get_coefficient_map(),
                            titulo='Visualizar Orçamento')
 
 
@@ -380,3 +405,178 @@ def quote_download(quote_id):
         download_name=filename,
         mimetype='application/pdf'
     )
+
+
+# ─────────────────────────────────────────────────────────────
+# COEFICIENTES DE PARCELAMENTO — CRUD
+# (ouvirtiba.payment_installment_condition)
+# ─────────────────────────────────────────────────────────────
+
+# LISTAGEM
+@quote_bp.route('/admin/quote/coefficients')
+def coefficient_list():
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    conditions = (
+        PaymentInstallmentCondition.query
+        .order_by(PaymentInstallmentCondition.installments)
+        .all()
+    )
+    return render_template('quote/coefficient_list.html',
+                           conditions=conditions,
+                           titulo='Coeficientes de Parcelamento')
+
+
+# CRIAÇÃO
+@quote_bp.route('/admin/quote/coefficients/new', methods=['GET', 'POST'])
+def coefficient_create():
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    if request.method == 'POST':
+        description  = request.form.get('description', '').strip().upper()
+        installments = request.form.get('installments', '').strip()
+        coefficient  = request.form.get('coefficient', '').strip().replace(',', '.')
+
+        try:
+            installments = int(installments)
+            coefficient  = float(coefficient)
+
+            if not description:
+                raise ValueError('A descrição é obrigatória.')
+            if installments <= 0:
+                raise ValueError('O número de parcelas deve ser maior que zero.')
+            if coefficient <= 0:
+                raise ValueError('O coeficiente deve ser maior que zero.')
+
+            existing = PaymentInstallmentCondition.query.filter_by(
+                description=description, installments=installments
+            ).first()
+            if existing:
+                raise ValueError('Já existe uma condição com essa descrição e nº de parcelas.')
+
+            condition = PaymentInstallmentCondition(
+                description=description,
+                installments=installments,
+                coefficient=coefficient,
+                active=bool(request.form.get('active'))
+            )
+            db.session.add(condition)
+            db.session.commit()
+            flash('✅ Condição de parcelamento criada com sucesso!', 'success')
+            return redirect(url_for('quote_bp.coefficient_list'))
+
+        except ValueError as e:
+            flash(f'❌ {e}', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            logger.error(traceback.format_exc())
+            flash(f'❌ Erro ao criar condição: {e}', 'danger')
+
+        return render_template('quote/coefficient_form.html',
+                               condition=None,
+                               form_data=request.form,
+                               titulo='Nova Condição de Parcelamento')
+
+    return render_template('quote/coefficient_form.html',
+                           condition=None,
+                           form_data=None,
+                           titulo='Nova Condição de Parcelamento')
+
+
+# EDIÇÃO
+@quote_bp.route('/admin/quote/coefficients/edit/<int:condition_id>', methods=['GET', 'POST'])
+def coefficient_edit(condition_id):
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    condition = PaymentInstallmentCondition.query.get_or_404(condition_id)
+
+    if request.method == 'POST':
+        description  = request.form.get('description', '').strip().upper()
+        installments = request.form.get('installments', '').strip()
+        coefficient  = request.form.get('coefficient', '').strip().replace(',', '.')
+
+        try:
+            installments = int(installments)
+            coefficient  = float(coefficient)
+
+            if not description:
+                raise ValueError('A descrição é obrigatória.')
+            if installments <= 0:
+                raise ValueError('O número de parcelas deve ser maior que zero.')
+            if coefficient <= 0:
+                raise ValueError('O coeficiente deve ser maior que zero.')
+
+            existing = PaymentInstallmentCondition.query.filter(
+                PaymentInstallmentCondition.description == description,
+                PaymentInstallmentCondition.installments == installments,
+                PaymentInstallmentCondition.id != condition_id
+            ).first()
+            if existing:
+                raise ValueError('Já existe uma condição com essa descrição e nº de parcelas.')
+
+            condition.description  = description
+            condition.installments = installments
+            condition.coefficient  = coefficient
+            condition.active       = bool(request.form.get('active'))
+            db.session.commit()
+            flash('✅ Condição de parcelamento atualizada com sucesso!', 'success')
+            return redirect(url_for('quote_bp.coefficient_list'))
+
+        except ValueError as e:
+            flash(f'❌ {e}', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            logger.error(traceback.format_exc())
+            flash(f'❌ Erro ao atualizar condição: {e}', 'danger')
+
+    return render_template('quote/coefficient_form.html',
+                           condition=condition,
+                           form_data=None,
+                           titulo='Editar Condição de Parcelamento')
+
+
+# ATIVAR / DESATIVAR
+@quote_bp.route('/admin/quote/coefficients/toggle/<int:condition_id>', methods=['POST'])
+def coefficient_toggle(condition_id):
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    condition = PaymentInstallmentCondition.query.get_or_404(condition_id)
+    try:
+        condition.active = not condition.active
+        db.session.commit()
+        estado = 'ativada' if condition.active else 'desativada'
+        flash(f'✅ Condição {estado} com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(traceback.format_exc())
+        flash(f'❌ Erro ao atualizar condição: {e}', 'danger')
+
+    return redirect(url_for('quote_bp.coefficient_list'))
+
+
+# EXCLUSÃO
+@quote_bp.route('/admin/quote/coefficients/delete/<int:condition_id>', methods=['POST'])
+def coefficient_delete(condition_id):
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    condition = PaymentInstallmentCondition.query.get_or_404(condition_id)
+    try:
+        db.session.delete(condition)
+        db.session.commit()
+        flash('✅ Condição de parcelamento excluída com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(traceback.format_exc())
+        flash('❌ Não foi possível excluir. Considere desativar a condição em vez de excluir.', 'danger')
+
+    return redirect(url_for('quote_bp.coefficient_list'))

@@ -39,3 +39,24 @@ class QuoteItem(db.Model):
 
     # Relacionamento opcional com produto
     product = db.relationship('Product', backref=db.backref('quote_items', lazy=True))
+
+
+class PaymentInstallmentCondition(db.Model):
+    __tablename__ = 'payment_installment_condition'
+    __table_args__ = (
+        db.UniqueConstraint(
+            'description', 'installments',
+            name='uq_payment_installment_condition_description_installments'
+        ),
+        db.CheckConstraint('installments > 0', name='chk_payment_installment_condition_installments'),
+        db.CheckConstraint('coefficient > 0', name='chk_payment_installment_condition_coefficient'),
+        {'schema': 'ouvirtiba'}
+    )
+
+    id           = db.Column(db.Integer, primary_key=True)
+    description  = db.Column(db.String(100), nullable=False)
+    installments = db.Column(db.Integer, nullable=False)
+    coefficient  = db.Column(db.Numeric(12, 6), nullable=False)
+    active       = db.Column(db.Boolean, nullable=False, default=True)
+    created_at   = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    updated_at   = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)

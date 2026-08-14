@@ -1,6 +1,6 @@
 # Ambientes virtuais
 venv/
-.env
+.env*
 
 # IDEs e editores
 .idea/
@@ -31,3 +31,6 @@ dist/
 # Arquivos de banco de dados
 *.sqlite3
 *.db
+
+# Arquivos de backup
+backup/
