@@ -76,6 +76,15 @@
                  class="btn btn-sm btn-outline-primary" title="Visualizar / PDF">
                 <i class="bi bi-eye"></i>
               </a>
+              {% if q.status == 'PENDENTE' %}
+              <form method="POST" action="{{ url_for('quote_bp.quote_delete', quote_id=q.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Excluir o orçamento nº {{ q.number }}? Essa ação não pode ser desfeita.');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
             </td>
           </tr>
           {% else %}

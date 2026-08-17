@@ -6,7 +6,7 @@ from admin.assembly.models import ProductAssembly
 import base64, os, logging, traceback, re, shutil
 import unidecode
 from datetime import datetime, timedelta
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 try:
     import pdfkit
@@ -37,15 +37,64 @@ def get_sale_price(product_id, store_id):
 
 
 # ─────────────────────────────────────────────────────────────
-# HELPER: mapa {installments: coefficient} das condições ativas
+# HELPER: instituição financeira padrão para simulação
+# (usa 'MERCADO PAGO' se existir — comparação sem diferenciar
+#  maiúsculas/minúsculas — senão cai na primeira disponível)
 # ─────────────────────────────────────────────────────────────
-def get_coefficient_map():
-    conditions = (
-        PaymentInstallmentCondition.query
-        .filter_by(active=True)
-        .order_by(PaymentInstallmentCondition.installments)
+DEFAULT_INSTALLMENT_DESCRIPTION = 'MERCADO PAGO'
+
+# Coeficiente padrão usado apenas como último recurso, quando a instituição
+# selecionada no orçamento não tiver condição cadastrada/ativa para a parcela
+# máxima fixa (10x). Mesmo valor de fallback usado em quote_pdf.html.
+DEFAULT_COEFFICIENT = 0.125376
+
+
+def get_available_descriptions():
+    """Lista de descriptions distintas (instituições) com condições ativas, em ordem alfabética."""
+    rows = (
+        db.session.query(PaymentInstallmentCondition.description)
+        .filter(PaymentInstallmentCondition.active.is_(True))
+        .distinct()
+        .order_by(PaymentInstallmentCondition.description)
         .all()
     )
+    return [r[0] for r in rows]
+
+
+def get_default_description():
+    """Retorna 'MERCADO PAGO' (case-insensitive) se existir entre as ativas; senão a primeira disponível."""
+    match = (
+        PaymentInstallmentCondition.query
+        .filter(
+            PaymentInstallmentCondition.active.is_(True),
+            func.upper(PaymentInstallmentCondition.description) == DEFAULT_INSTALLMENT_DESCRIPTION
+        )
+        .first()
+    )
+    if match:
+        return match.description
+
+    descriptions = get_available_descriptions()
+    return descriptions[0] if descriptions else None
+
+
+# ─────────────────────────────────────────────────────────────
+# HELPER: condições ativas de uma instituição (description),
+# comparação sem diferenciar maiúsculas/minúsculas
+# ─────────────────────────────────────────────────────────────
+def get_installment_conditions(description=None):
+    query = PaymentInstallmentCondition.query.filter(PaymentInstallmentCondition.active.is_(True))
+    if description:
+        query = query.filter(func.upper(PaymentInstallmentCondition.description) == description.strip().upper())
+    return query.order_by(PaymentInstallmentCondition.installments).all()
+
+
+# ─────────────────────────────────────────────────────────────
+# HELPER: mapa {installments: coefficient} das condições ativas,
+# opcionalmente filtrado por instituição (description)
+# ─────────────────────────────────────────────────────────────
+def get_coefficient_map(description=None):
+    conditions = get_installment_conditions(description=description)
     return {c.installments: float(c.coefficient) for c in conditions}
 
 
@@ -151,6 +200,7 @@ def quote_create():
             valid_until  = request.form.get('valid_until')
             observations = request.form.get('observations', '').strip().upper()
             discount     = float(request.form.get('discount') or 0)
+            institution  = request.form.get('payment_institution', '').strip()
 
             product_ids   = request.form.getlist('product_id[]')
             descriptions  = request.form.getlist('description[]')
@@ -163,6 +213,17 @@ def quote_create():
                 return render_template('quote/quote_create.html',
                                        clients=clients,
                                        default_valid=default_valid,
+                                       descriptions=get_available_descriptions(),
+                                       default_description=get_default_description(),
+                                       titulo='Novo Orçamento')
+
+            if not institution:
+                flash('❌ Selecione a instituição financeira.', 'danger')
+                return render_template('quote/quote_create.html',
+                                       clients=clients,
+                                       default_valid=default_valid,
+                                       descriptions=get_available_descriptions(),
+                                       default_description=get_default_description(),
                                        titulo='Novo Orçamento')
 
             if not product_ids or all(not p for p in product_ids):
@@ -170,6 +231,8 @@ def quote_create():
                 return render_template('quote/quote_create.html',
                                        clients=clients,
                                        default_valid=default_valid,
+                                       descriptions=get_available_descriptions(),
+                                       default_description=get_default_description(),
                                        titulo='Novo Orçamento')
 
             valid_dt = None
@@ -179,6 +242,18 @@ def quote_create():
                 except ValueError:
                     pass
 
+            # ── Condições de pagamento fixas gravadas no orçamento ──
+            # (parcela máxima com juros, desconto à vista e parcelas sem
+            #  juros usam os mesmos valores padrão da tela de simulação;
+            #  o coeficiente vem da condição cadastrada para a instituição
+            #  selecionada + a parcela máxima com juros fixa de 10x)
+            fixed_max_installments  = 10
+            fixed_cash_discount_pct = 10
+            fixed_interest_free     = 6
+            coefficient = get_coefficient_map(description=institution).get(
+                fixed_max_installments, DEFAULT_COEFFICIENT
+            )
+
             quote = Quote(
                 number=int(datetime.now().strftime('%Y%m%d%H%M%S')),
                 store_id=store_id,
@@ -187,7 +262,12 @@ def quote_create():
                 observations=observations,
                 discount=discount,
                 total=0,
-                status='PENDENTE'
+                status='PENDENTE',
+                payment_institution=institution,
+                max_installments=fixed_max_installments,
+                cash_discount_pct=fixed_cash_discount_pct,
+                interest_free_installments=fixed_interest_free,
+                installment_coefficient=coefficient
             )
             db.session.add(quote)
             db.session.flush()
@@ -231,6 +311,8 @@ def quote_create():
     return render_template('quote/quote_create.html',
                            clients=clients,
                            default_valid=default_valid,
+                           descriptions=get_available_descriptions(),
+                           default_description=get_default_description(),
                            titulo='Novo Orçamento')
 
 
@@ -272,13 +354,19 @@ def quote_view(quote_id):
             except Exception:
                 logohtml = ''
 
+            # ── Condições de pagamento do orçamento: lidas diretamente da
+            #    tabela ouvirtiba.quote (payment_institution, max_installments,
+            #    cash_discount_pct, interest_free_installments,
+            #    installment_coefficient), gravadas na criação do orçamento
+            #    e atualizáveis pelo botão "Salvar Simulação" na tela de
+            #    visualização. O PDF nunca lê parâmetros de simulação vindos
+            #    do form — sempre reflete o que está persistido no banco.
             rendered = render_template('quote/quote_pdf.html',
                                        logohtml=logohtml,
                                        quote=quote,
                                        items=items,
                                        store=store,
                                        store_obj=store_obj,
-                                       coef_map=get_coefficient_map(),
                                        titulo='Orçamento')
 
             pdf_folder = 'static/pdf'
@@ -332,12 +420,29 @@ def quote_view(quote_id):
     pdf_exists  = os.path.exists(pdf_path)
     pdf_url     = url_for('static', filename=f'pdf/{new_filename}') if pdf_exists else None
 
-    installment_conditions = (
-        PaymentInstallmentCondition.query
-        .filter_by(active=True)
-        .order_by(PaymentInstallmentCondition.installments)
-        .all()
-    )
+    # ── Defaults da tela de simulação: partem do que já está salvo no
+    #    orçamento (payment_institution / max_installments / cash_discount_pct
+    #    / interest_free_installments); se o orçamento ainda não tiver esses
+    #    valores (registros antigos), cai nos padrões gerais do sistema. ──
+    default_description = quote.payment_institution or get_default_description()
+
+    installment_conditions = get_installment_conditions(description=default_description)
+
+    # Parcela máxima inicial: a que já está salva no orçamento, se existir
+    # e ainda for válida para a instituição; senão 10x se disponível;
+    # senão a mais próxima de 10, ou a salva no orçamento como último recurso.
+    available_installments = [c.installments for c in installment_conditions]
+    if quote.max_installments and quote.max_installments in available_installments:
+        default_max_parc = quote.max_installments
+    elif 10 in available_installments:
+        default_max_parc = 10
+    elif available_installments:
+        default_max_parc = min(available_installments, key=lambda n: abs(n - 10))
+    else:
+        default_max_parc = quote.max_installments or 10
+
+    default_desc_vist = float(quote.cash_discount_pct) if quote.cash_discount_pct is not None else 10.0
+    default_sem_juros = int(quote.interest_free_installments) if quote.interest_free_installments is not None else 6
 
     return render_template('quote/quote_view.html',
                            quote=quote,
@@ -347,8 +452,65 @@ def quote_view(quote_id):
                            caminho_logo=caminho_logo,
                            pdf_url=pdf_url,
                            installment_conditions=installment_conditions,
-                           coef_map=get_coefficient_map(),
+                           coef_map=get_coefficient_map(description=default_description),
+                           descriptions=get_available_descriptions(),
+                           default_description=default_description,
+                           default_max_parc=default_max_parc,
+                           default_desc_vist=default_desc_vist,
+                           default_sem_juros=default_sem_juros,
                            titulo='Visualizar Orçamento')
+
+
+# ─────────────────────────────────────────────────────────────
+# SALVAR SIMULAÇÃO
+# Persiste os parâmetros atuais de simulação (instituição, parcela
+# máxima com juros, desconto à vista e parcelas sem juros) na tabela
+# ouvirtiba.quote, recalculando o coeficiente a partir da condição
+# cadastrada para a instituição + parcela selecionadas. O PDF sempre
+# lê esses valores diretamente do orçamento, nunca do form.
+# ─────────────────────────────────────────────────────────────
+@quote_bp.route('/admin/quote/simulation/save/<int:quote_id>', methods=['POST'])
+def quote_save_simulation(quote_id):
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    quote = Quote.query.get_or_404(quote_id)
+
+    institution = (request.form.get('sim_description') or '').strip()
+    try:
+        max_parc = int(request.form.get('sim_max_parc') or 10)
+    except (TypeError, ValueError):
+        max_parc = 10
+    try:
+        desc_vist = float((request.form.get('sim_desc_vist') or '10').replace(',', '.'))
+    except (TypeError, ValueError):
+        desc_vist = 10.0
+    try:
+        sem_juros = int(request.form.get('sim_sem_juros') or 6)
+    except (TypeError, ValueError):
+        sem_juros = 6
+
+    if not institution:
+        flash('❌ Selecione a instituição financeira antes de salvar a simulação.', 'danger')
+        return redirect(url_for('quote_bp.quote_view', quote_id=quote_id))
+
+    try:
+        coefficient = get_coefficient_map(description=institution).get(max_parc, DEFAULT_COEFFICIENT)
+
+        quote.payment_institution        = institution
+        quote.max_installments           = max_parc
+        quote.cash_discount_pct          = desc_vist
+        quote.interest_free_installments = sem_juros
+        quote.installment_coefficient    = coefficient
+        db.session.commit()
+        flash('✅ Simulação salva! Gere/regere o PDF para refletir os novos valores no documento.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(traceback.format_exc())
+        flash(f'❌ Erro ao salvar simulação: {e}', 'danger')
+
+    return redirect(url_for('quote_bp.quote_view', quote_id=quote_id))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -376,6 +538,39 @@ def quote_update_status(quote_id):
         flash(f'❌ Erro ao atualizar status: {e}', 'danger')
 
     return redirect(url_for('quote_bp.quote_view', quote_id=quote_id))
+
+
+# ─────────────────────────────────────────────────────────────
+# EXCLUSÃO
+# Só é permitida enquanto o orçamento estiver com status PENDENTE.
+# A exclusão do registro mestre (quote) arrasta consigo os itens
+# (quote_item) via cascade='all, delete-orphan' já configurado no
+# relacionamento Quote.items em models.py — não é necessário excluir
+# os itens manualmente.
+# ─────────────────────────────────────────────────────────────
+@quote_bp.route('/admin/quote/delete/<int:quote_id>', methods=['POST'])
+def quote_delete(quote_id):
+    if 'email' not in session:
+        flash('Favor fazer o seu login no sistema primeiro!', 'danger')
+        return redirect(url_for('login', origin='admin'))
+
+    quote = Quote.query.get_or_404(quote_id)
+
+    if quote.status != 'PENDENTE':
+        flash('❌ Só é possível excluir orçamentos com status Pendente.', 'danger')
+        return redirect(url_for('quote_bp.quote_list'))
+
+    try:
+        numero = quote.number
+        db.session.delete(quote)   # cascade remove os quote_item associados
+        db.session.commit()
+        flash(f'✅ Orçamento nº {numero} excluído com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(traceback.format_exc())
+        flash(f'❌ Erro ao excluir orçamento: {e}', 'danger')
+
+    return redirect(url_for('quote_bp.quote_list'))
 
 # ─────────────────────────────────────────────────────────────
 # DOWNLOAD DO PDF
@@ -427,6 +622,30 @@ def coefficient_list():
     return render_template('quote/coefficient_list.html',
                            conditions=conditions,
                            titulo='Coeficientes de Parcelamento')
+
+
+# API JSON — descriptions distintas (instituições financeiras) com condições ativas
+@quote_bp.route('/admin/quote/coefficients/descriptions')
+def coefficient_descriptions():
+    if 'email' not in session:
+        return jsonify([]), 401
+    return jsonify(get_available_descriptions())
+
+
+# API JSON — parcelas/coeficientes ativos de uma instituição específica
+# (usado pelo select de "parcela máxima" na tela de visualização, ao trocar
+#  a instituição financeira da simulação)
+@quote_bp.route('/admin/quote/coefficients/by-description')
+def coefficient_by_description():
+    if 'email' not in session:
+        return jsonify({'installments': [], 'coef_map': {}}), 401
+
+    description = request.args.get('description', '')
+    conditions = get_installment_conditions(description=description)
+    return jsonify({
+        'installments': [c.installments for c in conditions],
+        'coef_map': {c.installments: float(c.coefficient) for c in conditions}
+    })
 
 
 # CRIAÇÃO

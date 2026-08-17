@@ -64,6 +64,7 @@
 
     /* ── Assinaturas ── */
     .signs { display: flex; justify-content: space-between; margin-top: 50px; }
+    .signs.single { justify-content: center; }
     .sign-block { width: 44%; text-align: center; }
     .sign-line  { border-top: 1px solid #333; padding-top: 6px; font-size: 9pt; color: #333; margin-top: 48px; }
     .sign-sub   { font-size: 8pt; color: #666; margin-top: 2px; }
@@ -93,6 +94,10 @@
     {%- if z | length == 8 -%}{{ z[:5] }}-{{ z[5:] }}{%- else -%}{{ zipcode or '' }}{%- endif -%}
   {%- endmacro %}
 
+  {% macro norm_code(code) -%}
+    {{- (code or '') | replace(' ','') | replace('.','') | replace('-','') | replace('/','') -}}
+  {%- endmacro %}
+
   {# ── Macro para formatar números no padrão brasileiro ────── #}
   {% macro fmt_br(value) -%}
     {%- set formatted = '%.2f'|format(value|float) -%}
@@ -110,18 +115,21 @@
     {%- endfor -%}
     {{- result.s }},{{ decpart -}}
   {%- endmacro %}
-  {% set MAX_PARC  = sim_max_parc  | default(10) | int %}
-  {% set DESC_VIST = sim_desc_vist | default(10) | float %}
-  {% set SEM_JUROS = sim_sem_juros | default(6)  | int %}
+  {% set MAX_PARC  = quote.max_installments           | default(10,  true) | int %}
+  {% set DESC_VIST = quote.cash_discount_pct          | default(10,  true) | float %}
+  {% set SEM_JUROS = quote.interest_free_installments | default(6,   true) | int %}
 
-  {# ── Coeficiente de parcelamento — vem da tabela ouvirtiba.payment_installment_condition
-       (coef_map = {installments: coefficient}, montado em routes.py via get_coefficient_map()).
-       Se não houver condição cadastrada/ativa para o nº de parcelas escolhido, cai no
-       coeficiente padrão de 10x como último recurso, para nunca quebrar a geração do PDF. ── #}
-  {% set coef_map = coef_map | default({}) %}
-  {% set coef_use = coef_map.get(MAX_PARC, 0.125376) %}
+  {# ── Coeficiente de parcelamento — vem direto da coluna
+       ouvirtiba.quote.installment_coefficient, gravada na criação do
+       orçamento (ou pelo botão "Salvar Simulação" na tela de visualização)
+       a partir da tabela ouvirtiba.payment_installment_condition. Se por
+       algum motivo o orçamento não tiver coeficiente salvo (registro
+       antigo), cai no padrão de 10x como último recurso, para nunca
+       quebrar a geração do PDF. ── #}
+  {% set coef_use = quote.installment_coefficient | default(0.125376, true) | float %}
 
   {% set cl = quote.client %}
+  {% set is_self = store_obj and cl.code and norm_code(cl.code) == norm_code(store_obj.code) %}
 
   <!-- ── CABEÇALHO ── -->
   <div class="header">
@@ -156,6 +164,7 @@
 
   <hr>
 
+  {% if not is_self %}
   <!-- ── DADOS DO CLIENTE ── -->
   <div class="section-title">Dados do Cliente</div>
   <div class="data-name">{{ cl.name }}</div>
@@ -171,6 +180,7 @@
     {% if cl.contact %}Tel: {{ cl.contact }}{% endif %}
     {% if cl.email %}&nbsp;|&nbsp; {{ cl.email }}{% endif %}
   </div>
+  {% endif %}
 
   <!-- ── TABELA DE ITENS COM SIMULAÇÃO ── -->
   <table class="itens">
@@ -232,7 +242,7 @@
   <hr style="margin-top:16px;">
 
   <!-- ── ASSINATURAS ── -->
-  <div class="signs">
+  <div class="signs{% if is_self %} single{% endif %}">
     <div class="sign-block">
       <div class="sign-line">
         <div>{{ store.get('Name','Empresa') }}</div>
@@ -241,6 +251,7 @@
         {% endif %}
       </div>
     </div>
+    {% if not is_self %}
     <div class="sign-block">
       <div class="sign-line">
         <div>{{ cl.name }}</div>
@@ -252,6 +263,7 @@
         {% endif %}
       </div>
     </div>
+    {% endif %}
   </div>
 
 </body>

@@ -51,6 +51,10 @@
   {{- result.s }},{{ decpart -}}
 {%- endmacro %}
 
+{% macro norm_code(code) -%}
+  {{- (code or '') | replace(' ','') | replace('.','') | replace('-','') | replace('/','') -}}
+{%- endmacro %}
+
 <div class="container-fluid col-11 m-auto mt-4">
 
   <!-- ── Cabeçalho da página ─────────────────────────────── -->
@@ -66,7 +70,7 @@
       <button onclick="window.print()" class="btn btn-outline-dark btn-sm">
         <i class="bi bi-printer me-1"></i> Imprimir
       </button>
-      <form method="POST">
+      <form method="POST" id="form-gerar-pdf">
         <button type="submit" class="btn btn-danger btn-sm">
           <i class="bi bi-file-earmark-pdf me-1"></i>
           {% if pdf_url %}Regerar PDF{% else %}Gerar PDF{% endif %}
@@ -104,6 +108,14 @@
           {% endfor %}
         </ul>
       </div>
+      {% if quote.status == 'PENDENTE' %}
+      <form method="POST" action="{{ url_for('quote_bp.quote_delete', quote_id=quote.id) }}"
+            onsubmit="return confirm('Excluir o orçamento nº {{ quote.number }}? Essa ação não pode ser desfeita.');">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-trash me-1"></i> Excluir
+        </button>
+      </form>
+      {% endif %}
     </div>
   </div>
 
@@ -125,13 +137,21 @@
 
   <!-- ── Bloco Mestre: Simulação de Parcelas ────────────── -->
   <div class="card shadow-sm mb-3 border-primary" id="bloco-simulacao">
-    <div class="card-header bg-primary text-white fw-semibold d-flex align-items-center gap-3">
+    <div class="card-header bg-primary text-white fw-semibold d-flex align-items-center gap-3 flex-wrap">
       <i class="bi bi-calculator me-1"></i> Simulação de Parcelamento
-      <div class="d-flex align-items-center gap-2 ms-auto">
-        <label class="mb-0 small fw-normal">Parcela máxima:</label>
+      <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
+        <label class="mb-0 small fw-normal">Instituição:</label>
+        <select id="sim-instituicao" class="form-select form-select-sm" style="width:170px">
+          {% for d in descriptions %}
+          <option value="{{ d }}" {% if d == default_description %}selected{% endif %}>{{ d }}</option>
+          {% else %}
+          <option value="">Nenhuma cadastrada</option>
+          {% endfor %}
+        </select>
+        <label class="mb-0 small fw-normal ms-2">Parcela máxima:</label>
         <select id="sim-parcelas" class="form-select form-select-sm" style="width:80px">
           {% for c in installment_conditions %}
-          <option value="{{ c.installments }}" {% if loop.first %}selected{% endif %}
+          <option value="{{ c.installments }}" {% if c.installments == default_max_parc %}selected{% endif %}
                   title="{{ c.description }}">{{ c.installments }}x</option>
           {% else %}
           <option value="10" selected>10x</option>
@@ -139,14 +159,30 @@
         </select>
         <label class="mb-0 small fw-normal ms-2">Desc. à vista (%):</label>
         <input type="number" id="sim-desc-avista" class="form-control form-control-sm"
-               style="width:75px" value="10" min="0" max="100" step="0.5">
+               style="width:75px" value="{{ '%.2f'|format(default_desc_vist) }}" min="0" max="100" step="0.5">
         <label class="mb-0 small fw-normal ms-2">Parcelas sem juros:</label>
         <input type="number" id="sim-sem-juros" class="form-control form-control-sm"
-               style="width:65px" value="6" min="1" max="12" step="1">
-        <button class="btn btn-light btn-sm fw-semibold" id="btn-simular">
+               style="width:65px" value="{{ default_sem_juros }}" min="1" max="12" step="1">
+        <button type="button" class="btn btn-light btn-sm fw-semibold" id="btn-simular">
           <i class="bi bi-arrow-repeat me-1"></i> Simular
         </button>
+        <form method="POST" action="{{ url_for('quote_bp.quote_save_simulation', quote_id=quote.id) }}"
+              id="form-salvar-simulacao" class="d-inline">
+          <input type="hidden" name="sim_description" id="hid-save-sim-description">
+          <input type="hidden" name="sim_max_parc" id="hid-save-sim-max-parc">
+          <input type="hidden" name="sim_desc_vist" id="hid-save-sim-desc-vist">
+          <input type="hidden" name="sim_sem_juros" id="hid-save-sim-sem-juros">
+          <button type="submit" class="btn btn-success btn-sm fw-semibold" id="btn-salvar-simulacao">
+            <i class="bi bi-save me-1"></i> Salvar Simulação
+          </button>
+        </form>
       </div>
+    </div>
+    <div class="card-body py-1 px-3 bg-light border-top small text-muted">
+      <i class="bi bi-info-circle me-1"></i>
+      "Simular" apenas pré-visualiza os valores na tela. Clique em
+      <strong>"Salvar Simulação"</strong> para gravar essas condições no orçamento —
+      o PDF sempre é gerado com os últimos valores salvos.
     </div>
   </div>
 
@@ -184,7 +220,6 @@
           {% if quote.valid_until %}
           <small class="text-muted">Validade: {{ quote.valid_until.strftime('%d/%m/%Y') }}</small><br>
           {% endif %}
-          <span class="fw-bold text-dark">Total Geral: R$ {{ fmt_br(quote.total) }}</span>
         </div>
       </div>
 
@@ -192,6 +227,8 @@
 
       <!-- Dados do cliente -->
       {% set cl = quote.client %}
+      {% set is_self = store_obj and cl.code and norm_code(cl.code) == norm_code(store_obj.code) %}
+      {% if not is_self %}
       <div class="mb-3">
         <div class="text-muted small text-uppercase fw-semibold mb-1">Dados do Cliente</div>
         <strong>{{ cl.name }}</strong><br>
@@ -208,6 +245,7 @@
           {% if cl.email %}&nbsp;|&nbsp; {{ cl.email }}{% endif %}
         </small>
       </div>
+      {% endif %}
 
       <!-- ── Tabela de Itens com Simulação ──────────────── -->
       <table class="table table-bordered table-sm mb-0" id="tabela-itens">
@@ -256,6 +294,16 @@
       <hr class="mt-4">
 
       <div class="row mt-5 text-center">
+        {% if is_self %}
+        <div class="col-6 offset-3">
+          <div style="border-top: 1px solid #333; padding-top: 6px; margin-top: 48px;">
+            <small class="fw-semibold d-block">{{ store.get('Name','Empresa') }}</small>
+            {% if store_obj %}
+            <small class="text-muted">CNPJ: {{ fmt_cnpj(store_obj.code) }}</small>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
         <div class="col-5 offset-1">
           <div style="border-top: 1px solid #333; padding-top: 6px; margin-top: 48px;">
             <small class="fw-semibold d-block">{{ store.get('Name','Empresa') }}</small>
@@ -276,6 +324,7 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
       </div>
 
     </div>
@@ -298,7 +347,7 @@
 
 @media print {
   #bloco-simulacao, nav, .btn, form, .dropdown,
-  .d-flex.justify-content-between { display:none !important; }
+  .d-flex.justify-content-between, .toast-container { display:none !important; }
   .sim-block { background: #fff !important; }
   .card { box-shadow: none !important; border: none !important; }
 }
@@ -307,15 +356,29 @@
 <!-- ── Dados de coeficientes (tabela ouvirtiba.payment_installment_condition) ──
      Fica num <script type="application/json"> separado para não ser interpretado
      como JavaScript pelo editor/IDE e para evitar problemas de escaping do Jinja
-     dentro de um bloco <script> comum. -->
+     dentro de um bloco <script> comum. Refere-se à instituição padrão inicial
+     (default_description, calculada no routes.py). ── -->
 <script id="coef-data" type="application/json">{{ coef_map | tojson }}</script>
+
+<!-- ── Toast de confirmação da simulação ───────────────────── -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080">
+  <div id="toast-simulacao" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle me-1"></i> Simulação Gerada!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
 
 <!-- ── Script de Simulação ──────────────────────────────── -->
 <script>
 // ── Coeficientes (PMT = VlrTotal * COEF) ─────────────────
-// Vêm da tabela ouvirtiba.payment_installment_condition (condições ativas),
-// montados em routes.py via get_coefficient_map() e lidos do bloco JSON acima.
-const COEF = JSON.parse(document.getElementById('coef-data').textContent);
+// Vêm da tabela ouvirtiba.payment_installment_condition (condições ativas da
+// instituição selecionada), montados em routes.py via get_coefficient_map()
+// e lidos do bloco JSON acima. São atualizados via fetch ao trocar a instituição.
+let COEF = JSON.parse(document.getElementById('coef-data').textContent);
 const COEF_DEFAULT = 0.125376; // usado apenas se a parcela escolhida não tiver condição cadastrada
 
 // ── Formatação BR ────────────────────────────────────────
@@ -323,6 +386,52 @@ function fmtBR(n) {
   return parseFloat(n || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 2, maximumFractionDigits: 2
   });
+}
+
+// ── Troca de instituição financeira ──────────────────────
+// Busca as parcelas/coeficientes ativos daquela instituição e repopula o
+// select "Parcela máxima" mantendo, se possível, a parcela já escolhida.
+async function onInstituicaoChange() {
+  const description  = document.getElementById('sim-instituicao').value;
+  const parcelasSel  = document.getElementById('sim-parcelas');
+  const parcelaAtual = parseInt(parcelasSel.value) || 10;
+
+  try {
+    const r = await fetch('/admin/quote/coefficients/by-description?description=' + encodeURIComponent(description));
+    if (!r.ok) throw new Error('Falha ao buscar coeficientes');
+    const data = await r.json();
+
+    COEF = data.coef_map || {};
+
+    parcelasSel.innerHTML = '';
+    (data.installments || []).forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n + 'x';
+      parcelasSel.appendChild(opt);
+    });
+
+    if (!parcelasSel.options.length) {
+      const opt = document.createElement('option');
+      opt.value = 10;
+      opt.textContent = '10x';
+      parcelasSel.appendChild(opt);
+    }
+
+    // Tenta manter a parcela anterior; senão prioriza 10x; senão a primeira disponível
+    const values = Array.from(parcelasSel.options).map(o => parseInt(o.value));
+    if (values.includes(parcelaAtual)) {
+      parcelasSel.value = parcelaAtual;
+    } else if (values.includes(10)) {
+      parcelasSel.value = 10;
+    } else {
+      parcelasSel.selectedIndex = 0;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  simular();
 }
 
 // ── Simular todas as linhas ──────────────────────────────
@@ -343,7 +452,7 @@ function simular() {
     // Sem juros: total / semJuros por parcela
     const pmtSemJuros  = total / semJuros;
 
-    // Com juros: total * coeficiente da parcela máxima
+    // Com juros: total * coeficiente da parcela máxima (da instituição selecionada)
     const coef         = COEF[maxParc] || COEF_DEFAULT;
     const pmtComJuros  = total * coef;
     const totalComJuros = pmtComJuros * maxParc;
@@ -371,8 +480,29 @@ function simular() {
   });
 }
 
-// ── Disparar ao clicar ───────────────────────────────────
-document.getElementById('btn-simular').addEventListener('click', simular);
+// ── Ao clicar "Simular": recalcula e avisa o usuário ─────
+function simularComFeedback() {
+  simular();
+  const toastEl = document.getElementById('toast-simulacao');
+  const toast = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 2500 });
+  toast.show();
+}
+
+// ── Sincroniza os campos ocultos do form "Salvar Simulação" com o
+//    estado atual da tela, logo antes de enviar (garante que o que é
+//    salvo em ouvirtiba.quote é exatamente o que o usuário está vendo).
+//    O form de "Gerar/Regerar PDF" não precisa mais desses campos: o
+//    PDF é sempre gerado a partir do que estiver salvo no orçamento. ──
+document.getElementById('form-salvar-simulacao').addEventListener('submit', function () {
+  document.getElementById('hid-save-sim-description').value = document.getElementById('sim-instituicao').value;
+  document.getElementById('hid-save-sim-max-parc').value     = document.getElementById('sim-parcelas').value;
+  document.getElementById('hid-save-sim-desc-vist').value    = document.getElementById('sim-desc-avista').value;
+  document.getElementById('hid-save-sim-sem-juros').value    = document.getElementById('sim-sem-juros').value;
+});
+
+// ── Disparar ao clicar / trocar instituição ──────────────
+document.getElementById('btn-simular').addEventListener('click', simularComFeedback);
+document.getElementById('sim-instituicao').addEventListener('change', onInstituicaoChange);
 
 // ── Simular automaticamente ao carregar ─────────────────
 simular();

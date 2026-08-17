@@ -14,7 +14,7 @@ ATUALIZAR GITHUB:
 Salvar no github (https://github.com/janssengh/ouvirtiba):
 bash
     git add . 
-    git commit -m "Implementação tabela de coeficientes para cálculo pagamento à prazo"
+    git commit -m "Melhorias Orçamento: Inclusão de Exclusão; Orçamento Geral"
     git push origin master
 
 ATUALIZAR RENDER:

@@ -18,6 +18,16 @@ class Quote(db.Model):
     status       = db.Column(db.String(10), nullable=False, default='PENDENTE')
     created_at   = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
+    # Adicionar estes atributos à classe Quote em admin/quote/models.py,
+    # junto aos demais Column(...) já existentes (discount, total, status, etc).
+    # Ajuste o nome da classe/tabela caso não seja exatamente "Quote".
+
+    payment_institution        = db.Column(db.String(100))
+    max_installments           = db.Column(db.Integer)
+    cash_discount_pct          = db.Column(db.Numeric(5, 2))
+    interest_free_installments = db.Column(db.Integer)
+    installment_coefficient    = db.Column(db.Numeric(10, 6))
+
     # Relacionamentos
     client = db.relationship('Client', backref=db.backref('quotes', lazy=True))
     items  = db.relationship('QuoteItem', backref='quote', lazy=True,

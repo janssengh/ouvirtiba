@@ -43,6 +43,18 @@
                    oninput="recalc()">
           </div>
 
+          <div class="col-md-4">
+            <label class="form-label">Instituição <span class="text-danger">*</span></label>
+            <select name="payment_institution" class="form-select form-select-sm" required>
+              <option value="">— Selecione a instituição —</option>
+              {% for d in descriptions %}
+              <option value="{{ d }}" {% if d == default_description %}selected{% endif %}>{{ d }}</option>
+              {% else %}
+              <option value="">Nenhuma cadastrada</option>
+              {% endfor %}
+            </select>
+          </div>
+
           <div class="col-12">
             <label class="form-label">Observações / Condições</label>
             <textarea name="observations" class="form-control form-control-sm" rows="2"
@@ -206,7 +218,7 @@ function addRow() {
     <td>
       <input type="number" name="quantity[]"
              class="form-control form-control-sm text-center qty"
-             value="1" min="0.001" step="0.001" required>
+             value="1" min="1" step="1" inputmode="numeric" required>
     </td>
     <td>
       <!-- sale_price: somente leitura, vem do product_assembly -->
@@ -233,7 +245,13 @@ function addRow() {
   const sel = tr.querySelector('.prod-sel');
   sel.addEventListener('change', () => onProductChange(sel, tr));
 
-  tr.querySelector('.qty').addEventListener('input', recalc);
+  tr.querySelector('.qty').addEventListener('input', function () {
+    // Garante número inteiro mesmo se o usuário digitar manualmente com decimais
+    let v = parseInt(this.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    this.value = v;
+    recalc();
+  });
   tr.querySelector('.disc').addEventListener('input', recalc);
 
   tr.querySelector('.btn-remove').addEventListener('click', () => {
